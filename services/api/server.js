@@ -256,8 +256,24 @@ app.post('/runs/:runId/patches/apply', async (req, res) => {
 
     const patch = await PatchRequest.findById(patchRequestId);
     if (!patch || patch.runId !== runId) return res.status(404).json({ error: 'PatchRequest not found for this run' });
+    
+    // Provide detailed error about why patch can't be applied
     if (!patch.preview || !patch.preview.files || patch.status !== 'preview_ready') {
-      return res.status(400).json({ error: 'PatchRequest is not ready to apply (preview missing or status not preview_ready)' });
+      const filesReady = (patch.preview?.files || []).filter(f => f.ready).length;
+      const filesTotal = patch.preview?.filesExpected || 0;
+      const currentStatus = patch.status || 'unknown';
+      
+      return res.status(400).json({ 
+        error: 'PatchRequest is not ready to apply',
+        details: {
+          currentStatus,
+          requiredStatus: 'preview_ready',
+          filesProcessed: `${filesReady}/${filesTotal}`,
+          message: currentStatus === 'preview_partial' 
+            ? `Preview still processing (${filesReady}/${filesTotal} files ready). Please wait and try again.`
+            : `Current status: ${currentStatus}. Expected: preview_ready`
+        }
+      });
     }
 
     // Enqueue an autofix apply job
