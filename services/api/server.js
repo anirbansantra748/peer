@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { analyzeQueue, autofixQueue } = require('../../shared/queue');
 const PRRun = require('../../shared/models/PRRun');
 const logger = require('../../shared/utils/prettyLogger');
+const llmCache = require('../../shared/cache/llmCache');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -20,6 +21,44 @@ mongoose
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ ok: true });
+});
+
+// Cache statistics endpoint
+app.get('/api/cache/stats', async (req, res) => {
+  try {
+    const stats = await llmCache.getStats();
+    res.json({
+      ok: true,
+      cache: stats,
+      enabled: process.env.REDIS_CACHE_ENABLED !== 'false',
+      ttl: parseInt(process.env.REDIS_CACHE_TTL || '86400', 10)
+    });
+  } catch (error) {
+    logger.error('api', 'Cache stats error', { error: String(error) });
+    res.status(500).json({ error: 'Failed to fetch cache stats' });
+  }
+});
+
+// Clear cache endpoint
+app.delete('/api/cache/clear', async (req, res) => {
+  try {
+    await llmCache.clear();
+    res.json({ ok: true, message: 'Cache cleared successfully' });
+  } catch (error) {
+    logger.error('api', 'Cache clear error', { error: String(error) });
+    res.status(500).json({ error: 'Failed to clear cache' });
+  }
+});
+
+// Reset cache stats endpoint
+app.post('/api/cache/reset-stats', async (req, res) => {
+  try {
+    await llmCache.resetStats();
+    res.json({ ok: true, message: 'Cache stats reset successfully' });
+  } catch (error) {
+    logger.error('api', 'Cache reset stats error', { error: String(error) });
+    res.status(500).json({ error: 'Failed to reset cache stats' });
+  }
 });
 
 function mapPayload(req) {
