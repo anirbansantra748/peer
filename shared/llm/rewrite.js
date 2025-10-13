@@ -1,6 +1,7 @@
 const axios = require('axios');
 const path = require('path');
 const llmCache = require('../cache/llmCache');
+const { cleanLLMResponse, validateCodeStructure } = require('./responseFilter');
 
 function detectLanguage(file) {
   const ext = path.extname(file).toLowerCase();
@@ -69,7 +70,14 @@ function buildPrompt({ file, code, findings }) {
   const issuesJson = JSON.stringify(issues, null, 2);
   return {
     system: `You are a senior ${language} engineer. Fix the code issues while preserving behavior and structure. Add brief inline comments explaining each fix. Output ONLY the corrected file content with no explanations or code fences.`,
-    user: `File: ${file}\nLanguage: ${language}\nIssues to fix:\n${issuesJson}\n\nFix the issues and add inline comments like:\n// semicolon added\n// fixed SQL injection\n\nReturn ONLY the corrected code:\n\n${code}`
+    user: `File: ${file}\nLanguage: ${language}\nIssues to fix:\n${issuesJson}\n\nIMPORTANT RULES:
+1. Return ONLY the corrected code - no introductions like "Here's the corrected code"
+2. NO explanatory comments like "Changes made:" or "Modifications:"
+3. NO markdown code fences (\`\`\`)
+4. Add inline code comments to explain fixes (e.g., // semicolon added)
+5. Do NOT add multi-line comment blocks summarizing changes
+
+Return ONLY the corrected code:\n\n${code}`
   };
 }
 
@@ -255,7 +263,12 @@ async function callGemini({ system, user }) {
 function stripFences(s) {
   const text = String(s || '').trim();
   // Remove Markdown fences if present
-  return text.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '');
+  let cleaned = text.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '');
+  
+  // Use advanced response filter to remove explanatory text
+  cleaned = cleanLLMResponse(cleaned, { filename: 'LLM response' });
+  
+  return cleaned;
 }
 
 async function rewriteFileWithAI({ file, code, findings }) {
