@@ -1,0 +1,44 @@
+name: Peer PR Auto Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  peer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Install Semgrep and Checkov
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install semgrep checkov
+
+      - name: Run Peer analyzer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/gha-run.js
+
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: peer-report
+          path: |
+            peer-report.json
+            peer-summary.md

@@ -1,5 +1,6 @@
 const axios = require('axios');
 const path = require('path');
+const llmCache = require('../cache/llmCache');
 
 function detectLanguage(file) {
   const ext = path.extname(file).toLowerCase();
@@ -175,6 +176,43 @@ async function callDeepSeek({ system, user }) {
   }
 }
 
+async function callOpenRouter({ system, user }) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL || 'mistralai/mistral-7b-instruct';
+  const url = 'https://openrouter.ai/api/v1/chat/completions';
+  try {
+    const startTime = Date.now();
+    const { data } = await axios.post(url, {
+      model,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      temperature: 0.2,
+      max_tokens: 4096,
+    }, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://github.com/anirbansantra748/peer',
+        'X-Title': 'Peer AI Code Review'
+      },
+      timeout: parseInt(process.env.LLM_TIMEOUT_MS || '20000', 10),
+    });
+    const responseTime = Date.now() - startTime;
+    let text = data?.choices?.[0]?.message?.content || '';
+    if (process.env.LLM_DEBUG === '1') {
+      console.log('[LLM][OpenRouter] success', { model, responseTime: `${responseTime}ms`, tokens: data?.usage?.total_tokens });
+    }
+    return { text: stripFences(text), modelUsed: model, provider: 'openrouter', responseTime };
+  } catch (e) {
+    if (process.env.LLM_DEBUG === '1') {
+      console.error('[LLM][OpenRouter] error', e?.response?.status, e?.response?.data || String(e));
+    }
+    throw e;
+  }
+}
+
 async function callGemini({ system, user }) {
   const apiKey = process.env.GEMINI_API_KEY;
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
@@ -224,32 +262,74 @@ async function rewriteFileWithAI({ file, code, findings }) {
   const { system, user } = buildPrompt({ file, code, findings });
   const complexity = analyzeComplexity(findings);
   
+  // Check cache first
+  const cachedResult = await llmCache.get(file, code, findings);
+  if (cachedResult) {
+    if (process.env.LLM_DEBUG === '1') {
+      console.log('[LLM][Cache] HIT', { file, model: cachedResult.model });
+    }
+    return { 
+      text: cachedResult.text, 
+      modelUsed: cachedResult.model, 
+      provider: 'cache',
+      responseTime: 0,
+      cached: true 
+    };
+  }
+  
   // Check available providers
   const haveGroq = !!process.env.GROQ_API_KEY;
   const haveDeepSeek = !!process.env.DEEPSEEK_API_KEY;
   const haveGemini = !!process.env.GEMINI_API_KEY;
   const haveOpenAI = !!process.env.OPENAI_API_KEY;
+  const haveOpenRouter = !!process.env.OPENROUTER_API_KEY;
   
   // Manual provider override
   const provider = (process.env.LLM_PROVIDER || '').toLowerCase();
   if (provider === 'groq' && haveGroq) {
-    try { return await callGroq({ system, user }); } catch (e) {
+    try { 
+      const result = await callGroq({ system, user });
+      await llmCache.set(file, code, findings, result.text, result.modelUsed, result.responseTime);
+      return result;
+    } catch (e) {
       if (process.env.LLM_DEBUG === '1') console.error('[LLM] Groq failed, no fallback');
     }
     return { text: '' };
   }
   if (provider === 'deepseek' && haveDeepSeek) {
-    try { return await callDeepSeek({ system, user }); } catch (e) {
+    try { 
+      const result = await callDeepSeek({ system, user });
+      await llmCache.set(file, code, findings, result.text, result.modelUsed, result.responseTime);
+      return result;
+    } catch (e) {
       if (process.env.LLM_DEBUG === '1') console.error('[LLM] DeepSeek failed, no fallback');
     }
     return { text: '' };
   }
+  if (provider === 'openrouter' && haveOpenRouter) {
+    try { 
+      const result = await callOpenRouter({ system, user });
+      await llmCache.set(file, code, findings, result.text, result.modelUsed, result.responseTime);
+      return result;
+    } catch (e) {
+      if (process.env.LLM_DEBUG === '1') console.error('[LLM] OpenRouter failed, no fallback');
+    }
+    return { text: '' };
+  }
   if (provider === 'gemini' && haveGemini) {
-    try { return await callGemini({ system, user }); } catch {}
+    try { 
+      const result = await callGemini({ system, user });
+      await llmCache.set(file, code, findings, result.text, result.modelUsed, result.responseTime);
+      return result;
+    } catch {}
     return { text: '' };
   }
   if (provider === 'openai' && haveOpenAI) {
-    try { return await callOpenAI({ system, user }); } catch {}
+    try { 
+      const result = await callOpenAI({ system, user });
+      await llmCache.set(file, code, findings, result.text, result.modelUsed, result.responseTime);
+      return result;
+    } catch {}
     return { text: '' };
   }
 
@@ -257,32 +337,57 @@ async function rewriteFileWithAI({ file, code, findings }) {
   let out = { text: '' };
   
   if (complexity === 'simple') {
-    // Simple fixes: Use Groq (fastest) -> Gemini -> DeepSeek
+    // Simple fixes: Use Groq (fastest) -> OpenRouter -> Gemini -> DeepSeek
     if (haveGroq) {
       try { 
         out = await callGroq({ system, user }); 
-        if (out.text && out.text.trim()) return out;
+        if (out.text && out.text.trim()) {
+          await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          return out;
+        }
       } catch (e) {
         if (process.env.LLM_DEBUG === '1') console.log('[LLM] Groq failed, trying fallback');
+      }
+    }
+    if (haveOpenRouter) {
+      try { 
+        out = await callOpenRouter({ system, user }); 
+        if (out.text && out.text.trim()) {
+          await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          return out;
+        }
+      } catch (e) {
+        if (process.env.LLM_DEBUG === '1') console.log('[LLM] OpenRouter failed, trying fallback');
       }
     }
     if (haveGemini) {
       try { 
         out = await callGemini({ system, user }); 
-        if (out.text && out.text.trim()) return out;
+        if (out.text && out.text.trim()) {
+          await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          return out;
+        }
       } catch (e) {
         if (process.env.LLM_DEBUG === '1') console.log('[LLM] Gemini failed, trying fallback');
       }
     }
     if (haveDeepSeek) {
-      try { out = await callDeepSeek({ system, user }); } catch {}
+      try { 
+        out = await callDeepSeek({ system, user });
+        if (out.text && out.text.trim()) {
+          await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+        }
+      } catch {}
     }
   } else {
-    // Complex fixes: Use DeepSeek (code specialist) -> Gemini -> Groq
+    // Complex fixes: Use DeepSeek (code specialist) -> Gemini -> Groq -> OpenRouter
     if (haveDeepSeek) {
       try { 
         out = await callDeepSeek({ system, user }); 
-        if (out.text && out.text.trim()) return out;
+        if (out.text && out.text.trim()) {
+          await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          return out;
+        }
       } catch (e) {
         if (process.env.LLM_DEBUG === '1') console.log('[LLM] DeepSeek failed, trying fallback');
       }
@@ -290,13 +395,30 @@ async function rewriteFileWithAI({ file, code, findings }) {
     if (haveGemini) {
       try { 
         out = await callGemini({ system, user }); 
-        if (out.text && out.text.trim()) return out;
+        if (out.text && out.text.trim()) {
+          await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          return out;
+        }
       } catch (e) {
         if (process.env.LLM_DEBUG === '1') console.log('[LLM] Gemini failed, trying fallback');
       }
     }
     if (haveGroq) {
-      try { out = await callGroq({ system, user }); } catch {}
+      try { 
+        out = await callGroq({ system, user });
+        if (out.text && out.text.trim()) {
+          await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          return out;
+        }
+      } catch {}
+    }
+    if (haveOpenRouter) {
+      try { 
+        out = await callOpenRouter({ system, user });
+        if (out.text && out.text.trim()) {
+          await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+        }
+      } catch {}
     }
   }
   
