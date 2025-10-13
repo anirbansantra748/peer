@@ -70,15 +70,19 @@ function buildPrompt({ file, code, findings }) {
   const issuesJson = JSON.stringify(issues, null, 2);
   return {
     system: `You are a senior ${language} engineer. Fix the code issues while preserving behavior and structure. Add brief inline comments explaining each fix. Output ONLY the corrected file content with no explanations or code fences.`,
-    user: `File: ${file}\nLanguage: ${language}\nIssues to fix:\n${issuesJson}\n\nIMPORTANT RULES:
-1. Return ONLY the corrected code - no introductions like "Here's the corrected code"
-2. NO explanatory text at the end like "Changes made:" or numbered lists
-3. NO markdown code fences (\`\`\`)
-4. Add INLINE comments next to each fix using // syntax:
+    user: `File: ${file}\nLanguage: ${language}\nIssues to fix:\n${issuesJson}\n\nCRITICAL RULES - FOLLOW EXACTLY:
+1. Return ONLY the corrected code - NO introductions like "Here's the corrected code"
+2. NO explanatory paragraphs before or after code (e.g., "I've fixed the issue by...")
+3. NO numbered lists explaining changes (e.g., "1. Replaced X with Y")
+4. NO markdown code fences (\`\`\`)
+5. NO sentences like:
+   - "For the X issue, I recommend..."
+   - "Regarding the Y, you should..."
+   - "If you're using Z, you can..."
+6. Add ONLY inline comments using // or /* */ within the code:
    ✅ CORRECT: const x = true; // fixed: changed 'tru' to 'true'
-   ❌ WRONG: At the end listing "1. Replaced tru with true"
-5. Do NOT add multi-line comment blocks summarizing changes
-6. Do NOT add numbered lists (1., 2., 3.) explaining changes
+   ✅ CORRECT: file.getCanonicalPath(); // prevents path traversal
+   ❌ WRONG: Explanatory paragraph at the end
 
 Return ONLY the corrected code with inline comments:\n\n${code}`
   };

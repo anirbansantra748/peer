@@ -30,6 +30,14 @@ const EXPLANATORY_PATTERNS = [
   // Numbered change lists (1., 2., 3., etc.)
   /^\d+\.\s+(?:Replaced|Added|Removed|Fixed|Changed|Used|Updated)/im,
   
+  // Explanatory paragraphs about what was done
+  /^I've\s+fixed\s+(?:the|a|an)/im,
+  /^For\s+the\s+.+\s+issue/im,
+  /^Regarding\s+the/im,
+  /^Lastly,\s+I've/im,
+  /^If\s+you(?:'re|\s+are)\s+using/im,
+  /^you\s+(?:should|can|may)\s+(?:catch|replace|use)/im,
+  
   // Meta-commentary
   /^(?:Note|Important|Warning):/im,
   /^I've\s+(?:added|removed|fixed)/im,
@@ -64,7 +72,13 @@ function isExplanatoryLine(line) {
       'security risk',
       'poses a',
       'potential xss',
-      'blocks page rendering'
+      'blocks page rendering',
+      'resource not closed',
+      'unsafe deserialization',
+      'path traversal',
+      'try-with-resources',
+      'logging framework',
+      'generic exceptions'
     ];
     
     const lowerLine = trimmed.toLowerCase();
@@ -73,6 +87,17 @@ function isExplanatoryLine(line) {
         return true;
       }
     }
+  }
+  
+  // Detect explanatory sentences (not code)
+  // These typically have sentence structure: subject + verb + object
+  if (!trimmed.match(/^[\w$]+\s*[=:({<]/) && // Not code assignment/function call
+      !trimmed.match(/^(const|let|var|function|class|import|export|return|if|for|while)\b/) && // Not code keyword
+      !trimmed.match(/^[\w$]+\s*\(/) && // Not function call
+      !trimmed.match(/^[{}\[\];,]/) && // Not code punctuation
+      trimmed.length > 40 && // Long enough to be explanatory
+      trimmed.match(/\b(?:I've|I have|you should|you can|recommend|ensure|avoid|replace)\b/i)) { // Explanatory verbs
+    return true;
   }
   
   return false;
