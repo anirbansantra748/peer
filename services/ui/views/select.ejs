@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title><%= title %></title>
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; padding: 20px; }
+      .toolbar { margin-bottom: 12px; }
+      .table { width: 100%; border-collapse: collapse; }
+      .table th, .table td { border: 1px solid #ddd; padding: 6px 8px; font-size: 14px; }
+      .sev { font-weight: bold; }
+      .sev.critical { color: #b40000; }
+      .sev.high { color: #d77a00; }
+      .sev.medium { color: #0060c0; }
+      .sev.low { color: #0a8; }
+      .file { font-family: monospace; }
+    </style>
+  </head>
+  <body>
+    <h1>Select improvements — Run <%= runId %></h1>
+    <form method="post" action="/runs/<%= runId %>/preview" id="selectForm">
+      <div class="toolbar">
+        <label>Filter severity:</label>
+        <select id="sevFilter">
+          <option value="">All</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <input type="text" id="search" placeholder="Search file/rule/message" style="margin-left:8px; width: 320px;">
+        <button type="button" id="selectCritical">Select Critical/High</button>
+        <button type="button" id="clearAll">Clear</button>
+        <% if (typeof query !== 'undefined' && query.err) { %>
+          <span style="color:#b40000; margin-left: 8px;"><%= query.err %></span>
+        <% } %>
+      </div>
+      <table class="table" id="findingsTable">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAll"></th>
+            <th>Severity</th>
+            <th>File:Line</th>
+            <th>Rule</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% findings.forEach(f => { %>
+            <tr data-sev="<%= f.severity %>" data-file="<%= f.file %>" data-rule="<%= f.rule %>" data-msg="<%= f.message %>">
+              <td>
+                <input type="checkbox" name="selectedFindingIds[]" value="<%= String(f._id) %>">
+              </td>
+              <td class="sev <%= f.severity %>"><%= f.severity %></td>
+              <td class="file"><%= f.file %>:<%= f.line %></td>
+              <td><code><%= f.rule %></code></td>
+              <td><%= f.message %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <div style="margin-top:12px;">
+        <button type="submit">Preview Selected</button>
+        <a href="/" style="margin-left:8px;">Back</a>
+      </div>
+    </form>
+
+    <script>
+      const table = document.getElementById('findingsTable');
+      const selectAll = document.getElementById('selectAll');
+      const sevFilter = document.getElementById('sevFilter');
+      const search = document.getElementById('search');
+      const selectCritical = document.getElementById('selectCritical');
+      const clearAll = document.getElementById('clearAll');
+      const form = document.getElementById('selectForm');
+
+      selectAll.addEventListener('change', () => {
+        table.querySelectorAll('tbody input[type=checkbox]').forEach(cb => cb.checked = selectAll.checked);
+      });
+
+      sevFilter.addEventListener('change', applyFilters);
+      search.addEventListener('input', applyFilters);
+      selectCritical.addEventListener('click', () => {
+        table.querySelectorAll('tbody tr').forEach(tr => {
+          const sev = tr.getAttribute('data-sev');
+          const cb = tr.querySelector('input[type=checkbox]');
+          cb.checked = (sev === 'critical' || sev === 'high');
+        });
+      });
+      clearAll.addEventListener('click', () => {
+        table.querySelectorAll('tbody input[type=checkbox]').forEach(cb => cb.checked = false);
+      });
+
+      form.addEventListener('submit', (e) => {
+        const any = Array.from(table.querySelectorAll('tbody input[type=checkbox]')).some(cb => cb.checked);
+        if (!any) {
+          e.preventDefault();
+          alert('Please select at least one finding');
+        }
+      });
+
+      function applyFilters() {
+        const sev = sevFilter.value;
+        const q = search.value.toLowerCase();
+        table.querySelectorAll('tbody tr').forEach(tr => {
+          const matchSev = !sev || tr.getAttribute('data-sev') === sev;
+          const hay = (tr.getAttribute('data-file') + ' ' + tr.getAttribute('data-rule') + ' ' + tr.getAttribute('data-msg')).toLowerCase();
+          const matchText = !q || hay.includes(q);
+          tr.style.display = (matchSev && matchText) ? '' : 'none';
+        });
+      }
+    </script>
+  </body>
+</html>
