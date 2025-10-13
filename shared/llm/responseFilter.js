@@ -27,6 +27,9 @@ const EXPLANATORY_PATTERNS = [
   /^Updates:/im,
   /^Fixes\s+applied:/im,
   
+  // Numbered change lists (1., 2., 3., etc.)
+  /^\d+\.\s+(?:Replaced|Added|Removed|Fixed|Changed|Used|Updated)/im,
+  
   // Meta-commentary
   /^(?:Note|Important|Warning):/im,
   /^I've\s+(?:added|removed|fixed)/im,

@@ -72,12 +72,15 @@ function buildPrompt({ file, code, findings }) {
     system: `You are a senior ${language} engineer. Fix the code issues while preserving behavior and structure. Add brief inline comments explaining each fix. Output ONLY the corrected file content with no explanations or code fences.`,
     user: `File: ${file}\nLanguage: ${language}\nIssues to fix:\n${issuesJson}\n\nIMPORTANT RULES:
 1. Return ONLY the corrected code - no introductions like "Here's the corrected code"
-2. NO explanatory comments like "Changes made:" or "Modifications:"
+2. NO explanatory text at the end like "Changes made:" or numbered lists
 3. NO markdown code fences (\`\`\`)
-4. Add inline code comments to explain fixes (e.g., // semicolon added)
+4. Add INLINE comments next to each fix using // syntax:
+   ✅ CORRECT: const x = true; // fixed: changed 'tru' to 'true'
+   ❌ WRONG: At the end listing "1. Replaced tru with true"
 5. Do NOT add multi-line comment blocks summarizing changes
+6. Do NOT add numbered lists (1., 2., 3.) explaining changes
 
-Return ONLY the corrected code:\n\n${code}`
+Return ONLY the corrected code with inline comments:\n\n${code}`
   };
 }
 
