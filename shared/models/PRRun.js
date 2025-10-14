@@ -96,7 +96,7 @@ const findingSchema = new mongoose.Schema({
   fixed: { type: Boolean, default: false },
   fixedAt: { type: Date },
   fixedByPatchRequestId: { type: String },
-}, { _id: false });
+}, { _id: true }); // Enable _id for findings so we can track individual findings
 
 // Schema for summary counts by severity
 const summarySchema = new mongoose.Schema({
