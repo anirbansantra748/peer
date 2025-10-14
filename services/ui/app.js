@@ -47,11 +47,13 @@ app.post('/runs/:runId/preview', async (req, res) => {
     let ids = req.body['selectedFindingIds[]'] || req.body.selectedFindingIds || [];
     if (!Array.isArray(ids)) ids = [ids];
     ids = ids.filter(Boolean);
+    console.log('[ui] Selected finding IDs received from browser:', ids.length, 'IDs:', ids.slice(0, 10));
     if (ids.length === 0) {
       return res.redirect(`/runs/${runId}/select?err=${encodeURIComponent('Please select at least one finding')}`);
     }
     const resp = await axios.post(`${API_BASE}/runs/${runId}/patches/preview`, { selectedFindingIds: ids });
-    const { patchRequestId } = resp.data;
+    const { patchRequestId, filesQueued } = resp.data;
+    console.log('[ui] Preview created:', { patchRequestId, filesQueued });
     res.redirect(`/runs/${runId}/preview?patchRequestId=${encodeURIComponent(patchRequestId)}`);
   } catch (e) {
     res.status(500).send(`Failed to create preview: ${e?.response?.data?.error || e.message}`);

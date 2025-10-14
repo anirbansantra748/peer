@@ -203,6 +203,13 @@ app.post('/runs/:runId/patches/preview', async (req, res) => {
 
     const idsSet = new Set(selectedFindingIds.map(String));
     const selected = prRun.findings.filter(f => idsSet.has(String(f._id)));
+    logger.info('api', 'Selection filter', { 
+      totalFindings: prRun.findings.length,
+      selectedFindingIds: selectedFindingIds.length, 
+      selectedCount: selected.length,
+      selectedIds: selectedFindingIds.slice(0, 5).map(String),
+      selectedFiles: selected.slice(0, 5).map(f => f.file)
+    });
     if (!selected.length) return res.status(400).json({ error: 'None of the selected findings exist in this run' });
 
     // Compute unique files and per-file finding IDs
@@ -211,6 +218,10 @@ app.post('/runs/:runId/patches/preview', async (req, res) => {
       if (!filesMap.has(f.file)) filesMap.set(f.file, new Set());
       filesMap.get(f.file).add(String(f._id));
     }
+    logger.info('api', 'Files map computed', { 
+      uniqueFiles: filesMap.size,
+      filesWithCounts: Array.from(filesMap.entries()).map(([file, ids]) => ({ file, findingCount: ids.size }))
+    });
 
     // Create PatchRequest placeholder with file stubs (ready=false)
     const filesExpected = filesMap.size;
