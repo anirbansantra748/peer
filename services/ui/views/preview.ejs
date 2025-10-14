@@ -24,6 +24,16 @@
       .btn + .btn { margin-left: 8px; }
       details { margin-top: 16px; }
       details > summary { cursor: pointer; font-weight: 600; font-family: system-ui, Arial, sans-serif; }
+      /* Typing animation */
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .typing-line {
+        animation: fadeIn 0.3s ease-out;
+        opacity: 0;
+      }
+      .typing-complete { opacity: 1; }
     </style>
   </head>
   <body>
@@ -129,24 +139,39 @@
               diffBody.innerHTML = `<tr><td colspan=2 class=\"panel\"><div class=\"codeBlk\"><div class=\"codeCol\">Processing... still preparing this file</div></div></td></tr>`;
               return;
             }
-            // Render side-by-side
+            // Render side-by-side with ChatGPT-style typing animation
             const left = String(data.originalText||'').split(/\r?\n/);
             const right = String(data.improvedText||'').split(/\r?\n/);
             const maxLen = Math.max(left.length, right.length);
             diffBody.innerHTML = '';
-            for (let j=0;j<maxLen;j++){
-              const l = left[j] || '';
-              const r = right[j] || '';
-              const eq = l === r;
-              const tr = document.createElement('tr');
-              const tdL = document.createElement('td'); tdL.className = 'panel';
-              const tdR = document.createElement('td'); tdR.className = 'panel';
-              tdL.innerHTML = `<div class=\"codeBlk\"><div class=\"lnCol\">${j+1}</div><div class=\"codeCol ${eq?'':'removed'}\">${escapeHtml(l)}</div></div>`;
-              tdR.innerHTML = `<div class=\"codeBlk\"><div class=\"lnCol\">${j+1}</div><div class=\"codeCol ${eq?'':'added'}\">${escapeHtml(r)}</div></div>`;
-              tr.appendChild(tdL); tr.appendChild(tdR);
-              diffBody.appendChild(tr);
-            }
             udiffEl.textContent = String(data.unifiedDiff || '');
+            
+            // Typing animation - render lines progressively
+            const linesPerBatch = 3; // Show 3 lines at a time for smooth feel
+            const batchDelay = 50;   // 50ms between batches (adjust for speed)
+            
+            for (let j=0; j<maxLen; j+=linesPerBatch){
+              await new Promise(resolve => setTimeout(resolve, batchDelay));
+              
+              for (let k=0; k<linesPerBatch && (j+k)<maxLen; k++){
+                const lineNum = j + k;
+                const l = left[lineNum] || '';
+                const r = right[lineNum] || '';
+                const eq = l === r;
+                const tr = document.createElement('tr');
+                tr.className = 'typing-line';
+                const tdL = document.createElement('td'); tdL.className = 'panel';
+                const tdR = document.createElement('td'); tdR.className = 'panel';
+                tdL.innerHTML = `<div class=\"codeBlk\"><div class=\"lnCol\">${lineNum+1}</div><div class=\"codeCol ${eq?'':'removed'}\">${escapeHtml(l)}</div></div>`;
+                tdR.innerHTML = `<div class=\"codeBlk\"><div class=\"lnCol\">${lineNum+1}</div><div class=\"codeCol ${eq?'':'added'}\">${escapeHtml(r)}</div></div>`;
+                tr.appendChild(tdL); tr.appendChild(tdR);
+                diffBody.appendChild(tr);
+                // Trigger animation
+                requestAnimationFrame(() => {
+                  tr.classList.add('typing-complete');
+                });
+              }
+            }
           }
 
           await renderIndex(idx);
