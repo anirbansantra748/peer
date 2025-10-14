@@ -401,7 +401,17 @@ app.get('/runs/:runId/patches/:patchRequestId/file', async (req, res) => {
     if (!patch || patch.runId !== runId) return res.status(404).json({ error: 'PatchRequest not found for this run' });
     const entry = (patch.preview?.files || []).find(f => f.file === file);
     if (entry && entry.ready) {
-      return res.json({ ready: true, file: entry.file, originalText: entry.originalText, improvedText: entry.improvedText, hunks: entry.hunks, unifiedDiff: entry.unifiedDiff });
+      return res.json({ 
+        ready: true, 
+        file: entry.file, 
+        originalText: entry.originalText, 
+        improvedText: entry.improvedText, 
+        hunks: entry.hunks, 
+        unifiedDiff: entry.unifiedDiff,
+        changeSummary: entry.changeSummary || null,
+        skipped: entry.skipped || false,
+        skipReason: entry.skipReason || null
+      });
     }
     if (String(proc) === '1') {
       // Enqueue single-file preview job
