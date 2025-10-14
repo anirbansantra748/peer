@@ -621,7 +621,16 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
   // Update patch status if all ready
   const planned = patch.preview.filesExpected || patch.preview.files.length;
   const readyCount = (patch.preview.files || []).filter(f => f.ready).length;
-  patch.status = (readyCount >= planned && planned > 0) ? 'preview_ready' : 'preview_partial';
+  const newStatus = (readyCount >= planned && planned > 0) ? 'preview_ready' : 'preview_partial';
+  logger.info('autofix', 'Updating patch status', { 
+    patchRequestId: patch._id.toString(),
+    file: filePath,
+    readyCount, 
+    planned, 
+    oldStatus: patch.status,
+    newStatus 
+  });
+  patch.status = newStatus;
   await patch.save();
   return patch;
 }
