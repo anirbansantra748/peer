@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const axios = require('axios');
+const { categorizeAllFindings, getCategorySummary } = require('../../shared/utils/issueCategorizer');
 
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 
@@ -20,10 +21,20 @@ app.get('/runs/:runId/select', async (req, res) => {
     const { runId } = req.params;
     const resp = await axios.get(`${API_BASE}/runs/${runId}`);
     const run = resp.data;
-    // Sort by severity for convenience
-    const order = { critical: 4, high: 3, medium: 2, low: 1 };
-    const findings = (run.findings || []).slice().sort((a, b) => (order[b.severity] - order[a.severity]) || a.file.localeCompare(b.file) || (a.line - b.line));
-    res.render('select', { title: `Select fixes — Run ${runId}`, runId, run, findings, query: req.query });
+    
+    // Enhance findings with categorization
+    const enhancedFindings = categorizeAllFindings(run.findings || []);
+    const summary = getCategorySummary(run.findings || []);
+    
+    // Sort by category priority then by file
+    const categoryOrder = { BLOCKING: 4, URGENT: 3, RECOMMENDED: 2, OPTIONAL: 1 };
+    const findings = enhancedFindings.sort((a, b) => 
+      (categoryOrder[b.category] - categoryOrder[a.category]) || 
+      a.file.localeCompare(b.file) || 
+      (a.line - b.line)
+    );
+    
+    res.render('select', { title: `Select fixes — Run ${runId}`, runId, run, findings, summary, query: req.query });
   } catch (e) {
     res.status(500).send(`Failed to load run: ${e?.response?.data?.error || e.message}`);
   }

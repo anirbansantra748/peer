@@ -4,111 +4,535 @@
     <meta charset="utf-8" />
     <title><%= title %></title>
     <style>
-      body { font-family: system-ui, Arial, sans-serif; padding: 20px; }
-      .toolbar { margin-bottom: 12px; }
-      .table { width: 100%; border-collapse: collapse; }
-      .table th, .table td { border: 1px solid #ddd; padding: 6px 8px; font-size: 14px; }
-      .sev { font-weight: bold; }
-      .sev.critical { color: #b40000; }
-      .sev.high { color: #d77a00; }
-      .sev.medium { color: #0060c0; }
-      .sev.low { color: #0a8; }
-      .file { font-family: monospace; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        padding: 24px; 
+        background: #f5f5f5;
+      }
+      .container { max-width: 1400px; margin: 0 auto; }
+      h1 { margin-bottom: 24px; color: #333; }
+      
+      /* Summary Panel */
+      .summary {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .summary-title { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+      .summary-stats {
+        display: flex;
+        gap: 24px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .stat-box {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .stat-icon { font-size: 24px; }
+      .stat-count { font-size: 24px; font-weight: bold; }
+      .stat-label { font-size: 14px; color: #666; }
+      .summary-info {
+        background: #f8f9fa;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        color: #555;
+      }
+      
+      /* Toolbar */
+      .toolbar {
+        background: white;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .toolbar select, .toolbar input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .toolbar input[type="text"] { width: 320px; }
+      .toolbar button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-primary { background: #0066cc; color: white; }
+      .btn-primary:hover { background: #0052a3; }
+      .btn-secondary { background: #6c757d; color: white; }
+      .btn-secondary:hover { background: #5a6268; }
+      .btn-danger { background: #dc3545; color: white; }
+      .btn-danger:hover { background: #c82333; }
+      .btn-success { background: #28a745; color: white; }
+      .btn-success:hover { background: #218838; }
+      .btn-warning { background: #ffc107; color: #333; }
+      .btn-warning:hover { background: #e0a800; }
+      .toolbar .error { color: #dc3545; font-weight: 500; }
+      
+      /* Issue Table */
+      .issues-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .issue-row {
+        border-bottom: 1px solid #e9ecef;
+        padding: 16px;
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        transition: background 0.2s;
+      }
+      .issue-row:hover { background: #f8f9fa; }
+      .issue-row.hidden { display: none; }
+      
+      .issue-checkbox { flex-shrink: 0; padding-top: 2px; }
+      .issue-checkbox input { width: 18px; height: 18px; cursor: pointer; }
+      
+      .issue-category {
+        flex-shrink: 0;
+        width: 120px;
+      }
+      .category-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .category-BLOCKING {
+        background: #fee;
+        color: #c00;
+        border: 2px solid #c00;
+      }
+      .category-URGENT {
+        background: #fff3cd;
+        color: #856404;
+        border: 2px solid #ffc107;
+      }
+      .category-RECOMMENDED {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 2px solid #17a2b8;
+      }
+      .category-OPTIONAL {
+        background: #d4edda;
+        color: #155724;
+        border: 2px solid #28a745;
+      }
+      
+      .issue-content { flex: 1; min-width: 0; }
+      .issue-file {
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 13px;
+        color: #0066cc;
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+      .issue-rule {
+        background: #f1f3f5;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: monospace;
+        display: inline-block;
+        margin-bottom: 6px;
+      }
+      .issue-message {
+        color: #333;
+        font-size: 14px;
+        margin-bottom: 8px;
+        line-height: 1.5;
+      }
+      .issue-meta {
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        color: #666;
+      }
+      .meta-impact { color: #dc3545; font-weight: 500; }
+      .meta-effort { color: #28a745; font-weight: 500; }
+      .consequence-box {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 8px 12px;
+        margin-top: 8px;
+        font-size: 13px;
+        color: #856404;
+        border-radius: 4px;
+      }
+      .consequence-box.blocking {
+        background: #fee;
+        border-color: #c00;
+        color: #c00;
+      }
+      
+      /* Submit Bar */
+      .submit-bar {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 16px;
+        border-radius: 8px;
+        margin-top: 24px;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .selection-count {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+      }
+      .submit-actions { display: flex; gap: 12px; }
+      .submit-actions button {
+        padding: 12px 24px;
+        font-size: 16px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      
+      /* Modal */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal.active { display: flex; }
+      .modal-content {
+        background: white;
+        padding: 32px;
+        border-radius: 12px;
+        max-width: 600px;
+        margin: 20px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      }
+      .modal-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #dc3545;
+        margin-bottom: 16px;
+      }
+      .modal-body { margin-bottom: 24px; line-height: 1.6; }
+      .modal-list {
+        background: #f8f9fa;
+        padding: 16px;
+        border-radius: 6px;
+        margin: 16px 0;
+      }
+      .modal-list li {
+        margin: 8px 0;
+        padding-left: 8px;
+      }
+      .modal-confirmation {
+        margin-top: 16px;
+      }
+      .modal-confirmation input {
+        padding: 8px;
+        width: 100%;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+      }
     </style>
   </head>
   <body>
-    <h1>Select improvements — Run <%= runId %></h1>
-    <form method="post" action="/runs/<%= runId %>/preview" id="selectForm">
-      <div class="toolbar">
-        <label>Filter severity:</label>
-        <select id="sevFilter">
-          <option value="">All</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-        <input type="text" id="search" placeholder="Search file/rule/message" style="margin-left:8px; width: 320px;">
-        <button type="button" id="selectCritical">Select Critical/High</button>
-        <button type="button" id="clearAll">Clear</button>
-        <% if (typeof query !== 'undefined' && query.err) { %>
-          <span style="color:#b40000; margin-left: 8px;"><%= query.err %></span>
-        <% } %>
+    <div class="container">
+      <h1>🔍 Select Issues to Fix — Run <%= runId %></h1>
+      
+      <!-- Summary Panel -->
+      <div class="summary">
+        <div class="summary-title">📊 Issue Summary</div>
+        <div class="summary-stats">
+          <div class="stat-box">
+            <span class="stat-icon">🔴</span>
+            <div>
+              <div class="stat-count" style="color: #c00;"><%= summary.counts.BLOCKING %></div>
+              <div class="stat-label">BLOCKING</div>
+            </div>
+          </div>
+          <div class="stat-box">
+            <span class="stat-icon">🟠</span>
+            <div>
+              <div class="stat-count" style="color: #ff8800;"><%= summary.counts.URGENT %></div>
+              <div class="stat-label">URGENT</div>
+            </div>
+          </div>
+          <div class="stat-box">
+            <span class="stat-icon">🟡</span>
+            <div>
+              <div class="stat-count" style="color: #0099cc;"><%= summary.counts.RECOMMENDED %></div>
+              <div class="stat-label">RECOMMENDED</div>
+            </div>
+          </div>
+          <div class="stat-box">
+            <span class="stat-icon">🟢</span>
+            <div>
+              <div class="stat-count" style="color: #28a745;"><%= summary.counts.OPTIONAL %></div>
+              <div class="stat-label">OPTIONAL</div>
+            </div>
+          </div>
+        </div>
+        <div class="summary-info">
+          <strong><%= summary.total %></strong> total issues found • 
+          <strong><%= summary.blockingCount %></strong> require immediate attention • 
+          Estimated time: <strong><%= summary.totalEstimatedTime %></strong>
+        </div>
       </div>
-      <table class="table" id="findingsTable">
-        <thead>
-          <tr>
-            <th><input type="checkbox" id="selectAll"></th>
-            <th>Severity</th>
-            <th>File:Line</th>
-            <th>Rule</th>
-            <th>Message</th>
-          </tr>
-        </thead>
-        <tbody>
+      
+      <!-- Toolbar -->
+      <form method="post" action="/runs/<%= runId %>/preview" id="selectForm">
+        <div class="toolbar">
+          <select id="categoryFilter">
+            <option value="">All Categories</option>
+            <option value="BLOCKING">🔴 BLOCKING</option>
+            <option value="URGENT">🟠 URGENT</option>
+            <option value="RECOMMENDED">🟡 RECOMMENDED</option>
+            <option value="OPTIONAL">🟢 OPTIONAL</option>
+          </select>
+          <input type="text" id="search" placeholder="Search file, rule, or message...">
+          <button type="button" class="btn-danger" id="selectBlocking">Select BLOCKING</button>
+          <button type="button" class="btn-warning" id="selectUrgent">Select URGENT</button>
+          <button type="button" class="btn-secondary" id="clearAll">Clear All</button>
+          <% if (typeof query !== 'undefined' && query.err) { %>
+            <span class="error"><%= query.err %></span>
+          <% } %>
+        </div>
+        
+        <!-- Issues List -->
+        <div class="issues-table">
           <% findings.forEach(f => { %>
-            <tr data-sev="<%= f.severity %>" data-file="<%= f.file %>" data-rule="<%= f.rule %>" data-msg="<%= f.message %>">
-              <td>
-                <input type="checkbox" name="selectedFindingIds[]" value="<%= String(f._id) %>">
-              </td>
-              <td class="sev <%= f.severity %>"><%= f.severity %></td>
-              <td class="file"><%= f.file %>:<%= f.line %></td>
-              <td><code><%= f.rule %></code></td>
-              <td><%= f.message %></td>
-            </tr>
+            <div class="issue-row" 
+                 data-category="<%= f.category %>" 
+                 data-file="<%= f.file %>" 
+                 data-rule="<%= f.rule %>" 
+                 data-msg="<%= f.message %>"
+                 data-can-skip="<%= f.canSkip %>">
+              
+              <div class="issue-checkbox">
+                <input type="checkbox" 
+                       name="selectedFindingIds[]" 
+                       value="<%= String(f._id) %>"
+                       <%= f.category === 'BLOCKING' ? 'checked' : '' %>>
+              </div>
+              
+              <div class="issue-category">
+                <span class="category-badge category-<%= f.category %>">
+                  <%= f.category === 'BLOCKING' ? '🔴' : f.category === 'URGENT' ? '🟠' : f.category === 'RECOMMENDED' ? '🟡' : '🟢' %>
+                  <%= f.category %>
+                </span>
+              </div>
+              
+              <div class="issue-content">
+                <div class="issue-file">📁 <%= f.file %>:<%= f.line %></div>
+                <div class="issue-rule"><%= f.rule %></div>
+                <div class="issue-message"><%= f.message %></div>
+                <div class="issue-meta">
+                  <span class="meta-impact">💥 <%= f.impact %></span>
+                  <span class="meta-effort">⏱️ <%= f.effort %></span>
+                </div>
+                <% if (f.category === 'BLOCKING' || f.category === 'URGENT') { %>
+                  <div class="consequence-box <%= f.category === 'BLOCKING' ? 'blocking' : '' %>">
+                    ⚠️ <strong>If you skip:</strong> <%= f.consequence %>
+                  </div>
+                <% } %>
+              </div>
+            </div>
           <% }) %>
-        </tbody>
-      </table>
-      <div style="margin-top:12px;">
-        <button type="submit">Preview Selected</button>
-        <a href="/" style="margin-left:8px;">Back</a>
+        </div>
+        
+        <!-- Submit Bar -->
+        <div class="submit-bar">
+          <div class="selection-count" id="selectionCount">0 issues selected</div>
+          <div class="submit-actions">
+            <a href="/" class="btn-secondary" style="padding: 12px 24px; text-decoration: none; display: inline-block;">Cancel</a>
+            <button type="submit" class="btn-success">Fix Selected Issues →</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Skip Warning Modal -->
+    <div class="modal" id="skipModal">
+      <div class="modal-content">
+        <div class="modal-title">⚠️ Warning: Skipping BLOCKING Issues</div>
+        <div class="modal-body">
+          <p>You're about to skip <strong id="skipCount">0</strong> BLOCKING issues that <strong>WILL cause serious problems:</strong></p>
+          <ul class="modal-list" id="skipList"></ul>
+          <p style="margin-top: 16px; color: #c00; font-weight: 600;">
+            These issues can compromise security, crash your app, or cause data loss in production.
+          </p>
+          <div class="modal-confirmation">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+              Type "I understand the risks" to proceed:
+            </label>
+            <input type="text" id="confirmText" placeholder="I understand the risks">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="modalCancel">Go Back & Fix Them</button>
+          <button type="button" class="btn-danger" id="modalConfirm" disabled>Skip Anyway</button>
+        </div>
       </div>
-    </form>
+    </div>
 
     <script>
-      const table = document.getElementById('findingsTable');
-      const selectAll = document.getElementById('selectAll');
-      const sevFilter = document.getElementById('sevFilter');
-      const search = document.getElementById('search');
-      const selectCritical = document.getElementById('selectCritical');
-      const clearAll = document.getElementById('clearAll');
       const form = document.getElementById('selectForm');
-
-      selectAll.addEventListener('change', () => {
-        table.querySelectorAll('tbody input[type=checkbox]').forEach(cb => cb.checked = selectAll.checked);
-      });
-
-      sevFilter.addEventListener('change', applyFilters);
-      search.addEventListener('input', applyFilters);
-      selectCritical.addEventListener('click', () => {
-        table.querySelectorAll('tbody tr').forEach(tr => {
-          const sev = tr.getAttribute('data-sev');
-          const cb = tr.querySelector('input[type=checkbox]');
-          cb.checked = (sev === 'critical' || sev === 'high');
-        });
-      });
-      clearAll.addEventListener('click', () => {
-        table.querySelectorAll('tbody input[type=checkbox]').forEach(cb => cb.checked = false);
-      });
-
-      form.addEventListener('submit', (e) => {
-        const any = Array.from(table.querySelectorAll('tbody input[type=checkbox]')).some(cb => cb.checked);
-        if (!any) {
-          e.preventDefault();
-          alert('Please select at least one finding');
-        }
-      });
-
+      const categoryFilter = document.getElementById('categoryFilter');
+      const search = document.getElementById('search');
+      const selectBlocking = document.getElementById('selectBlocking');
+      const selectUrgent = document.getElementById('selectUrgent');
+      const clearAll = document.getElementById('clearAll');
+      const selectionCount = document.getElementById('selectionCount');
+      const skipModal = document.getElementById('skipModal');
+      const modalCancel = document.getElementById('modalCancel');
+      const modalConfirm = document.getElementById('modalConfirm');
+      const confirmText = document.getElementById('confirmText');
+      
+      // Update selection count
+      function updateCount() {
+        const checked = document.querySelectorAll('.issue-row input[type=checkbox]:checked');
+        const count = checked.length;
+        selectionCount.textContent = count === 1 ? '1 issue selected' : `${count} issues selected`;
+      }
+      
+      // Apply filters
       function applyFilters() {
-        const sev = sevFilter.value;
+        const cat = categoryFilter.value;
         const q = search.value.toLowerCase();
-        table.querySelectorAll('tbody tr').forEach(tr => {
-          const matchSev = !sev || tr.getAttribute('data-sev') === sev;
-          const hay = (tr.getAttribute('data-file') + ' ' + tr.getAttribute('data-rule') + ' ' + tr.getAttribute('data-msg')).toLowerCase();
+        document.querySelectorAll('.issue-row').forEach(row => {
+          const matchCat = !cat || row.getAttribute('data-category') === cat;
+          const hay = (row.getAttribute('data-file') + ' ' + row.getAttribute('data-rule') + ' ' + row.getAttribute('data-msg')).toLowerCase();
           const matchText = !q || hay.includes(q);
-          tr.style.display = (matchSev && matchText) ? '' : 'none';
+          row.classList.toggle('hidden', !(matchCat && matchText));
         });
       }
+      
+      // Batch select buttons
+      selectBlocking.addEventListener('click', () => {
+        document.querySelectorAll('.issue-row').forEach(row => {
+          if (row.getAttribute('data-category') === 'BLOCKING') {
+            row.querySelector('input[type=checkbox]').checked = true;
+          }
+        });
+        updateCount();
+      });
+      
+      selectUrgent.addEventListener('click', () => {
+        document.querySelectorAll('.issue-row').forEach(row => {
+          const cat = row.getAttribute('data-category');
+          if (cat === 'BLOCKING' || cat === 'URGENT') {
+            row.querySelector('input[type=checkbox]').checked = true;
+          }
+        });
+        updateCount();
+      });
+      
+      clearAll.addEventListener('click', () => {
+        document.querySelectorAll('.issue-row input[type=checkbox]').forEach(cb => cb.checked = false);
+        updateCount();
+      });
+      
+      // Listen to all checkboxes
+      document.querySelectorAll('.issue-row input[type=checkbox]').forEach(cb => {
+        cb.addEventListener('change', updateCount);
+      });
+      
+      // Filter listeners
+      categoryFilter.addEventListener('change', applyFilters);
+      search.addEventListener('input', applyFilters);
+      
+      // Form submission - check for skipped BLOCKING issues
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const checked = Array.from(document.querySelectorAll('.issue-row input[type=checkbox]:checked'));
+        if (checked.length === 0) {
+          alert('Please select at least one issue to fix');
+          return;
+        }
+        
+        // Find skipped BLOCKING issues
+        const skippedBlocking = [];
+        document.querySelectorAll('.issue-row').forEach(row => {
+          const category = row.getAttribute('data-category');
+          const canSkip = row.getAttribute('data-can-skip') === 'true';
+          const checkbox = row.querySelector('input[type=checkbox]');
+          if (category === 'BLOCKING' && !checkbox.checked && !canSkip) {
+            const file = row.getAttribute('data-file');
+            const msg = row.getAttribute('data-msg');
+            skippedBlocking.push({ file, msg });
+          }
+        });
+        
+        // If skipping BLOCKING issues, show warning modal
+        if (skippedBlocking.length > 0) {
+          document.getElementById('skipCount').textContent = skippedBlocking.length;
+          const skipList = document.getElementById('skipList');
+          skipList.innerHTML = skippedBlocking.map(s => 
+            `<li><strong>${s.file}</strong> - ${s.msg}</li>`
+          ).join('');
+          skipModal.classList.add('active');
+        } else {
+          // No BLOCKING issues skipped, submit directly
+          form.submit();
+        }
+      });
+      
+      // Modal confirmation text validation
+      confirmText.addEventListener('input', () => {
+        const valid = confirmText.value.trim().toLowerCase() === 'i understand the risks';
+        modalConfirm.disabled = !valid;
+      });
+      
+      // Modal cancel
+      modalCancel.addEventListener('click', () => {
+        skipModal.classList.remove('active');
+        confirmText.value = '';
+      });
+      
+      // Modal confirm - submit form
+      modalConfirm.addEventListener('click', () => {
+        skipModal.classList.remove('active');
+        form.submit();
+      });
+      
+      // Initialize count
+      updateCount();
     </script>
   </body>
 </html>
