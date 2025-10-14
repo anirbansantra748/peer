@@ -22,8 +22,12 @@ app.get('/runs/:runId/select', async (req, res) => {
     const resp = await axios.get(`${API_BASE}/runs/${runId}`);
     const run = resp.data;
     
+    // Debug: Check if findings have _id
+    console.log('[ui] Sample findings before categorization:', (run.findings || []).slice(0, 2).map(f => ({ _id: f._id, file: f.file, hasId: !!f._id })));
+    
     // Enhance findings with categorization
     const enhancedFindings = categorizeAllFindings(run.findings || []);
+    console.log('[ui] Sample findings after categorization:', enhancedFindings.slice(0, 2).map(f => ({ _id: f._id, file: f.file, hasId: !!f._id })));
     const summary = getCategorySummary(run.findings || []);
     
     // Sort by category priority then by file
