@@ -88,6 +88,17 @@ app.get('/runs/:runId', async (req, res) => {
     const showAll = String(req.query.show || '').toLowerCase() === 'all';
     const rawFindings = showAll ? prRun.findings : (prRun.findings || []).filter(f => !f.fixed);
     
+    // Debug: Check what's in the findings
+    if (rawFindings.length > 0) {
+      const sample = rawFindings[0];
+      logger.info('api', 'Sample finding from DB', { 
+        _id: sample._id,
+        hasId: !!sample._id,
+        keys: Object.keys(sample),
+        toObject: sample.toObject ? 'has toObject' : 'no toObject'
+      });
+    }
+    
     // Convert Mongoose subdocuments to plain objects to ensure _id is serialized
     const findings = rawFindings.map(f => ({
       _id: f._id,
