@@ -451,6 +451,44 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
   const prRun = await PRRun.findById(patch.runId);
   if (!prRun) throw new Error('Run not found');
 
+  // Skip non-code files that shouldn't be auto-fixed
+  const nonCodeFiles = [
+    /^LICENSE$/i,
+    /^README(\.md)?$/i,
+    /^CHANGELOG(\.md)?$/i,
+    /^CONTRIBUTING(\.md)?$/i,
+    /^\.gitignore$/i,
+    /^\.dockerignore$/i,
+    /^package-lock\.json$/i,
+    /^yarn\.lock$/i,
+    /^pnpm-lock\.yaml$/i,
+    /^\.env(\.example)?$/i,
+    /\.(txt|md|rst|log|lock)$/i,
+  ];
+  
+  const fileBasename = path.basename(filePath);
+  const shouldSkip = nonCodeFiles.some(pattern => pattern.test(fileBasename));
+  
+  if (shouldSkip) {
+    logger.info('autofix', 'Skipping non-code file', { file: filePath });
+    patch.preview = patch.preview || { unifiedDiff: '', files: [], filesExpected: 0 };
+    let stubIndex = (patch.preview.files || []).findIndex(f => f.file === filePath);
+    if (stubIndex === -1) {
+      patch.preview.files.push({ file: filePath, ready: true, skipped: true, skipReason: 'non-code-file', findingIds: [] });
+      stubIndex = patch.preview.files.length - 1;
+    } else {
+      patch.preview.files[stubIndex].ready = true;
+      patch.preview.files[stubIndex].skipped = true;
+      patch.preview.files[stubIndex].skipReason = 'non-code-file';
+    }
+    // Update patch status if all ready
+    const planned = patch.preview.filesExpected || patch.preview.files.length;
+    const readyCount = (patch.preview.files || []).filter(f => f.ready).length;
+    patch.status = (readyCount >= planned && planned > 0) ? 'preview_ready' : 'preview_partial';
+    await patch.save();
+    return patch;
+  }
+
   const findings = (prRun.findings || []).filter(f => patch.selectedFindingIds.includes(String(f._id)) && f.file === filePath);
   // Ensure preview object exists and file stub exists
   patch.preview = patch.preview || { unifiedDiff: '', files: [], filesExpected: 0 };
