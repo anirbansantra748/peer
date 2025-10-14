@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Progress - Peer AI</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: #1a202c;
+    }
+
+    .subtitle {
+      color: #718096;
+      margin-bottom: 30px;
+    }
+
+    .progress-container {
+      margin-bottom: 30px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    .progress-text {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 14px;
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .file-list {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #f7fafc;
+      transition: all 0.3s ease;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .file-item.ready {
+      background: #c6f6d5;
+    }
+
+    .file-item.skipped {
+      background: #fed7d7;
+    }
+
+    .file-item.error {
+      background: #fc8181;
+      color: white;
+    }
+
+    .file-icon {
+      font-size: 20px;
+      margin-right: 12px;
+      min-width: 24px;
+    }
+
+    .file-name {
+      flex: 1;
+      font-size: 14px;
+      color: #2d3748;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file-status {
+      font-size: 12px;
+      color: #718096;
+      margin-left: 12px;
+    }
+
+    .spinner {
+      border: 2px solid #e2e8f0;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      animation: spin 0.8s linear infinite;
+      margin-left: 12px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge.processing {
+      background: #bee3f8;
+      color: #2c5282;
+    }
+
+    .status-badge.complete {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+
+    .status-badge.failed {
+      background: #fed7d7;
+      color: #742a2a;
+    }
+
+    .completion-message {
+      text-align: center;
+      padding: 30px;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .completion-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .completion-text {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1a202c;
+      margin-bottom: 8px;
+    }
+
+    .completion-subtext {
+      color: #718096;
+      font-size: 14px;
+    }
+
+    button {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 AI Preview Generation</h1>
+    <p class="subtitle">Analyzing and fixing code in real-time...</p>
+
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+      </div>
+      <div class="progress-text" id="progressText">Initializing...</div>
+    </div>
+
+    <div id="statusBadge"></div>
+    
+    <div class="file-list" id="fileList"></div>
+
+    <div id="completionMessage" style="display: none;"></div>
+
+    <button id="viewResults" style="display: none;">View Results</button>
+  </div>
+
+  <script>
+    // Configuration - Update these with your actual values
+    const RUN_ID = '68ecd8185bdc3f2b85dd88db'; // Replace with actual run ID
+    const PATCH_REQUEST_ID = 'your_patch_request_id'; // Replace with actual patch ID
+    
+    // SSE connection
+    const eventSource = new EventSource(
+      `/runs/${RUN_ID}/patches/${PATCH_REQUEST_ID}/progress`
+    );
+
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const fileList = document.getElementById('fileList');
+    const statusBadge = document.getElementById('statusBadge');
+    const completionMessage = document.getElementById('completionMessage');
+    const viewResultsBtn = document.getElementById('viewResults');
+
+    let processedFiles = new Set();
+
+    function getFileIcon(file, ready, skipped, error) {
+      if (error) return '❌';
+      if (skipped) return '⏭️';
+      if (ready) return '✅';
+      return '⏳';
+    }
+
+    function getFileStatus(file, ready, skipped, error, skipReason) {
+      if (error) return 'Error';
+      if (skipped) {
+        if (skipReason === 'non-code-file') return 'Skipped (non-code)';
+        return 'Skipped';
+      }
+      if (ready) return 'Done';
+      return 'Processing...';
+    }
+
+    function getFileTimestamp() {
+      const now = new Date();
+      return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    }
+
+    function updateFileList(files) {
+      files.forEach(file => {
+        const fileId = `file-${file.file}`;
+        
+        if (!processedFiles.has(file.file)) {
+          processedFiles.add(file.file);
+          
+          const fileItem = document.createElement('div');
+          fileItem.id = fileId;
+          fileItem.className = 'file-item';
+          
+          const icon = document.createElement('span');
+          icon.className = 'file-icon';
+          icon.textContent = getFileIcon(file.file, file.ready, file.skipped, file.error);
+          
+          const fileName = document.createElement('span');
+          fileName.className = 'file-name';
+          fileName.textContent = file.file;
+          
+          const status = document.createElement('span');
+          status.className = 'file-status';
+          status.textContent = getFileStatus(file.file, file.ready, file.skipped, file.error, file.skipReason);
+          
+          fileItem.appendChild(icon);
+          fileItem.appendChild(fileName);
+          
+          if (!file.ready) {
+            const spinner = document.createElement('div');
+            spinner.className = 'spinner';
+            fileItem.appendChild(spinner);
+          } else {
+            fileItem.appendChild(status);
+          }
+          
+          fileList.appendChild(fileItem);
+        } else {
+          // Update existing file
+          const fileItem = document.getElementById(fileId);
+          if (fileItem) {
+            const icon = fileItem.querySelector('.file-icon');
+            icon.textContent = getFileIcon(file.file, file.ready, file.skipped, file.error);
+            
+            // Remove spinner if exists
+            const spinner = fileItem.querySelector('.spinner');
+            if (spinner && file.ready) {
+              spinner.remove();
+              
+              const status = document.createElement('span');
+              status.className = 'file-status';
+              status.textContent = getFileStatus(file.file, file.ready, file.skipped, file.error, file.skipReason);
+              fileItem.appendChild(status);
+            }
+            
+            // Update class
+            if (file.ready) {
+              if (file.skipped) fileItem.classList.add('skipped');
+              else if (file.error) fileItem.classList.add('error');
+              else fileItem.classList.add('ready');
+            }
+          }
+        }
+      });
+    }
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.error) {
+        console.error('SSE Error:', data);
+        eventSource.close();
+        return;
+      }
+
+      if (data.complete) {
+        // Show completion message
+        eventSource.close();
+        
+        const icon = data.status === 'preview_ready' ? '🎉' : '⚠️';
+        const text = data.status === 'preview_ready' ? 'Preview Complete!' : 'Preview Failed';
+        const subtext = data.status === 'preview_ready' 
+          ? 'All files have been processed successfully'
+          : 'Some files encountered errors';
+        
+        completionMessage.innerHTML = `
+          <div class="completion-icon">${icon}</div>
+          <div class="completion-text">${text}</div>
+          <div class="completion-subtext">${subtext}</div>
+        `;
+        completionMessage.style.display = 'block';
+        
+        document.querySelector('.progress-container').style.display = 'none';
+        statusBadge.innerHTML = `<span class="status-badge ${data.status === 'preview_ready' ? 'complete' : 'failed'}">${data.status}</span>`;
+        viewResultsBtn.style.display = 'block';
+        
+        return;
+      }
+
+      // Update progress
+      const percent = data.filesExpected > 0 
+        ? Math.round((data.filesReady / data.filesExpected) * 100)
+        : 0;
+      
+      progressFill.style.width = `${percent}%`;
+      progressText.textContent = `Processing file ${data.filesReady} of ${data.filesExpected}... (${percent}%)`;
+      
+      // Update status badge
+      statusBadge.innerHTML = `<span class="status-badge processing">${data.status}</span>`;
+      
+      // Update file list
+      if (data.files && data.files.length > 0) {
+        updateFileList(data.files);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE Error:', error);
+      progressText.textContent = 'Connection error. Retrying...';
+      eventSource.close();
+    };
+
+    viewResultsBtn.addEventListener('click', () => {
+      window.location.href = `/runs/${RUN_ID}/patches/${PATCH_REQUEST_ID}`;
+    });
+  </script>
+</body>
+</html>

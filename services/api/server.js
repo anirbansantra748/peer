@@ -300,6 +300,83 @@ app.get('/runs/:runId/patches/:patchRequestId', async (req, res) => {
   }
 });
 
+// SSE endpoint for real-time progress updates
+app.get('/runs/:runId/patches/:patchRequestId/progress', async (req, res) => {
+  const { runId, patchRequestId } = req.params;
+  
+  // Set SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  try {
+    const patch = await PatchRequest.findById(patchRequestId);
+    if (!patch || patch.runId !== runId) {
+      res.write(`data: ${JSON.stringify({ error: 'PatchRequest not found' })}\n\n`);
+      res.end();
+      return;
+    }
+
+    let lastFileCount = 0;
+    const pollInterval = 500; // Poll every 500ms
+    const maxDuration = 300000; // 5 minutes max
+    const startTime = Date.now();
+
+    const sendProgress = async () => {
+      const currentPatch = await PatchRequest.findById(patchRequestId);
+      if (!currentPatch) {
+        res.end();
+        return;
+      }
+
+      const files = currentPatch.preview?.files || [];
+      const filesExpected = currentPatch.preview?.filesExpected || files.length;
+      const filesReady = files.filter(f => f.ready).length;
+      const status = currentPatch.status;
+
+      // Send progress event
+      const progressData = {
+        status,
+        filesReady,
+        filesExpected,
+        files: files.map(f => ({
+          file: f.file,
+          ready: f.ready,
+          skipped: f.skipped,
+          skipReason: f.skipReason,
+          error: f.error
+        }))
+      };
+
+      res.write(`data: ${JSON.stringify(progressData)}\n\n`);
+
+      // Check for completion
+      if (status === 'preview_ready' || status === 'preview_failed') {
+        res.write(`data: ${JSON.stringify({ complete: true, status })}\n\n`);
+        res.end();
+        return;
+      }
+
+      // Check timeout
+      if (Date.now() - startTime > maxDuration) {
+        res.write(`data: ${JSON.stringify({ error: 'timeout', message: 'Preview timeout after 5 minutes' })}\n\n`);
+        res.end();
+        return;
+      }
+
+      // Continue polling
+      setTimeout(sendProgress, pollInterval);
+    };
+
+    sendProgress();
+  } catch (error) {
+    logger.error('api', 'SSE progress error', { error: String(error) });
+    res.write(`data: ${JSON.stringify({ error: 'Internal error' })}\n\n`);
+    res.end();
+  }
+});
+
 // List files for a patch (quick, without content)
 app.get('/runs/:runId/patches/:patchRequestId/files', async (req, res) => {
   try {
