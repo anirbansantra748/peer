@@ -86,7 +86,22 @@ app.get('/runs/:runId', async (req, res) => {
       return res.status(404).json({ error: 'Run not found' });
     }
     const showAll = String(req.query.show || '').toLowerCase() === 'all';
-    const findings = showAll ? prRun.findings : (prRun.findings || []).filter(f => !f.fixed);
+    const rawFindings = showAll ? prRun.findings : (prRun.findings || []).filter(f => !f.fixed);
+    
+    // Convert Mongoose subdocuments to plain objects to ensure _id is serialized
+    const findings = rawFindings.map(f => ({
+      _id: f._id,
+      file: f.file,
+      line: f.line,
+      rule: f.rule,
+      message: f.message,
+      severity: f.severity,
+      analyzer: f.analyzer,
+      fixed: f.fixed,
+      fixedAt: f.fixedAt,
+      fixedByPatchRequestId: f.fixedByPatchRequestId,
+    }));
+    
     // Compute active summary by severity
     const summary = { low: 0, medium: 0, high: 0, critical: 0 };
     findings.forEach(f => { if (summary[f.severity] !== undefined) summary[f.severity]++; });
