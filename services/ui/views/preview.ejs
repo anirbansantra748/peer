@@ -75,10 +75,6 @@
         </form>
       </div>
 
-      <details>
-        <summary>Show unified diff for this file</summary>
-        <pre><code id="udiff"></code></pre>
-      </details>
 
       <script>
         (async function(){
@@ -91,7 +87,6 @@
           const btnPrev = document.getElementById('btn-prev');
           const btnNext = document.getElementById('btn-next');
           const applyForm = document.getElementById('apply-form');
-          const udiffEl = document.getElementById('udiff');
           const qs = new URLSearchParams(window.location.search);
           let idx = parseInt(qs.get('i') || '0', 10) || 0;
 
@@ -122,7 +117,7 @@
           async function renderIndex(i){
             const f = files[i];
             fileHeader.innerHTML = `File: <code>${escapeHtml(f.file)}</code> (${i+1} of ${totalFiles})`;
-            diffBody.innerHTML=''; udiffEl.textContent=''; changeSummaryEl.innerHTML=''; changeSummaryEl.style.display='none';
+            diffBody.innerHTML=''; changeSummaryEl.innerHTML=''; changeSummaryEl.style.display='none';
             diffTable.style.display=''; nav.style.display='';
             btnPrev.style.display = (i>0) ? '' : 'none';
             btnNext.style.display = (i<totalFiles-1) ? '' : 'none';
@@ -170,7 +165,6 @@
             const right = String(data.improvedText||'').split(/\r?\n/);
             const maxLen = Math.max(left.length, right.length);
             diffBody.innerHTML = '';
-            udiffEl.textContent = String(data.unifiedDiff || '');
             
             // Typing animation - render lines progressively
             const linesPerBatch = 3; // Show 3 lines at a time for smooth feel

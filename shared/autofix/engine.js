@@ -589,6 +589,24 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
   const improvedLines = newLines || originalLines;
   const fileUnified = toUnifiedDiff(filePath, originalLines, improvedLines);
 
+  // Build change summary from hunks
+  let changeSummary = null;
+  if (hunks && hunks.length > 0) {
+    changeSummary = {
+      file: filePath,
+      patches: hunks.map(h => ({
+        findingId: h.findingId,
+        line: h.line,
+        type: h.type || 'syntax',
+        reason: h.inserted ? `Changed to: ${String(h.inserted).slice(0, 60)}...` : 'Applied fix',
+        warn: h.warn || ''
+      })),
+      model: hunks[0]?.model || '',
+      provider: hunks[0]?.provider || (process.env.LLM_PROVIDER||'auto'),
+      timestamp: new Date()
+    };
+  }
+  
   // Update file entry
   patch.preview.files[stubIndex].ready = true;
   patch.preview.files[stubIndex].hunks = hunks;
@@ -598,6 +616,7 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
   patch.preview.files[stubIndex].findingIds = findings.map(f=>String(f._id));
   patch.preview.files[stubIndex].aiRewritten = false;
   patch.preview.files[stubIndex].eol = eol;
+  patch.preview.files[stubIndex].changeSummary = changeSummary;
 
   // Update patch status if all ready
   const planned = patch.preview.filesExpected || patch.preview.files.length;
