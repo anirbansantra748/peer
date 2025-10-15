@@ -9,6 +9,10 @@ const llmCache = require('../../shared/cache/llmCache');
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 
+// GitHub App webhook routes
+const githubAppWebhooks = require('./routes/githubAppWebhooks');
+app.use('/webhook/github-app', githubAppWebhooks);
+
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/peer')
