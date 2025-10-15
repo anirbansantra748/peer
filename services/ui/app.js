@@ -2,7 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const axios = require('axios');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
+const mongoose = require('mongoose');
+const cookieParser = require('cookie-parser');
+const configurePassport = require('../../shared/auth/passport');
 const { categorizeAllFindings, getCategorySummary } = require('../../shared/utils/issueCategorizer');
+const { requireAuth, redirectIfAuthenticated } = require('../../shared/middleware/requireAuth');
 
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 
@@ -11,12 +17,88 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(cookieParser());
 
-app.get('/', (req, res) => res.render('index', { title: 'Peer Dashboard' }));
-app.get('/run', (req, res) => res.render('run', { title: 'Run' }));
+// Connect to MongoDB (for session store and user data)
+mongoose
+  .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/peer')
+  .then(() => console.log('[ui] Connected to MongoDB'))
+  .catch((err) => {
+    console.error('[ui] MongoDB connection error:', err);
+    process.exit(1);
+  });
+
+// Session configuration
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI || 'mongodb://localhost:27017/peer',
+      collectionName: 'sessions',
+      touchAfter: 24 * 3600, // Update session once per 24 hours unless changed
+    }),
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    },
+  })
+);
+
+// Initialize Passport
+const passport = configurePassport();
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Make user available in all views
+app.use((req, res, next) => {
+  res.locals.user = req.user || null;
+  next();
+});
+
+// Auth routes
+app.get('/login', redirectIfAuthenticated, (req, res) => {
+  res.render('login', { title: 'Login' });
+});
+
+app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] }));
+
+app.get(
+  '/auth/github/callback',
+  passport.authenticate('github', { failureRedirect: '/login' }),
+  (req, res) => {
+    // Successful authentication, redirect to original URL or home
+    const returnTo = req.session.returnTo || '/';
+    delete req.session.returnTo;
+    res.redirect(returnTo);
+  }
+);
+
+app.get('/auth/logout', (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      console.error('[ui] Logout error:', err);
+    }
+    res.redirect('/login');
+  });
+});
+
+app.get('/auth/me', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json(req.user.toSafeObject());
+  } else {
+    res.status(401).json({ error: 'Not authenticated' });
+  }
+});
+
+// Protected routes
+app.get('/', requireAuth, (req, res) => res.render('index', { title: 'Peer Dashboard' }));
+app.get('/run', requireAuth, (req, res) => res.render('run', { title: 'Run' }));
 
 // Select page: list findings for a run
-app.get('/runs/:runId/select', async (req, res) => {
+app.get('/runs/:runId/select', requireAuth, async (req, res) => {
   try {
     const { runId } = req.params;
     const resp = await axios.get(`${API_BASE}/runs/${runId}`);
@@ -45,7 +127,7 @@ app.get('/runs/:runId/select', async (req, res) => {
 });
 
 // Create preview for selected findings
-app.post('/runs/:runId/preview', async (req, res) => {
+app.post('/runs/:runId/preview', requireAuth, async (req, res) => {
   try {
     const { runId } = req.params;
     let ids = req.body['selectedFindingIds[]'] || req.body.selectedFindingIds || [];
@@ -65,7 +147,7 @@ app.post('/runs/:runId/preview', async (req, res) => {
 });
 
 // Preview page: show unified diff and status
-app.get('/runs/:runId/preview', async (req, res) => {
+app.get('/runs/:runId/preview', requireAuth, async (req, res) => {
   try {
     const { runId } = req.params;
     const { patchRequestId } = req.query;
@@ -105,7 +187,7 @@ app.get('/runs/:runId/patches/:patchRequestId/file', async (req, res) => {
 });
 
 // Apply preview
-app.post('/runs/:runId/patches/apply', async (req, res) => {
+app.post('/runs/:runId/patches/apply', requireAuth, async (req, res) => {
   try {
     const { runId } = req.params;
     const { patchRequestId } = req.body;
@@ -118,7 +200,7 @@ app.post('/runs/:runId/patches/apply', async (req, res) => {
 });
 
 // Patch status/results page
-app.get('/runs/:runId/patches/:patchRequestId', async (req, res) => {
+app.get('/runs/:runId/patches/:patchRequestId', requireAuth, async (req, res) => {
   try {
     const { runId, patchRequestId } = req.params;
     const resp = await axios.get(`${API_BASE}/runs/${runId}/patches/${patchRequestId}`);
