@@ -2,6 +2,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const { Worker, connection } = require('../../shared/queue');
 const PRRun = require('../../shared/models/PRRun');
+const Installation = require('../../shared/models/Installation');
 const logger = require('../../shared/utils/prettyLogger');
 const { analyzeRepoDeep } = require('../../shared/analyzers');
 const { orchestrate } = require('../../shared/orchestrator');
@@ -45,6 +46,21 @@ const analyzerWorker = new Worker(
       // Find the PRRun document with retry logic
       const prRun = await findPRRunWithRetry(runId);
 
+      // Load installation config if available
+      let installationConfig = null;
+      if (prRun.installationId) {
+        const installation = await Installation.findById(prRun.installationId);
+        if (installation) {
+          installationConfig = installation.config;
+          logger.info('analyzer', 'Installation config loaded', {
+            runId,
+            mode: installationConfig.mode,
+            severities: installationConfig.severities,
+            maxFilesPerRun: installationConfig.maxFilesPerRun
+          });
+        }
+      }
+
       // Update status to running
       prRun.status = 'running';
       await prRun.save();
@@ -70,8 +86,21 @@ const analyzerWorker = new Worker(
       // Orchestrate (dedupe, rank, summarize)
       const { findings: finalFindings, summary } = orchestrate(findings);
 
+      // Filter findings by installation severity config if available
+      let filteredFindings = finalFindings;
+      if (installationConfig && installationConfig.severities.length > 0) {
+        const allowedSeverities = new Set(installationConfig.severities);
+        filteredFindings = finalFindings.filter(f => allowedSeverities.has(f.severity));
+        logger.info('analyzer', 'Findings filtered by severity', {
+          runId,
+          beforeFilter: finalFindings.length,
+          afterFilter: filteredFindings.length,
+          allowedSeverities: installationConfig.severities
+        });
+      }
+
       // Persist findings and summary
-      prRun.findings.push(...finalFindings);
+      prRun.findings.push(...filteredFindings);
       prRun.summary = summary;
       prRun.status = 'completed';
       await prRun.save();

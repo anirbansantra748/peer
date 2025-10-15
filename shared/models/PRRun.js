@@ -141,6 +141,12 @@ const prRunSchema = new mongoose.Schema({
     default: 'queued',
     index: true,
   },
+  // Reference to GitHub App installation (optional for backwards compatibility)
+  installationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Installation',
+    index: true,
+  },
   findings: [findingSchema],
   summary: {
     type: summarySchema,

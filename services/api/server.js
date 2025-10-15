@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { analyzeQueue, autofixQueue } = require('../../shared/queue');
 const PRRun = require('../../shared/models/PRRun');
+const Installation = require('../../shared/models/Installation');
 const logger = require('../../shared/utils/prettyLogger');
 const llmCache = require('../../shared/cache/llmCache');
 
@@ -167,8 +168,47 @@ app.post('/webhook/github', async (req, res) => {
 
     logger.info('api', 'Webhook received', { source, ghEvent, delivery, repo, prNumber, sha });
 
-    // Create a new PRRun with queued status
-    const prRun = new PRRun({ repo, prNumber, sha, status: 'queued' });
+    // Look up installation for this repository
+    const installation = await Installation.findOne({
+      'repositories.fullName': repo,
+      status: 'active'
+    });
+
+    if (!installation) {
+      logger.warn('api', 'No active installation found for repository', { repo });
+      return res.status(403).json({ 
+        error: 'Repository not installed',
+        message: 'Please install the GitHub App on this repository first'
+      });
+    }
+
+    // Check if repo is in installation's repository list
+    if (!installation.hasRepository(repo)) {
+      logger.warn('api', 'Repository not in installation access list', { 
+        repo, 
+        installationId: installation.installationId 
+      });
+      return res.status(403).json({ 
+        error: 'Repository not authorized',
+        message: 'This repository is not included in the GitHub App installation'
+      });
+    }
+
+    logger.info('api', 'Installation found', { 
+      installationId: installation.installationId,
+      mode: installation.config.mode,
+      severities: installation.config.severities,
+      maxFilesPerRun: installation.config.maxFilesPerRun
+    });
+
+    // Create a new PRRun with queued status and installation config
+    const prRun = new PRRun({ 
+      repo, 
+      prNumber, 
+      sha, 
+      status: 'queued',
+      installationId: installation._id
+    });
 
     try {
       await prRun.save(); // Save to DB
