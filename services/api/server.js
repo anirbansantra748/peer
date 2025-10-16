@@ -14,6 +14,10 @@ app.use(express.json({ limit: '2mb' }));
 const githubAppWebhooks = require('./routes/githubAppWebhooks');
 app.use('/webhook/github-app', githubAppWebhooks);
 
+// Runs API routes
+const runsRoutes = require('./routes/runs');
+app.use('/api/runs', runsRoutes);
+
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/peer')
@@ -167,6 +171,13 @@ app.post('/webhook/github', async (req, res) => {
     }
 
     logger.info('api', 'Webhook received', { source, ghEvent, delivery, repo, prNumber, sha });
+
+    // Ignore PRs created by Peer autofix (prevent infinite loop)
+    const prBranch = req.body?.pull_request?.head?.ref || '';
+    if (prBranch.startsWith('peer/autofix/')) {
+      logger.info('api', 'Ignoring Peer autofix PR to prevent loop', { repo, prNumber, branch: prBranch });
+      return res.json({ ok: true, ignored: true, reason: 'peer_autofix_pr' });
+    }
 
     // Look up installation for this repository
     const installation = await Installation.findOne({
@@ -338,23 +349,45 @@ app.post('/runs/:runId/patches/apply', async (req, res) => {
     const patch = await PatchRequest.findById(patchRequestId);
     if (!patch || patch.runId !== runId) return res.status(404).json({ error: 'PatchRequest not found for this run' });
     
-    // Provide detailed error about why patch can't be applied
-    if (!patch.preview || !patch.preview.files || patch.status !== 'preview_ready') {
-      const filesReady = (patch.preview?.files || []).filter(f => f.ready).length;
-      const filesTotal = patch.preview?.filesExpected || 0;
-      const currentStatus = patch.status || 'unknown';
-      
+    // Check if all files are ready (more reliable than status field)
+    const files = patch.preview?.files || [];
+    const filesExpected = patch.preview?.filesExpected || files.length;
+    const filesReady = files.filter(f => f.ready).length;
+    const allFilesReady = filesReady >= filesExpected && filesExpected > 0;
+    
+    // Also check status to catch failed states
+    const currentStatus = patch.status || 'unknown';
+    const isFailed = currentStatus === 'preview_failed' || currentStatus === 'failed';
+    
+    if (isFailed) {
+      return res.status(400).json({ 
+        error: 'Preview failed',
+        details: {
+          currentStatus,
+          message: 'Preview generation failed. Please try creating a new preview.'
+        }
+      });
+    }
+    
+    // If not all files ready yet, reject with detailed info
+    if (!allFilesReady) {
       return res.status(400).json({ 
         error: 'PatchRequest is not ready to apply',
         details: {
           currentStatus,
-          requiredStatus: 'preview_ready',
-          filesProcessed: `${filesReady}/${filesTotal}`,
-          message: currentStatus === 'preview_partial' 
-            ? `Preview still processing (${filesReady}/${filesTotal} files ready). Please wait and try again.`
-            : `Current status: ${currentStatus}. Expected: preview_ready`
+          filesReady,
+          filesExpected,
+          filesProcessed: `${filesReady}/${filesExpected}`,
+          message: `Preview still processing (${filesReady}/${filesExpected} files ready). Please wait and try again.`
         }
       });
+    }
+    
+    // Update status to preview_ready if it's still partial but all files are done
+    if (allFilesReady && currentStatus === 'preview_partial') {
+      patch.status = 'preview_ready';
+      await patch.save();
+      logger.info('api', 'Updated patch status to preview_ready', { patchRequestId: patch._id.toString() });
     }
 
     // Enqueue an autofix apply job

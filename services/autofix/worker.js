@@ -4,6 +4,8 @@ const { Worker, connection } = require('../../shared/queue');
 const logger = require('../../shared/utils/prettyLogger');
 const PatchRequest = require('../../shared/models/PatchRequest');
 const { buildPreview, applyPatch } = require('../../shared/autofix/engine');
+process.env.LLM_STRATEGY='full';
+
 
 // Connect to MongoDB
 mongoose
@@ -26,6 +28,38 @@ const autofixWorker = new Worker(
     if (name === 'preview') {
       const patch = await buildPreview(patchRequestId);
       logger.info('autofix', 'Preview built', { patchRequestId, status: patch.status, bytes: (patch.preview?.unifiedDiff || '').length });
+
+      // Auto-trigger apply if mode is commit/merge
+      if (patch.status === 'preview_ready') {
+        const PRRun = require('../../shared/models/PRRun');
+        const Installation = require('../../shared/models/Installation');
+        const { autofixQueue } = require('../../shared/queue');
+
+        try {
+          const run = await PRRun.findById(patch.runId);
+          if (run && run.installationId) {
+            const installation = await Installation.findById(run.installationId);
+
+            if (installation && (installation.config.mode === 'commit' || installation.config.mode === 'merge')) {
+              logger.info('autofix', 'Auto-triggering apply job', {
+                patchRequestId,
+                mode: installation.config.mode
+              });
+
+              // Enqueue apply job
+              await autofixQueue.add('apply', { patchRequestId });
+
+              logger.info('autofix', 'Apply job enqueued', { patchRequestId });
+            }
+          }
+        } catch (error) {
+          logger.error('autofix', 'Failed to auto-trigger apply', {
+            patchRequestId,
+            error: String(error)
+          });
+        }
+      }
+
       return { patchRequestId, status: patch.status };
     }
 

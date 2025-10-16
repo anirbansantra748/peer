@@ -3,10 +3,30 @@
   <head>
     <meta charset="utf-8" />
     <title><%= title %></title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 40px;
+      }
+      h1 { color: #58a6ff; }
+      a {
+        color: #58a6ff;
+        text-decoration: none;
+        display: block;
+        margin: 10px 0;
+      }
+      a:hover { text-decoration: underline; }
+    </style>
   </head>
   <body>
-    <h1>Peer</h1>
-    <p>Welcome to the Peer dashboard skeleton.</p>
-    <a href="/run">Trigger run (placeholder)</a>
+    <h1>Peer Dashboard</h1>
+    <p>Welcome, <%= user ? user.username : 'Guest' %>!</p>
+    <nav>
+      <a href="/installations">📦 Manage GitHub App Installations</a>
+      <a href="/run">▶️  Trigger run (placeholder)</a>
+      <a href="/auth/logout">🚪 Logout</a>
+    </nav>
   </body>
 </html>

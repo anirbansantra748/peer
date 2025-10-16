@@ -107,6 +107,52 @@ const analyzerWorker = new Worker(
 
       logger.info('analyzer', 'Run completed', { runId, summary: prRun.summary, findings: prRun.findings.length });
 
+      // Auto-trigger autofix if mode is 'commit' or 'merge' (skip for 'review' mode)
+      if (installationConfig && (installationConfig.mode === 'commit' || installationConfig.mode === 'merge')) {
+        // Get all finding IDs to auto-fix
+        const findingIds = prRun.findings.map(f => String(f._id));
+        
+        // Only trigger if there are findings
+        if (findingIds.length > 0) {
+          logger.info('analyzer', 'Auto-triggering autofix', { 
+            runId, 
+            mode: installationConfig.mode,
+            findingsCount: findingIds.length 
+          });
+        } else {
+          logger.info('analyzer', 'No findings to fix, skipping autofix', { runId });
+        }
+        
+        if (findingIds.length > 0) {
+          // Import autofix queue
+          const { autofixQueue } = require('../../shared/queue');
+          // Create preview first (automatically creates PatchRequest)
+          const PatchRequest = require('../../shared/models/PatchRequest');
+          const patch = new PatchRequest({
+            runId,
+            repo: prRun.repo,
+            prNumber: prRun.prNumber,
+            sha: prRun.sha,
+            selectedFindingIds: findingIds,
+            status: 'queued',
+            preview: { unifiedDiff: '', files: [], filesExpected: 0 },
+          });
+          await patch.save();
+          
+          logger.info('analyzer', 'PatchRequest created for auto-fix', { 
+            patchRequestId: patch._id.toString(),
+            findingsCount: findingIds.length 
+          });
+          
+          // Enqueue preview job
+          await autofixQueue.add('preview', { patchRequestId: patch._id.toString() });
+          
+          logger.info('analyzer', 'Auto-fix preview job enqueued', { 
+            patchRequestId: patch._id.toString() 
+          });
+        }
+      }
+
       return { runId, status: 'completed', summary: prRun.summary, findingsCount: prRun.findings.length };
     } catch (error) {
       logger.error('analyzer', 'Job error', { jobId: job.id, runId, error: String(error) });

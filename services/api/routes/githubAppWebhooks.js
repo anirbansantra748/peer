@@ -284,6 +284,154 @@ router.post('/', verifyGitHubSignature, async (req, res) => {
         );
         break;
 
+      case 'pull_request_review':
+        // Handle review events on Peer autofix PRs
+        if (req.body.pull_request && req.body.repository) {
+          const repo = req.body.repository.full_name;
+          const prNumber = req.body.pull_request.number;
+          const prBranch = req.body.pull_request.head.ref;
+          const reviewState = req.body.review?.state;
+          
+          // Only handle approved reviews on Peer autofix PRs
+          if (prBranch.startsWith('peer/autofix/') && reviewState === 'approved') {
+            logger.info('githubApp', 'Peer autofix PR approved, attempting auto-merge', { repo, prNumber });
+            
+            const { attemptAutoMerge } = require('../../../shared/services/githubPR');
+            const Installation = require('../../../shared/models/Installation');
+            const PatchRequest = require('../../../shared/models/PatchRequest');
+            
+            // Find the patch request for this PR by branch name
+            const patch = await PatchRequest.findOne({
+              repo,
+              $or: [
+                { 'results.fixPrNumber': prNumber },
+                { 'results.branchName': prBranch }
+              ]
+            }).sort({ createdAt: -1 });
+            
+            if (!patch) {
+              logger.warn('githubApp', 'No patch request found for autofix PR', { repo, prNumber });
+              result = { ok: true, message: 'No patch request found' };
+              break;
+            }
+            
+            // Get installation config
+            const PRRun = require('../../../shared/models/PRRun');
+            const run = await PRRun.findById(patch.runId);
+            if (!run || !run.installationId) {
+              logger.warn('githubApp', 'No installation found for patch', { patchId: patch._id.toString() });
+              result = { ok: true, message: 'No installation' };
+              break;
+            }
+            
+            const installation = await Installation.findById(run.installationId);
+            if (!installation) {
+              logger.warn('githubApp', 'Installation not found', { installationId: run.installationId });
+              result = { ok: true, message: 'Installation not found' };
+              break;
+            }
+            
+            // Parse repo owner/name
+            const [owner, repoName] = repo.split('/');
+            
+            // Attempt auto-merge
+            try {
+              const mergeResult = await attemptAutoMerge({
+                owner,
+                repo: repoName,
+                prNumber,
+                ref: req.body.pull_request.head.sha,
+                config: installation.config
+              });
+              
+              patch.results.autoMerged = mergeResult.merged;
+              patch.results.autoMergeReason = mergeResult.reason;
+              await patch.save();
+              
+              if (mergeResult.merged) {
+                logger.info('githubApp', 'Autofix PR auto-merged after approval', { repo, prNumber });
+                result = { ok: true, merged: true };
+              } else {
+                logger.info('githubApp', 'Autofix PR not auto-merged', { repo, prNumber, reason: mergeResult.reason });
+                result = { ok: true, merged: false, reason: mergeResult.reason };
+              }
+            } catch (mergeError) {
+              logger.error('githubApp', 'Failed to auto-merge after approval', {
+                repo,
+                prNumber,
+                error: String(mergeError),
+                stack: mergeError.stack
+              });
+              result = { ok: true, error: 'merge_failed' };
+            }
+          } else {
+            logger.info('githubApp', 'Ignoring review event', { repo, prNumber, reviewState, isPeerPR: prBranch.startsWith('peer/autofix/') });
+            result = { ok: true, ignored: true };
+          }
+        } else {
+          result = { ok: true, message: 'No PR data' };
+        }
+        break;
+
+      case 'pull_request':
+        // Forward to main PR webhook handler
+        logger.info('githubApp', 'Forwarding PR event to main handler', { event, action: req.body.action });
+        // Re-process through main webhook by calling it internally
+        const PRRun = require('../../../shared/models/PRRun');
+        const Installation = require('../../../shared/models/Installation');
+        const { analyzeQueue } = require('../../../shared/queue');
+        
+        if (req.body.pull_request && req.body.repository) {
+          const repo = req.body.repository.full_name;
+          const prNumber = req.body.pull_request.number;
+          const sha = req.body.pull_request.head.sha;
+          const baseSha = req.body.pull_request.base.sha;
+          const prBranch = req.body.pull_request.head.ref;
+          
+          // Ignore PRs created by Peer autofix (prevent infinite loop)
+          if (prBranch.startsWith('peer/autofix/')) {
+            logger.info('githubApp', 'Ignoring Peer autofix PR', { repo, prNumber });
+            result = { ok: true, ignored: true };
+            break;
+          }
+          
+          // Look up installation
+          const installation = await Installation.findOne({
+            'repositories.fullName': repo,
+            status: 'active'
+          });
+          
+          if (!installation) {
+            logger.warn('githubApp', 'No installation found', { repo });
+            result = { ok: true, message: 'No installation' };
+            break;
+          }
+          
+          // Create PRRun and enqueue
+          const prRun = new PRRun({ 
+            repo, 
+            prNumber, 
+            sha, 
+            status: 'queued',
+            installationId: installation._id
+          });
+          await prRun.save();
+          
+          await analyzeQueue.add('analyze', {
+            runId: prRun._id.toString(),
+            repo,
+            prNumber,
+            sha,
+            baseSha,
+          });
+          
+          logger.info('githubApp', 'PR job enqueued', { runId: prRun._id.toString(), repo, prNumber });
+          result = { ok: true, runId: prRun._id.toString() };
+        } else {
+          result = { ok: true, message: 'No PR data' };
+        }
+        break;
+
       default:
         logger.info('githubApp', 'Unhandled event type', { event });
         result = { ok: true, message: 'Event not handled' };

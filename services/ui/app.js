@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const configurePassport = require('../../shared/auth/passport');
 const { categorizeAllFindings, getCategorySummary } = require('../../shared/utils/issueCategorizer');
 const { requireAuth, redirectIfAuthenticated } = require('../../shared/middleware/requireAuth');
+const Installation = require('../../shared/models/Installation');
 
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 
@@ -96,6 +97,74 @@ app.get('/auth/me', (req, res) => {
 // Protected routes
 app.get('/', requireAuth, (req, res) => res.render('index', { title: 'Peer Dashboard' }));
 app.get('/run', requireAuth, (req, res) => res.render('run', { title: 'Run' }));
+
+// Installation routes
+app.get('/installations', requireAuth, async (req, res) => {
+  try {
+    // Get all active installations (optionally filter by user later)
+    const installations = await Installation.find({ status: 'active' }).sort({ installedAt: -1 });
+    res.render('installations', { 
+      title: 'GitHub App Installations', 
+      installations 
+    });
+  } catch (error) {
+    console.error('[ui] Error fetching installations:', error);
+    res.status(500).send('Failed to load installations');
+  }
+});
+
+app.get('/installations/:id/settings', requireAuth, async (req, res) => {
+  try {
+    const installation = await Installation.findById(req.params.id);
+    if (!installation) {
+      return res.status(404).send('Installation not found');
+    }
+    res.render('settings', { 
+      title: `Configure ${installation.accountLogin}`, 
+      installation 
+    });
+  } catch (error) {
+    console.error('[ui] Error fetching installation:', error);
+    res.status(500).send('Failed to load installation settings');
+  }
+});
+
+app.post('/installations/:id/settings', requireAuth, async (req, res) => {
+  try {
+    const installation = await Installation.findById(req.params.id);
+    if (!installation) {
+      return res.status(404).send('Installation not found');
+    }
+
+    // Update config from form data
+    installation.config.mode = req.body.mode || 'analyze';
+    
+    // Handle severities (checkbox array)
+    const severities = Array.isArray(req.body.severities) 
+      ? req.body.severities 
+      : (req.body.severities ? [req.body.severities] : []);
+    installation.config.severities = severities.filter(s => 
+      ['critical', 'high', 'medium', 'low'].includes(s)
+    );
+    
+    // Ensure at least one severity is selected
+    if (installation.config.severities.length === 0) {
+      installation.config.severities = ['critical', 'high'];
+    }
+
+    installation.config.maxFilesPerRun = parseInt(req.body.maxFilesPerRun) || 10;
+    installation.config.autoMerge.enabled = req.body.autoMergeEnabled === 'on';
+    installation.config.autoMerge.requireTests = req.body.requireTests === 'on';
+    installation.config.autoMerge.requireReviews = parseInt(req.body.requireReviews) || 0;
+
+    await installation.save();
+    
+    res.redirect('/installations?success=Configuration+saved');
+  } catch (error) {
+    console.error('[ui] Error saving installation settings:', error);
+    res.status(500).send('Failed to save settings');
+  }
+});
 
 // Select page: list findings for a run
 app.get('/runs/:runId/select', requireAuth, async (req, res) => {
