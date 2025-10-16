@@ -273,6 +273,9 @@
   <body>
     <div class="container">
       <h1>🔍 Select Issues to Fix — Run <%= runId %></h1>
+      <div style="margin:6px 0 18px;color:#555;font-size:14px;">
+        Repository: <code><%= run?.repo %></code> • PR: <code>#<%= run?.prNumber %></code> • Findings: <strong><%= (run?.findings||[]).length %></strong>
+      </div>
       
       <!-- Summary Panel -->
       <div class="summary">
@@ -327,6 +330,10 @@
           <input type="text" id="search" placeholder="Search file, rule, or message...">
           <button type="button" class="btn-danger" id="selectBlocking">Select BLOCKING</button>
           <button type="button" class="btn-warning" id="selectUrgent">Select URGENT</button>
+          <button type="button" class="btn-secondary" id="selectRecommended">Select RECOMMENDED</button>
+          <button type="button" class="btn-secondary" id="selectOptional">Select OPTIONAL</button>
+          <button type="button" class="btn-secondary" id="selectAll">Select ALL</button>
+          <button type="button" class="btn-secondary" id="invertSel">Invert</button>
           <button type="button" class="btn-secondary" id="clearAll">Clear All</button>
           <% if (typeof query !== 'undefined' && query.err) { %>
             <span class="error"><%= query.err %></span>
@@ -379,6 +386,7 @@
         <div class="submit-bar">
           <div class="selection-count" id="selectionCount">0 issues selected</div>
           <div class="submit-actions">
+            <div id="selectedBreakdown" style="font-size:12px;color:#666;margin-right:12px;display:none;"></div>
             <a href="/" class="btn-secondary" style="padding: 12px 24px; text-decoration: none; display: inline-block;">Cancel</a>
             <button type="submit" class="btn-success">Fix Selected Issues →</button>
           </div>
@@ -416,18 +424,37 @@
       const search = document.getElementById('search');
       const selectBlocking = document.getElementById('selectBlocking');
       const selectUrgent = document.getElementById('selectUrgent');
+      const selectRecommended = document.getElementById('selectRecommended');
+      const selectOptional = document.getElementById('selectOptional');
+      const selectAll = document.getElementById('selectAll');
+      const invertSel = document.getElementById('invertSel');
       const clearAll = document.getElementById('clearAll');
       const selectionCount = document.getElementById('selectionCount');
+      const selectedBreakdown = document.getElementById('selectedBreakdown');
       const skipModal = document.getElementById('skipModal');
       const modalCancel = document.getElementById('modalCancel');
       const modalConfirm = document.getElementById('modalConfirm');
       const confirmText = document.getElementById('confirmText');
       
+      function computeSelectedSummary() {
+        const sel = Array.from(document.querySelectorAll('.issue-row input[type=checkbox]:checked')).map(cb => cb.closest('.issue-row'));
+        const counts = { BLOCKING:0, URGENT:0, RECOMMENDED:0, OPTIONAL:0 };
+        let mins = 0;
+        sel.forEach(row => {
+          const cat = row.getAttribute('data-category');
+          counts[cat] = (counts[cat]||0)+1;
+          const effort = (row.querySelector('.meta-effort')?.textContent || '').match(/(\d+)/);
+          mins += effort ? parseInt(effort[1],10) : 5;
+        });
+        return { counts, total: sel.length, mins };
+      }
+      
       // Update selection count
       function updateCount() {
-        const checked = document.querySelectorAll('.issue-row input[type=checkbox]:checked');
-        const count = checked.length;
-        selectionCount.textContent = count === 1 ? '1 issue selected' : `${count} issues selected`;
+        const { counts, total, mins } = computeSelectedSummary();
+        selectionCount.textContent = total === 1 ? '1 issue selected' : `${total} issues selected`;
+        selectedBreakdown.style.display = total ? 'inline-block' : 'none';
+        selectedBreakdown.textContent = `🔴 ${counts.BLOCKING} • 🟠 ${counts.URGENT} • 🟡 ${counts.RECOMMENDED} • 🟢 ${counts.OPTIONAL} • ⏱️ ~${mins} min`;
       }
       
       // Apply filters
@@ -445,23 +472,37 @@
       // Batch select buttons
       selectBlocking.addEventListener('click', () => {
         document.querySelectorAll('.issue-row').forEach(row => {
-          if (row.getAttribute('data-category') === 'BLOCKING') {
-            row.querySelector('input[type=checkbox]').checked = true;
-          }
+          if (row.getAttribute('data-category') === 'BLOCKING') row.querySelector('input[type=checkbox]').checked = true;
         });
         updateCount();
       });
-      
       selectUrgent.addEventListener('click', () => {
         document.querySelectorAll('.issue-row').forEach(row => {
           const cat = row.getAttribute('data-category');
-          if (cat === 'BLOCKING' || cat === 'URGENT') {
-            row.querySelector('input[type=checkbox]').checked = true;
-          }
+          if (cat === 'BLOCKING' || cat === 'URGENT') row.querySelector('input[type=checkbox]').checked = true;
         });
         updateCount();
       });
-      
+      selectRecommended.addEventListener('click', () => {
+        document.querySelectorAll('.issue-row').forEach(row => {
+          if (row.getAttribute('data-category') === 'RECOMMENDED') row.querySelector('input[type=checkbox]').checked = true;
+        });
+        updateCount();
+      });
+      selectOptional.addEventListener('click', () => {
+        document.querySelectorAll('.issue-row').forEach(row => {
+          if (row.getAttribute('data-category') === 'OPTIONAL') row.querySelector('input[type=checkbox]').checked = true;
+        });
+        updateCount();
+      });
+      selectAll.addEventListener('click', () => {
+        document.querySelectorAll('.issue-row input[type=checkbox]').forEach(cb => cb.checked = true);
+        updateCount();
+      });
+      invertSel.addEventListener('click', () => {
+        document.querySelectorAll('.issue-row input[type=checkbox]').forEach(cb => cb.checked = !cb.checked);
+        updateCount();
+      });
       clearAll.addEventListener('click', () => {
         document.querySelectorAll('.issue-row input[type=checkbox]').forEach(cb => cb.checked = false);
         updateCount();
