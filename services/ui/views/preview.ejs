@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <title><%= title %></title>
     <style>
-      body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; padding: 20px; }
+      body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; padding: 20px; background: #f5f5f5; }
       .status { padding: 6px 10px; border-radius: 4px; background: #eef; display: inline-block; font-family: system-ui, Arial, sans-serif; }
       .hdr { font-family: system-ui, Arial, sans-serif; }
       .fileHdr { font-weight: 600; margin: 8px 0; font-family: system-ui, Arial, sans-serif; }
@@ -24,6 +24,18 @@
       .btn + .btn { margin-left: 8px; }
       details { margin-top: 16px; }
       details > summary { cursor: pointer; font-weight: 600; font-family: system-ui, Arial, sans-serif; }
+      /* Step Tracker */
+      .step-tracker { background: white; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+      .steps { display: flex; justify-content: space-between; align-items: center; }
+      .step { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; position: relative; }
+      .step-icon { width: 36px; height: 36px; border-radius: 50%; background: #e9ecef; color: #6c757d; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; z-index: 2; }
+      .step.completed .step-icon { background: #28a745; color: white; }
+      .step.active .step-icon { background: #0066cc; color: white; box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.2); }
+      .step-label { font-size: 11px; color: #6c757d; font-weight: 500; text-align: center; }
+      .step.completed .step-label, .step.active .step-label { color: #333; font-weight: 600; }
+      .step-connector { position: absolute; top: 18px; left: 50%; right: -50%; height: 2px; background: #e9ecef; z-index: 1; }
+      .step:last-child .step-connector { display: none; }
+      .step.completed .step-connector { background: #28a745; }
       /* Typing animation */
       @keyframes fadeIn {
         from { opacity: 0; transform: translateY(5px); }
@@ -37,6 +49,36 @@
     </style>
   </head>
   <body>
+    <!-- Step Tracker -->
+    <div class="step-tracker">
+      <div class="steps">
+        <div class="step completed">
+          <div class="step-icon">✓</div>
+          <div class="step-label">PR Detected</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step completed">
+          <div class="step-icon">✓</div>
+          <div class="step-label">Analysis Done</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step completed">
+          <div class="step-icon">✓</div>
+          <div class="step-label">Select Issues</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step active">
+          <div class="step-icon">4</div>
+          <div class="step-label">Preview Fixes</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step">
+          <div class="step-icon">5</div>
+          <div class="step-label">Apply & Merge</div>
+        </div>
+      </div>
+    </div>
+    
     <h1 class="hdr">Preview — Run <%= runId %></h1>
     <p class="hdr">Patch Request: <code><%= patchRequestId %></code></p>
     <p class="hdr">Status: <span class="status"><%= patch.status %></span></p>

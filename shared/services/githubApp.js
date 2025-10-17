@@ -1,4 +1,4 @@
-const { App } = require('@octokit/app');
+const { createAppAuth } = require('@octokit/auth-app');
 const { Octokit } = require('@octokit/rest');
 
 /**
@@ -18,12 +18,7 @@ class GitHubAppService {
     }
     
     this.enabled = true;
-    
-    // Initialize Octokit App
-    this.app = new App({
-      appId: this.appId,
-      privateKey: this.privateKey.replace(/\\n/g, '\n'), // Handle escaped newlines
-    });
+    this.installationOctokits = new Map(); // Cache authenticated instances
   }
 
   /**
@@ -41,7 +36,23 @@ class GitHubAppService {
       throw new Error('GitHub App not configured');
     }
     
-    return await this.app.getInstallationOctokit(installationId);
+    // Return cached instance if available
+    if (this.installationOctokits.has(installationId)) {
+      return this.installationOctokits.get(installationId);
+    }
+    
+    // Create authenticated Octokit for this installation
+    const octokit = new Octokit({
+      authStrategy: createAppAuth,
+      auth: {
+        appId: this.appId,
+        privateKey: this.privateKey.replace(/\\n/g, '\n'),
+        installationId: installationId,
+      },
+    });
+    
+    this.installationOctokits.set(installationId, octokit);
+    return octokit;
   }
 
   /**

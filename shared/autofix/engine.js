@@ -443,14 +443,40 @@ async function applyPatch(patchRequestId) {
       const run = await PRRun.findById(patch.runId);
       if (run) {
         const idSet = new Set((patch.selectedFindingIds || []).map(String));
+        let fixedCount = 0;
         (run.findings || []).forEach(f => {
           if (idSet.has(String(f._id))) {
             f.fixed = true;
             f.fixedAt = new Date();
             f.fixedByPatchRequestId = String(patch._id);
+            fixedCount++;
           }
         });
         await run.save();
+        
+        logger.info('autofix', '✅ FINDINGS MARKED AS FIXED', {
+          runId: patch.runId,
+          patchRequestId: String(patch._id),
+          fixedCount,
+          totalFindings: run.findings.length,
+          repo: run.repo,
+          prNumber: run.prNumber
+        });
+        
+        // Calculate stats
+        const totalIssues = run.findings.length;
+        const totalFixed = run.findings.filter(f => f.fixed).length;
+        const fixRate = totalIssues > 0 ? Math.round((totalFixed / totalIssues) * 100) : 0;
+        
+        console.log('\n========================================');
+        console.log('🎉 AUTO-FIX COMPLETED');
+        console.log('========================================');
+        console.log(`📦 Repository: ${run.repo}`);
+        console.log(`🔢 PR Number: #${run.prNumber}`);
+        console.log(`🔍 Total Issues: ${totalIssues}`);
+        console.log(`✅ Fixed in this run: ${fixedCount}`);
+        console.log(`💯 Total Fixed: ${totalFixed} (${fixRate}%)`);
+        console.log('========================================\n');
       }
     } catch (e) {
       logger.warn('autofix', 'Failed to mark findings fixed', { runId: patch.runId, error: String(e) });
@@ -472,8 +498,20 @@ async function applyPatch(patchRequestId) {
           // Parse repo owner/name
           const [owner, repo] = patch.repo.split('/');
           
-          // Determine base branch (usually 'main' or 'master')
-          const baseBranch = 'main'; // TODO: detect from PR
+          // Detect base branch from repository default
+          const { getInstallationOctokit } = require('../services/githubApp');
+          let baseBranch = 'main'; // default fallback
+          try {
+            const octokit = await getInstallationOctokit(installation.installationId);
+            const { data: repoData } = await octokit.repos.get({ owner, repo });
+            baseBranch = repoData.default_branch || 'main';
+            logger.info('autofix', 'Detected default branch', { repo: patch.repo, baseBranch });
+          } catch (branchError) {
+            logger.warn('autofix', 'Failed to detect default branch, using main', { 
+              repo: patch.repo, 
+              error: String(branchError) 
+            });
+          }
           
           // Create PR with fixes
           logger.info('autofix', 'Creating pull request for fixes', {

@@ -95,8 +95,175 @@ app.get('/auth/me', (req, res) => {
 });
 
 // Protected routes
-app.get('/', requireAuth, (req, res) => res.render('index', { title: 'Peer Dashboard' }));
+app.get('/', requireAuth, async (req, res) => {
+  try {
+    const PRRun = require('../../shared/models/PRRun');
+    const Installation = require('../../shared/models/Installation');
+    
+    // Get recent activity (last 10 runs)
+    const recentRuns = await PRRun.find({})
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean();
+    
+    // Get stats
+    const totalRuns = await PRRun.countDocuments({});
+    const completedRuns = await PRRun.countDocuments({ status: 'completed' });
+    const totalInstallations = await Installation.countDocuments({ status: 'active' });
+    
+    // Calculate total issues found and fixed
+    const statsAgg = await PRRun.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalIssues: { $sum: { $size: '$findings' } },
+          fixedIssues: {
+            $sum: {
+              $size: {
+                $filter: {
+                  input: '$findings',
+                  cond: { $eq: ['$$this.fixed', true] }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]);
+    
+    const stats = statsAgg.length > 0 ? statsAgg[0] : { totalIssues: 0, fixedIssues: 0 };
+    
+    // Debug logging
+    console.log('[ui] Dashboard stats:', {
+      totalRuns,
+      completedRuns,
+      totalInstallations,
+      totalIssues: stats.totalIssues,
+      fixedIssues: stats.fixedIssues,
+      recentRunsCount: recentRuns.length,
+      sampleRun: recentRuns[0] ? {
+        repo: recentRuns[0].repo,
+        findingsCount: (recentRuns[0].findings || []).length,
+        status: recentRuns[0].status
+      } : null
+    });
+    
+    // Aggregate stats by repository
+    const repoStatsAgg = await PRRun.aggregate([
+      {
+        $group: {
+          _id: '$repo',
+          totalPRs: { $sum: 1 },
+          completedPRs: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+          },
+          totalIssues: { $sum: { $size: '$findings' } },
+          fixedIssues: {
+            $sum: {
+              $size: {
+                $filter: {
+                  input: '$findings',
+                  cond: { $eq: ['$$this.fixed', true] }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          repo: '$_id',
+          totalPRs: 1,
+          completedPRs: 1,
+          totalIssues: 1,
+          fixedIssues: 1,
+          successRate: {
+            $cond: [
+              { $gt: ['$totalPRs', 0] },
+              { $multiply: [{ $divide: ['$completedPRs', '$totalPRs'] }, 100] },
+              0
+            ]
+          },
+          fixRate: {
+            $cond: [
+              { $gt: ['$totalIssues', 0] },
+              { $multiply: [{ $divide: ['$fixedIssues', '$totalIssues'] }, 100] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { totalPRs: -1 } }
+    ]);
+    
+    const repoStats = repoStatsAgg.map(r => ({
+      repo: r.repo || r._id,
+      totalPRs: r.totalPRs,
+      completedPRs: r.completedPRs,
+      totalIssues: r.totalIssues,
+      fixedIssues: r.fixedIssues,
+      successRate: Math.round(r.successRate),
+      fixRate: Math.round(r.fixRate)
+    }));
+    
+    res.render('index', { 
+      title: 'Peer Dashboard',
+      recentRuns,
+      repoStats,
+      stats: {
+        totalRuns,
+        completedRuns,
+        totalInstallations,
+        totalIssues: stats.totalIssues,
+        fixedIssues: stats.fixedIssues
+      }
+    });
+  } catch (error) {
+    console.error('[ui] Dashboard error:', error);
+    res.render('index', { 
+      title: 'Peer Dashboard',
+      recentRuns: [],
+      repoStats: [],
+      stats: { totalRuns: 0, completedRuns: 0, totalInstallations: 0, totalIssues: 0, fixedIssues: 0 }
+    });
+  }
+});
 app.get('/run', requireAuth, (req, res) => res.render('run', { title: 'Run' }));
+
+// Audit logs page
+app.get('/audits', requireAuth, async (req, res) => {
+  try {
+    const PRRun = require('../../shared/models/PRRun');
+    
+    // Get all runs sorted by date
+    const audits = await PRRun.find({})
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+    
+    // Group by repo for filter dropdown
+    const repoGroups = {};
+    audits.forEach(audit => {
+      if (!repoGroups[audit.repo]) {
+        repoGroups[audit.repo] = [];
+      }
+      repoGroups[audit.repo].push(audit);
+    });
+    
+    res.render('audits', { 
+      title: 'Audit Logs',
+      audits,
+      repoGroups
+    });
+  } catch (error) {
+    console.error('[ui] Audits page error:', error);
+    res.render('audits', { 
+      title: 'Audit Logs',
+      audits: [],
+      repoGroups: {}
+    });
+  }
+});
 
 // Installation routes
 app.get('/installations', requireAuth, async (req, res) => {
@@ -277,6 +444,19 @@ app.get('/runs/:runId/patches/:patchRequestId', requireAuth, async (req, res) =>
     res.render('patch', { title: `Patch — Run ${runId}`, runId, patchRequestId, patch });
   } catch (e) {
     res.status(500).send(`Failed to fetch patch status: ${e?.response?.data?.error || e.message}`);
+  }
+});
+
+// Re-run AI fixes
+app.post('/runs/:runId/rerun', requireAuth, async (req, res) => {
+  try {
+    const { runId } = req.params;
+    const { patchRequestId } = req.body;
+    const resp = await axios.post(`${API_BASE}/runs/${runId}/rerun`, { patchRequestId });
+    const { patchRequestId: newPatchId } = resp.data;
+    res.redirect(`/runs/${runId}/preview?patchRequestId=${encodeURIComponent(newPatchId)}`);
+  } catch (e) {
+    res.status(500).send(`Failed to re-run AI fixes: ${e?.response?.data?.error || e.message}`);
   }
 });
 

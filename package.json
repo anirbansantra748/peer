@@ -5,8 +5,8 @@
   "description": "Peer (PR Auto Reviewer Platform) – skeleton",
   "license": "MIT",
   "scripts": {
-    "dev:api": "node services/api/server.js",
-    "dev:ui": "node services/ui/app.js",
+    "dev:api": "nodemon services/api/server.js",
+    "dev:ui": "nodemon services/ui/app.js",
     "dev:analyzer": "nodemon services/analyzer/worker.js",
     "dev:autofix": "nodemon services/autofix/worker.js",
     "dev:worker": "npm run dev:analyzer",

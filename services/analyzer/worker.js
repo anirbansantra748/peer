@@ -106,6 +106,21 @@ const analyzerWorker = new Worker(
       await prRun.save();
 
       logger.info('analyzer', 'Run completed', { runId, summary: prRun.summary, findings: prRun.findings.length });
+      
+      console.log('\n========================================');
+      console.log('✅ ANALYSIS COMPLETED');
+      console.log('========================================');
+      console.log(`📦 Repository: ${repo}`);
+      console.log(`🔢 PR Number: #${prNumber}`);
+      console.log(`🔍 Issues Found: ${prRun.findings.length}`);
+      console.log(`🔴 Critical: ${prRun.findings.filter(f => f.severity === 'critical').length}`);
+      console.log(`🟠 High: ${prRun.findings.filter(f => f.severity === 'high').length}`);
+      console.log(`🟡 Medium: ${prRun.findings.filter(f => f.severity === 'medium').length}`);
+      console.log(`⚪ Low: ${prRun.findings.filter(f => f.severity === 'low').length}`);
+      if (installationConfig && (installationConfig.mode === 'commit' || installationConfig.mode === 'merge')) {
+        console.log(`🤖 Auto-fix will start next...`);
+      }
+      console.log('========================================\n');
 
       // Auto-trigger autofix if mode is 'commit' or 'merge' (skip for 'review' mode)
       if (installationConfig && (installationConfig.mode === 'commit' || installationConfig.mode === 'merge')) {

@@ -253,6 +253,17 @@ app.post('/webhook/github', async (req, res) => {
     });
 
     logger.info('api', 'Job enqueued', { jobId: job.id, runId: prRun._id.toString() });
+    
+    console.log('\n========================================');
+    console.log('📥 WEBHOOK TRIGGERED');
+    console.log('========================================');
+    console.log(`📦 Repository: ${repo}`);
+    console.log(`🔢 PR Number: #${prNumber}`);
+    console.log(`🏷️ Run ID: ${prRun._id.toString()}`);
+    console.log(`⚙️ Mode: ${installation.config.mode}`);
+    console.log(`🔍 Severities: ${installation.config.severities.join(', ')}`);
+    console.log(`⏳ Status: QUEUED - Analysis starting...`);
+    console.log('========================================\n');
 
     res.json({ ok: true, runId: prRun._id.toString() });
   } catch (error) {
@@ -336,6 +347,89 @@ app.post('/runs/:runId/patches/preview', async (req, res) => {
   } catch (error) {
     logger.error('api', 'Preview error', { error: String(error) });
     res.status(500).json({ error: 'Failed to create preview' });
+  }
+});
+
+// Re-run AI fixes: create new patch request with same findings as a previous one
+app.post('/runs/:runId/rerun', async (req, res) => {
+  try {
+    const { runId } = req.params;
+    const { patchRequestId } = req.body || {};
+    
+    const prRun = await PRRun.findById(runId);
+    if (!prRun) return res.status(404).json({ error: 'Run not found' });
+    
+    // If patchRequestId is provided, use those findings; otherwise use all unfixed findings
+    let selectedFindingIds;
+    if (patchRequestId) {
+      const previousPatch = await PatchRequest.findById(patchRequestId);
+      if (!previousPatch || previousPatch.runId !== runId) {
+        return res.status(404).json({ error: 'Previous patch request not found' });
+      }
+      selectedFindingIds = previousPatch.selectedFindingIds;
+    } else {
+      // Use all unfixed findings
+      selectedFindingIds = prRun.findings
+        .filter(f => !f.fixed)
+        .map(f => String(f._id));
+    }
+    
+    if (!selectedFindingIds || selectedFindingIds.length === 0) {
+      return res.status(400).json({ error: 'No findings to process' });
+    }
+    
+    // Create new patch request
+    const filesMap = new Map();
+    const idsSet = new Set(selectedFindingIds.map(String));
+    const selected = prRun.findings.filter(f => idsSet.has(String(f._id)));
+    
+    for (const f of selected) {
+      if (!filesMap.has(f.file)) filesMap.set(f.file, new Set());
+      filesMap.get(f.file).add(String(f._id));
+    }
+    
+    const filesExpected = filesMap.size;
+    const fileStubs = Array.from(filesMap.entries()).map(([file, set]) => ({ 
+      file, 
+      ready: false, 
+      findingIds: Array.from(set) 
+    }));
+    
+    const newPatch = new PatchRequest({
+      runId,
+      repo: prRun.repo,
+      prNumber: prRun.prNumber,
+      sha: prRun.sha,
+      selectedFindingIds: uniq(selectedFindingIds.map(String)),
+      status: 'preview_partial',
+      preview: { unifiedDiff: '', files: fileStubs, filesExpected },
+    });
+    await newPatch.save();
+    
+    // Enqueue all files for preview
+    const uniqueFiles = Array.from(filesMap.keys());
+    logger.info('api', 'Re-running AI fixes', { 
+      patchRequestId: newPatch._id.toString(), 
+      fileCount: uniqueFiles.length,
+      findingsCount: selectedFindingIds.length
+    });
+    
+    const jobs = [];
+    for (const file of uniqueFiles) {
+      const job = autofixQueue.add('preview_file', { patchRequestId: newPatch._id.toString(), file });
+      jobs.push(job);
+    }
+    await Promise.all(jobs);
+    
+    res.json({ 
+      ok: true, 
+      patchRequestId: newPatch._id.toString(), 
+      filesQueued: jobs.length,
+      findingsCount: selectedFindingIds.length
+    });
+  } catch (error) {
+    logger.error('api', 'Rerun error', { error: String(error) });
+    res.status(500).json({ error: 'Failed to re-run AI fixes' });
   }
 });
 

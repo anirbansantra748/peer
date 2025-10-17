@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      .container { max-width: 1400px; margin: 0 auto; }
+      
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #21262d;
+      }
+      h1 { 
+        font-size: 28px;
+        font-weight: 600;
+        color: #58a6ff;
+      }
+      .nav-links {
+        display: flex;
+        gap: 15px;
+      }
+      .nav-links a {
+        color: #8b949e;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .nav-links a:hover { color: #58a6ff; }
+      
+      .timeline {
+        position: relative;
+        padding-left: 40px;
+      }
+      .timeline::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #30363d;
+      }
+      
+      .audit-entry {
+        position: relative;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: border-color 0.2s;
+      }
+      .audit-entry:hover { border-color: #58a6ff; }
+      .audit-entry::before {
+        content: '';
+        position: absolute;
+        left: -30px;
+        top: 25px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #238636;
+        border: 2px solid #0d1117;
+      }
+      .audit-entry.failed::before { background: #da3633; }
+      .audit-entry.running::before { background: #1f6feb; }
+      
+      .audit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+      }
+      .audit-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #c9d1d9;
+        margin-bottom: 4px;
+      }
+      .audit-time {
+        font-size: 12px;
+        color: #8b949e;
+      }
+      .audit-status {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .status-completed { background: #1a7f37; color: #aff5b4; }
+      .status-failed { background: #a40e26; color: #ffdce0; }
+      .status-running { background: #0969da; color: #a5d6ff; }
+      
+      .audit-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+        padding: 12px;
+        background: #0d1117;
+        border-radius: 6px;
+      }
+      .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .detail-label {
+        font-size: 11px;
+        color: #8b949e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .detail-value {
+        font-size: 14px;
+        font-weight: 500;
+        color: #c9d1d9;
+      }
+      
+      .audit-actions {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #21262d;
+        display: flex;
+        gap: 12px;
+      }
+      .audit-action {
+        color: #58a6ff;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .audit-action:hover { text-decoration: underline; }
+      
+      .filter-bar {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .filter-bar select {
+        padding: 8px 12px;
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        color: #c9d1d9;
+        font-size: 14px;
+      }
+      .filter-bar button {
+        padding: 8px 16px;
+        background: #238636;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .filter-bar button:hover { background: #2ea043; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>📋 Audit Logs</h1>
+        <div class="nav-links">
+          <a href="/">← Dashboard</a>
+          <a href="/installations">Installations</a>
+        </div>
+      </header>
+      
+      <div class="filter-bar">
+        <span style="color: #8b949e; font-size: 14px;">Filter by:</span>
+        <select id="repoFilter">
+          <option value="">All Repositories</option>
+          <% Object.keys(repoGroups).forEach(repo => { %>
+            <option value="<%= repo %>"><%= repo %></option>
+          <% }) %>
+        </select>
+        <select id="statusFilter">
+          <option value="">All Statuses</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+          <option value="running">Running</option>
+          <option value="queued">Queued</option>
+        </select>
+        <button onclick="applyFilters()">Apply</button>
+        <button onclick="resetFilters()" style="background: #6e7681;">Reset</button>
+      </div>
+      
+      <div class="timeline">
+        <% if (audits && audits.length > 0) { %>
+          <% audits.forEach(audit => { 
+            const findings = audit.findings || [];
+            const fixedCount = findings.filter(f => f.fixed).length;
+          %>
+            <div class="audit-entry <%= audit.status %>" data-repo="<%= audit.repo %>" data-status="<%= audit.status %>">
+              <div class="audit-header">
+                <div>
+                  <div class="audit-title">📦 <%= audit.repo %> #<%= audit.prNumber %></div>
+                  <div class="audit-time">
+                    🕰️ <%= new Date(audit.createdAt).toLocaleString() %>
+                    <% if (audit.updatedAt && audit.updatedAt !== audit.createdAt) { %>
+                      • Updated <%= new Date(audit.updatedAt).toLocaleString() %>
+                    <% } %>
+                  </div>
+                </div>
+                <span class="audit-status status-<%= audit.status %>">
+                  <%= audit.status.toUpperCase() %>
+                </span>
+              </div>
+              
+              <div class="audit-details">
+                <div class="detail-item">
+                  <div class="detail-label">Total Issues</div>
+                  <div class="detail-value" style="color: #f0883e;"><%= findings.length %></div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">Issues Fixed</div>
+                  <div class="detail-value" style="color: #3fb950;"><%= fixedCount %></div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">Fix Rate</div>
+                  <div class="detail-value">
+                    <%= findings.length > 0 ? Math.round((fixedCount / findings.length) * 100) : 0 %>%
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">Commit SHA</div>
+                  <div class="detail-value">
+                    <code style="font-size: 12px; color: #58a6ff;">
+                      <%= audit.sha ? audit.sha.substring(0, 7) : 'N/A' %>
+                    </code>
+                  </div>
+                </div>
+              </div>
+              
+              <% if (findings.length > 0) { %>
+              <div style="margin-top: 12px; font-size: 13px; color: #8b949e;">
+                <strong>Severity Breakdown:</strong>
+                <%= findings.filter(f => f.severity === 'critical').length %> Critical,
+                <%= findings.filter(f => f.severity === 'high').length %> High,
+                <%= findings.filter(f => f.severity === 'medium').length %> Medium,
+                <%= findings.filter(f => f.severity === 'low').length %> Low
+              </div>
+              <% } %>
+              
+              <div class="audit-actions">
+                <a href="/runs/<%= audit._id %>/select" class="audit-action">View Details →</a>
+                <% if (audit.status === 'completed' && findings.length > 0) { %>
+                  <a href="/runs/<%= audit._id %>/select" class="audit-action">🔧 Apply Fixes</a>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <div style="text-align: center; padding: 60px 20px; color: #6e7681;">
+            <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+            <p>No audit logs found. Trigger a PR analysis to see activity here.</p>
+          </div>
+        <% } %>
+      </div>
+    </div>
+    
+    <script>
+      function applyFilters() {
+        const repo = document.getElementById('repoFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        
+        document.querySelectorAll('.audit-entry').forEach(entry => {
+          const matchesRepo = !repo || entry.dataset.repo === repo;
+          const matchesStatus = !status || entry.dataset.status === status;
+          entry.style.display = (matchesRepo && matchesStatus) ? 'block' : 'none';
+        });
+      }
+      
+      function resetFilters() {
+        document.getElementById('repoFilter').value = '';
+        document.getElementById('statusFilter').value = '';
+        document.querySelectorAll('.audit-entry').forEach(entry => {
+          entry.style.display = 'block';
+        });
+      }
+    </script>
+  </body>
+</html>

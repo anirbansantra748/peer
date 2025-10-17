@@ -149,6 +149,103 @@
       font-size: 13px;
       color: #f0b72f;
     }
+    .tooltip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      margin-left: 6px;
+      background: #30363d;
+      border-radius: 50%;
+      color: #8b949e;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: help;
+      vertical-align: middle;
+    }
+    .tooltip:hover {
+      background: #484f58;
+      color: #c9d1d9;
+    }
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 280px;
+      background: #161b22;
+      color: #c9d1d9;
+      text-align: left;
+      border-radius: 6px;
+      padding: 12px;
+      border: 1px solid #30363d;
+      position: absolute;
+      z-index: 100;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -140px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 13px;
+      line-height: 1.5;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .tooltip .tooltiptext::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #30363d transparent transparent transparent;
+    }
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+    .mode-card {
+      padding: 14px;
+      margin: 8px 0;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      background: #0d1117;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .mode-card:hover {
+      border-color: #58a6ff;
+      background: #161b22;
+    }
+    .mode-card input[type="radio"] {
+      margin-right: 10px;
+    }
+    .mode-card.selected {
+      border-color: #58a6ff;
+      background: #1f6feb15;
+    }
+    .mode-title {
+      font-weight: 600;
+      color: #c9d1d9;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .mode-desc {
+      font-size: 13px;
+      color: #8b949e;
+      margin-left: 28px;
+    }
+    .mode-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+      text-transform: uppercase;
+    }
+    .badge-safe { background: #238636; color: white; }
+    .badge-caution { background: #d29922; color: white; }
+    .badge-danger { background: #da3633; color: white; }
 
     .button-group {
       display: flex;
@@ -199,33 +296,68 @@
       <form method="POST" action="/installations/<%= installation._id %>/settings">
         <!-- Processing Mode -->
         <div class="form-section">
-          <h2>Processing Mode</h2>
+          <h2>
+            Processing Mode
+            <span class="tooltip">?
+              <span class="tooltiptext">Controls how Peer handles PRs: review-only, auto-commit fixes, or full auto-merge. Choose based on your team's review requirements.</span>
+            </span>
+          </h2>
           <p>Choose how Peer should handle pull requests automatically</p>
           
           <div class="form-group">
-            <label for="mode">Mode</label>
-            <select name="mode" id="mode">
-              <option value="analyze" <%= installation.config.mode === 'analyze' ? 'selected' : '' %>>
-                Analyze Only - Just analyze and comment (recommended)
-              </option>
-              <option value="commit" <%= installation.config.mode === 'commit' ? 'selected' : '' %>>
-                Commit Fixes - Auto-create commits with fixes
-              </option>
-              <option value="merge" <%= installation.config.mode === 'merge' ? 'selected' : '' %>>
-                Auto-Merge - Automatically merge approved PRs (dangerous)
-              </option>
-            </select>
-            <div class="info-box">
-              <strong>Analyze:</strong> Peer will analyze PRs and post comments with findings. No code changes.<br>
-              <strong>Commit:</strong> Peer will create commits with automatic fixes to your PR branch.<br>
-              <strong>Merge:</strong> Peer will automatically merge PRs that pass all checks (use with caution).
+            <label class="mode-card <%= installation.config.mode === 'review' ? 'selected' : '' %>" onclick="document.getElementById('mode-review').checked=true">
+              <input type="radio" name="mode" id="mode-review" value="review" <%= installation.config.mode === 'review' ? 'checked' : '' %>>
+              <div>
+                <div class="mode-title">
+                  Mode 2: User Selection (Review)
+                  <span class="mode-badge badge-safe">SAFE</span>
+                </div>
+                <div class="mode-desc">
+                  Analyze PRs and show findings in UI. User manually selects which issues to fix via /runs/:runId/select page. Full control, zero risk.
+                </div>
+              </div>
+            </label>
+            
+            <label class="mode-card <%= installation.config.mode === 'commit' ? 'selected' : '' %>" onclick="document.getElementById('mode-commit').checked=true">
+              <input type="radio" name="mode" id="mode-commit" value="commit" <%= installation.config.mode === 'commit' ? 'checked' : '' %>>
+              <div>
+                <div class="mode-title">
+                  Mode 1: Auto-Commit (Approval Required)
+                  <span class="mode-badge badge-caution">REQUIRES APPROVAL</span>
+                </div>
+                <div class="mode-desc">
+                  Automatically create commits with fixes. Creates a new PR with fixes. Waits for 1 approval, then auto-merges if requireReviews=1 below.
+                </div>
+              </div>
+            </label>
+            
+            <label class="mode-card <%= installation.config.mode === 'merge' ? 'selected' : '' %>" onclick="document.getElementById('mode-merge').checked=true">
+              <input type="radio" name="mode" id="mode-merge" value="merge" <%= installation.config.mode === 'merge' ? 'checked' : '' %>>
+              <div>
+                <div class="mode-title">
+                  Mode 0: Full Auto-Merge
+                  <span class="mode-badge badge-danger">DANGEROUS</span>
+                </div>
+                <div class="mode-desc">
+                  Automatically merge fix PRs without approval (if requireReviews=0). Use only with robust CI/CD and test coverage. High risk.
+                </div>
+              </div>
+            </label>
+
+            <div class="info-box" style="margin-top: 12px;">
+              💡 <strong>Tip:</strong> Start with Mode 2 (User Selection) to understand what Peer detects, then upgrade to Mode 1 or 0 once confident.
             </div>
           </div>
         </div>
 
         <!-- Severity Levels -->
         <div class="form-section">
-          <h2>Severity Levels</h2>
+          <h2>
+            Severity Levels
+            <span class="tooltip">?
+              <span class="tooltiptext">Filter which issue severities to analyze. Select at least one. More = thorough, fewer = faster.</span>
+            </span>
+          </h2>
           <p>Select which severity levels you want to analyze and report</p>
           
           <div class="checkbox-group">
@@ -289,7 +421,12 @@
 
         <!-- Performance Settings -->
         <div class="form-section">
-          <h2>Performance Limits</h2>
+          <h2>
+            Performance Limits
+            <span class="tooltip">?
+              <span class="tooltiptext">Limit file count per PR to balance speed vs coverage. 10-20 is typical for most projects.</span>
+            </span>
+          </h2>
           <p>Control how many files Peer will process per PR</p>
           
           <div class="form-group">
@@ -310,8 +447,13 @@
 
         <!-- Auto-Merge Settings -->
         <div class="form-section">
-          <h2>Auto-Merge Settings</h2>
-          <p>Configure automatic PR merging (only applies when mode is set to "merge")</p>
+          <h2>
+            Auto-Merge Settings
+            <span class="tooltip">?
+              <span class="tooltiptext">Fine-tune auto-merge behavior for Mode 0/1. Set requireReviews=0 for instant merge (Mode 0) or requireReviews=1 for approval-based (Mode 1).</span>
+            </span>
+          </h2>
+          <p>Configure automatic PR merging (applies to Mode 0 and Mode 1)</p>
           
           <div class="form-group">
             <div class="checkbox-item">
