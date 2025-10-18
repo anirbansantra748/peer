@@ -265,7 +265,10 @@
       <div class="empty-state">
         <h2>No Installations Found</h2>
         <p>You haven't installed the Peer GitHub App on any repositories yet.</p>
-        <a href="https://github.com/apps/YOUR_APP_NAME/installations/new" class="btn">Install GitHub App</a>
+        <p style="color: #8b949e; font-size: 14px; margin-top: 16px;">
+          Go to your GitHub repository → Settings → Integrations → GitHub Apps → Search for "Peer Code Review v2" → Install
+        </p>
+        <a href="https://github.com/apps/peer-code-review-v2/installations/new" target="_blank" class="btn">Install GitHub App</a>
       </div>
     <% } else { %>
       <% installations.forEach(installation => { %>
@@ -347,7 +350,7 @@
     <% } %>
 
     <div class="install-btn">
-      <a href="https://github.com/apps/YOUR_APP_NAME/installations/new" class="btn">
+      <a href="https://github.com/apps/peer-code-review-v2/installations/new" target="_blank" class="btn">
         + Add More Repositories
       </a>
     </div>

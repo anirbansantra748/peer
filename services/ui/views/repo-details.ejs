@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      .container { max-width: 1400px; margin: 0 auto; }
+      
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #21262d;
+      }
+      h1 { font-size: 28px; font-weight: 600; color: #58a6ff; }
+      .nav-links { display: flex; gap: 15px; }
+      .nav-links a { color: #8b949e; text-decoration: none; font-size: 14px; }
+      .nav-links a:hover { color: #58a6ff; }
+      
+      .stats-bar {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 20px;
+      }
+      .stat-item { text-align: center; }
+      .stat-value { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
+      .stat-label { font-size: 12px; color: #8b949e; text-transform: uppercase; }
+      
+      .filter-bar {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .filter-bar select {
+        padding: 8px 12px;
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        color: #c9d1d9;
+        font-size: 14px;
+      }
+      
+      .issue-item {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: border-color 0.2s;
+      }
+      .issue-item:hover { border-color: #58a6ff; }
+      .issue-item.fixed { border-left: 4px solid #3fb950; }
+      
+      .issue-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+      }
+      .issue-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: #c9d1d9;
+        flex: 1;
+      }
+      .severity-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+      .severity-critical { background: #a40e26; color: #ffdce0; }
+      .severity-high { background: #9a6700; color: #f0e6b9; }
+      .severity-medium { background: #0969da; color: #a5d6ff; }
+      .severity-low { background: #6e7681; color: #c9d1d9; }
+      
+      .issue-meta {
+        font-size: 12px;
+        color: #8b949e;
+        margin-top: 8px;
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .issue-meta code {
+        background: #21262d;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+      }
+      
+      .fix-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        background: #1a7f37;
+        color: #aff5b4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>📦 <%= repoName %></h1>
+        <div class="nav-links">
+          <a href="/">← Dashboard</a>
+          <a href="/repos">All Repos</a>
+        </div>
+      </header>
+      
+      <div class="stats-bar">
+        <div class="stat-item">
+          <div class="stat-value" style="color: #58a6ff;"><%= totalPRs %></div>
+          <div class="stat-label">PRs Analyzed</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" style="color: #f0883e;"><%= totalIssues %></div>
+          <div class="stat-label">Issues Found</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" style="color: #3fb950;"><%= fixedIssues %></div>
+          <div class="stat-label">Issues Fixed</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value"><%= fixRate %>%</div>
+          <div class="stat-label">Fix Rate</div>
+        </div>
+      </div>
+      
+      <div class="filter-bar">
+        <span style="color: #8b949e; font-size: 14px;">Filter:</span>
+        <select id="severityFilter">
+          <option value="">All Severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select id="statusFilter">
+          <option value="">All Status</option>
+          <option value="fixed">Fixed</option>
+          <option value="pending">Pending</option>
+        </select>
+        <select id="fileFilter">
+          <option value="">All Files</option>
+          <% files.forEach(file => { %>
+            <option value="<%= file %>"><%= file %></option>
+          <% }) %>
+        </select>
+      </div>
+      
+      <div id="issues-list">
+        <% if (issues.length === 0) { %>
+          <div style="text-align: center; padding: 60px 20px; color: #6e7681;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+            <p>No issues found for this repository.</p>
+          </div>
+        <% } else { %>
+          <% issues.forEach(issue => { %>
+            <div class="issue-item <%= issue.fixed ? 'fixed' : '' %>" 
+                 data-severity="<%= issue.severity %>" 
+                 data-status="<%= issue.fixed ? 'fixed' : 'pending' %>"
+                 data-file="<%= issue.file %>">
+              <div class="issue-header">
+                <div class="issue-title">
+                  <%= issue.message %>
+                  <span class="severity-badge severity-<%= issue.severity %>">
+                    <%= issue.severity.toUpperCase() %>
+                  </span>
+                  <% if (issue.fixed) { %>
+                    <span class="fix-badge">✅ Fixed</span>
+                  <% } %>
+                </div>
+              </div>
+              
+              <div class="issue-meta">
+                <span>📄 <code><%= issue.file %></code></span>
+                <span>📍 Line <%= issue.line %></span>
+                <span>🔧 <%= issue.rule %></span>
+                <span>🔍 <%= issue.analyzer %></span>
+                <% if (issue.prNumber) { %>
+                  <span>🔗 PR #<%= issue.prNumber %></span>
+                <% } %>
+              </div>
+              
+              <% if (issue.fixed && issue.fixedAt) { %>
+                <div style="margin-top: 8px; font-size: 11px; color: #6e7681;">
+                  Fixed on <%= new Date(issue.fixedAt).toLocaleString() %>
+                </div>
+              <% } %>
+              
+              <% if (issue.createdAt) { %>
+                <div style="margin-top: 4px; font-size: 11px; color: #6e7681;">
+                  Detected on <%= new Date(issue.createdAt).toLocaleString() %>
+                </div>
+              <% } %>
+            </div>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+    
+    <script>
+      // Filter functionality
+      function applyFilters() {
+        const severity = document.getElementById('severityFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        const file = document.getElementById('fileFilter').value;
+        
+        document.querySelectorAll('.issue-item').forEach(item => {
+          const matchSeverity = !severity || item.dataset.severity === severity;
+          const matchStatus = !status || item.dataset.status === status;
+          const matchFile = !file || item.dataset.file === file;
+          
+          item.style.display = (matchSeverity && matchStatus && matchFile) ? 'block' : 'none';
+        });
+      }
+      
+      document.getElementById('severityFilter').addEventListener('change', applyFilters);
+      document.getElementById('statusFilter').addEventListener('change', applyFilters);
+      document.getElementById('fileFilter').addEventListener('change', applyFilters);
+    </script>
+  </body>
+</html>

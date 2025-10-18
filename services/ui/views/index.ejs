@@ -9,6 +9,29 @@
       function refreshDashboard() {
         window.location.reload();
       }
+      
+      // Fetch and display LLM usage
+      async function refreshUsage() {
+        try {
+          const res = await fetch('/api/llm/usage');
+          const data = await res.json();
+          
+          if (data.ok) {
+            document.getElementById('usage-calls').textContent = data.total.calls.toLocaleString();
+            document.getElementById('usage-tokens').textContent = data.total.tokens.toLocaleString();
+            
+            // Find provider with most calls
+            const providers = data.providers || {};
+            const topProvider = Object.entries(providers).sort((a, b) => b[1].calls - a[1].calls)[0];
+            document.getElementById('usage-provider').textContent = topProvider ? topProvider[0].toUpperCase() : 'None';
+          }
+        } catch (error) {
+          console.error('Failed to fetch usage:', error);
+        }
+      }
+      
+      // Load usage on page load
+      window.addEventListener('load', refreshUsage);
     </script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -255,28 +278,61 @@
         </div>
       </div>
       
+      <!-- AI Usage Widget (System-wide, not per-user) -->
+      <!-- Hidden for now as it shows global usage -->
+      <% if (false) { %>
+      <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 16px; font-weight: 600; color: #c9d1d9; margin: 0;">🤖 AI Usage (System-wide)</h3>
+          <button onclick="refreshUsage()" style="padding: 6px 12px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; font-size: 13px; cursor: pointer;">🔄</button>
+        </div>
+        <div id="usage-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #58a6ff;" id="usage-calls">--</div>
+            <div style="font-size: 12px; color: #8b949e; margin-top: 4px;">Total Calls</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #3fb950;" id="usage-tokens">--</div>
+            <div style="font-size: 12px; color: #8b949e; margin-top: 4px;">Tokens Used</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 14px; font-weight: 600; color: #c9d1d9;" id="usage-provider">--</div>
+            <div style="font-size: 12px; color: #8b949e; margin-top: 4px;">Primary Provider</div>
+          </div>
+        </div>
+      </div>
+      <% } %>
+      
       <!-- Stats Cards -->
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">📊 Total PRs Analyzed</div>
-          <div class="stat-value"><%= stats.totalRuns %></div>
-          <div class="stat-desc"><%= stats.completedRuns %> completed successfully</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">🔍 Issues Found</div>
-          <div class="stat-value" style="color: #f0883e;"><%= stats.totalIssues %></div>
-          <div class="stat-desc">Detected across all repositories</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">✅ Issues Fixed</div>
-          <div class="stat-value" style="color: #3fb950;"><%= stats.fixedIssues %></div>
-          <div class="stat-desc"><%= stats.totalIssues > 0 ? Math.round(stats.fixedIssues / stats.totalIssues * 100) : 0 %>% of all issues resolved</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">🔗 Connected Repos</div>
-          <div class="stat-value"><%= stats.totalInstallations %></div>
-          <div class="stat-desc">Active GitHub installations</div>
-        </div>
+        <a href="/repos" style="text-decoration: none; color: inherit;">
+          <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="stat-label">📊 Total PRs Analyzed</div>
+            <div class="stat-value"><%= stats.totalRuns %></div>
+            <div class="stat-desc"><%= stats.completedRuns %> completed successfully</div>
+          </div>
+        </a>
+        <a href="/repos" style="text-decoration: none; color: inherit;">
+          <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="stat-label">🔍 Issues Found</div>
+            <div class="stat-value" style="color: #f0883e;"><%= stats.totalIssues %></div>
+            <div class="stat-desc">Detected across all repositories</div>
+          </div>
+        </a>
+        <a href="/repos" style="text-decoration: none; color: inherit;">
+          <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="stat-label">✅ Issues Fixed</div>
+            <div class="stat-value" style="color: #3fb950;"><%= stats.fixedIssues %></div>
+            <div class="stat-desc"><%= stats.totalIssues > 0 ? Math.round(stats.fixedIssues / stats.totalIssues * 100) : 0 %>% of all issues resolved</div>
+          </div>
+        </a>
+        <a href="/installations" style="text-decoration: none; color: inherit;">
+          <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="stat-label">🔗 Connected Repos</div>
+            <div class="stat-value"><%= stats.totalInstallations %></div>
+            <div class="stat-desc">Active GitHub installations</div>
+          </div>
+        </a>
       </div>
       
       <!-- Repository Stats Table -->
@@ -380,7 +436,7 @@
                   <% } %>
                 </div>
               </div>
-              <a href="/runs/<%= run._id %>/select" class="activity-link">View Details →</a>
+              <a href="/pr/<%= run._id %>" class="activity-link">View Details →</a>
             </div>
           <% }) %>
         <% } else { %>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Peer</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 20px;
+        line-height: 1.6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      .wizard {
+        max-width: 800px;
+        width: 100%;
+      }
+      .wizard-header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+      .wizard-header h1 {
+        font-size: 36px;
+        font-weight: 700;
+        color: #58a6ff;
+        margin-bottom: 12px;
+      }
+      .wizard-header p {
+        font-size: 16px;
+        color: #8b949e;
+      }
+      
+      .steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 40px;
+        position: relative;
+      }
+      .steps::before {
+        content: '';
+        position: absolute;
+        top: 24px;
+        left: 48px;
+        right: 48px;
+        height: 2px;
+        background: #21262d;
+        z-index: 0;
+      }
+      .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        position: relative;
+        z-index: 1;
+      }
+      .step-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #21262d;
+        border: 2px solid #30363d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 600;
+        color: #6e7681;
+        transition: all 0.3s;
+      }
+      .step.active .step-circle {
+        background: #1f6feb;
+        border-color: #58a6ff;
+        color: white;
+      }
+      .step.completed .step-circle {
+        background: #238636;
+        border-color: #3fb950;
+        color: white;
+      }
+      .step-label {
+        font-size: 13px;
+        color: #6e7681;
+        text-align: center;
+      }
+      .step.active .step-label {
+        color: #58a6ff;
+        font-weight: 600;
+      }
+      
+      .card {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 40px;
+        margin-bottom: 20px;
+      }
+      .card h2 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #c9d1d9;
+        margin-bottom: 16px;
+      }
+      .card p {
+        font-size: 15px;
+        color: #8b949e;
+        margin-bottom: 24px;
+        line-height: 1.6;
+      }
+      
+      .option-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .option {
+        background: #0d1117;
+        border: 2px solid #30363d;
+        border-radius: 8px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .option:hover {
+        border-color: #58a6ff;
+      }
+      .option.selected {
+        border-color: #58a6ff;
+        background: #1c2b3a;
+      }
+      .option-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #c9d1d9;
+        margin-bottom: 6px;
+      }
+      .option-desc {
+        font-size: 13px;
+        color: #8b949e;
+      }
+      .option-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+      .badge-auto { background: #238636; color: #aff5b4; }
+      .badge-manual { background: #9a6700; color: #f0e6b9; }
+      
+      .btn {
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+      }
+      .btn-primary {
+        background: #238636;
+        color: white;
+      }
+      .btn-primary:hover {
+        background: #2ea043;
+      }
+      .btn-secondary {
+        background: #21262d;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+      }
+      .btn-secondary:hover {
+        background: #30363d;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      
+      .actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      
+      .github-link {
+        display: inline-block;
+        padding: 12px 24px;
+        background: #238636;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: background 0.2s;
+      }
+      .github-link:hover {
+        background: #2ea043;
+      }
+      
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wizard">
+      <div class="wizard-header">
+        <h1>🤖 Welcome to Peer</h1>
+        <p>Let's get your AI code reviewer set up in 3 quick steps</p>
+      </div>
+      
+      <div class="steps">
+        <div class="step active" id="step-indicator-1">
+          <div class="step-circle">1</div>
+          <div class="step-label">Connect GitHub</div>
+        </div>
+        <div class="step" id="step-indicator-2">
+          <div class="step-circle">2</div>
+          <div class="step-label">Choose Mode</div>
+        </div>
+        <div class="step" id="step-indicator-3">
+          <div class="step-circle">3</div>
+          <div class="step-label">Done!</div>
+        </div>
+      </div>
+      
+      <!-- Step 1: Connect GitHub -->
+      <div class="card" id="step-1">
+        <h2>📦 Step 1: Connect Your GitHub</h2>
+        <p>Peer needs access to your GitHub repositories to analyze pull requests and suggest fixes automatically.</p>
+        
+        <div style="margin-top: 24px; padding: 16px; background: #0d1117; border: 1px solid #21262d; border-radius: 6px;">
+          <h3 style="font-size: 14px; font-weight: 600; color: #c9d1d9; margin-bottom: 12px;">💡 How to connect:</h3>
+          <ol style="margin-left: 20px; color: #8b949e; font-size: 14px; line-height: 2;">
+            <li>Go to your GitHub repository settings</li>
+            <li>Navigate to <strong style="color: #c9d1d9;">Integrations → GitHub Apps</strong></li>
+            <li>Find and install the <strong style="color: #58a6ff;">Peer</strong> app</li>
+            <li>Grant access to the repositories you want to analyze</li>
+            <li>Come back here and continue setup</li>
+          </ol>
+        </div>
+        
+        <div style="margin-top: 20px; display: flex; gap: 12px;">
+          <a href="/installations" class="github-link">📊 Check Installations</a>
+          <button class="btn btn-secondary" onclick="goToStep(2)">I've Already Connected →</button>
+        </div>
+      </div>
+      
+      <!-- Step 2: Choose Mode -->
+      <div class="card hidden" id="step-2">
+        <h2>⚙️ Step 2: Choose Your Fix Mode</h2>
+        <p>How should Peer handle code fixes?</p>
+        
+        <div class="option-group">
+          <div class="option" data-mode="merge" onclick="selectMode('merge')">
+            <div class="option-title">
+              🚀 Auto-Merge <span class="option-badge badge-auto">Recommended</span>
+            </div>
+            <div class="option-desc">Peer automatically creates PRs with fixes and merges them after checks pass</div>
+          </div>
+          
+          <div class="option" data-mode="review" onclick="selectMode('review')">
+            <div class="option-title">
+              👀 Manual Review <span class="option-badge badge-manual">Safe</span>
+            </div>
+            <div class="option-desc">You review and approve each fix before it's applied</div>
+          </div>
+        </div>
+        
+        <div class="actions">
+          <button class="btn btn-secondary" onclick="goToStep(1)">← Back</button>
+          <button class="btn btn-primary" id="next-btn" disabled onclick="saveMode()">Continue →</button>
+        </div>
+      </div>
+      
+      <!-- Step 3: Done -->
+      <div class="card hidden" id="step-3">
+        <h2>✅ All Set!</h2>
+        <p>You're ready to start using Peer. Create a pull request in your connected repositories and watch the magic happen!</p>
+        
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="/" class="github-link">Go to Dashboard →</a>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      let currentStep = 1;
+      let selectedMode = null;
+      
+      function goToStep(step) {
+        // Hide all steps
+        for (let i = 1; i <= 3; i++) {
+          document.getElementById(`step-${i}`).classList.add('hidden');
+          document.getElementById(`step-indicator-${i}`).classList.remove('active', 'completed');
+        }
+        
+        // Show current step
+        document.getElementById(`step-${step}`).classList.remove('hidden');
+        document.getElementById(`step-indicator-${step}`).classList.add('active');
+        
+        // Mark previous steps as completed
+        for (let i = 1; i < step; i++) {
+          document.getElementById(`step-indicator-${i}`).classList.add('completed');
+        }
+        
+        currentStep = step;
+      }
+      
+      function selectMode(mode) {
+        selectedMode = mode;
+        document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+        document.querySelector(`.option[data-mode="${mode}"]`).classList.add('selected');
+        document.getElementById('next-btn').disabled = false;
+      }
+      
+      async function saveMode() {
+        if (!selectedMode) return;
+        
+        try {
+          const res = await fetch('/api/onboarding/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: selectedMode })
+          });
+          
+          if (res.ok) {
+            goToStep(3);
+          } else {
+            alert('Failed to save settings. Please try again.');
+          }
+        } catch (error) {
+          console.error('Error saving onboarding:', error);
+          alert('Failed to save settings. Please try again.');
+        }
+      }
+      
+      // No auto-check needed - user manually proceeds
+    </script>
+  </body>
+</html>

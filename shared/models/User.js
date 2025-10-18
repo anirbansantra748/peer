@@ -34,6 +34,11 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  // Onboarding completion flag
+  onboardingComplete: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true, // Adds createdAt and updatedAt
 });

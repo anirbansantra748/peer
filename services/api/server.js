@@ -32,6 +32,26 @@ app.get('/health', (req, res) => {
   res.json({ ok: true });
 });
 
+// LLM usage statistics endpoint
+app.get('/api/llm/usage', async (req, res) => {
+  try {
+    const usageTracker = require('../../shared/llm/usageTracker');
+    const totalUsage = await usageTracker.getTotalUsage();
+    const providerUsage = await usageTracker.getProviderUsage();
+    const dailyUsage = await usageTracker.getDailyUsage(7); // Last 7 days
+    
+    res.json({
+      ok: true,
+      total: totalUsage,
+      providers: providerUsage,
+      daily: dailyUsage
+    });
+  } catch (error) {
+    logger.error('api', 'LLM usage error', { error: String(error) });
+    res.status(500).json({ error: 'Failed to fetch LLM usage' });
+  }
+});
+
 // Cache statistics endpoint
 app.get('/api/cache/stats', async (req, res) => {
   try {

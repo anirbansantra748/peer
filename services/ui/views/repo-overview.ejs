@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      .container { max-width: 1600px; margin: 0 auto; }
+      
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #21262d;
+      }
+      h1 { font-size: 28px; font-weight: 600; color: #58a6ff; }
+      .nav-links { display: flex; gap: 15px; }
+      .nav-links a { color: #8b949e; text-decoration: none; font-size: 14px; }
+      .nav-links a:hover { color: #58a6ff; }
+      
+      .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+        margin-bottom: 30px;
+      }
+      .summary-card {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 20px;
+      }
+      .summary-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: #58a6ff;
+        margin-bottom: 8px;
+      }
+      .summary-label {
+        font-size: 13px;
+        color: #8b949e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .repo-card {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 16px;
+        transition: border-color 0.2s, transform 0.2s;
+        cursor: pointer;
+      }
+      .repo-card:hover {
+        border-color: #58a6ff;
+        transform: translateY(-2px);
+      }
+      
+      .repo-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+      }
+      .repo-name {
+        font-size: 20px;
+        font-weight: 600;
+        color: #c9d1d9;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .mode-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .mode-0 { background: #238636; color: #aff5b4; }
+      .mode-1 { background: #0969da; color: #a5d6ff; }
+      .mode-2 { background: #9a6700; color: #f0e6b9; }
+      
+      .repo-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .stat-label {
+        font-size: 11px;
+        color: #8b949e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+      }
+      
+      .link-btn {
+        padding: 8px 16px;
+        background: #21262d;
+        color: #58a6ff;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-block;
+        transition: background 0.2s;
+      }
+      .link-btn:hover {
+        background: #30363d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>📊 Repository Overview</h1>
+        <div class="nav-links">
+          <a href="/">← Dashboard</a>
+        </div>
+      </header>
+      
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="summary-value"><%= totalRepos %></div>
+          <div class="summary-label">Total Repositories</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value" style="color: #f0883e;"><%= totalPRs %></div>
+          <div class="summary-label">Total PRs Analyzed</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value" style="color: #da3633;"><%= totalIssues %></div>
+          <div class="summary-label">Total Issues Found</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value" style="color: #3fb950;"><%= totalFixed %></div>
+          <div class="summary-label">Issues Fixed</div>
+        </div>
+      </div>
+      
+      <% repos.forEach(repo => { %>
+        <div class="repo-card" onclick="window.location.href='/repo/<%= repo.name %>'">
+          <div class="repo-header">
+            <div class="repo-name">
+              📦 <%= repo.name %>
+            </div>
+            <span class="mode-badge mode-<%= repo.mode %>">
+              Mode <%= repo.mode %>: <%= repo.modeName %>
+            </span>
+          </div>
+          
+          <div class="repo-stats">
+            <div class="stat-item">
+              <div class="stat-label">PRs Analyzed</div>
+              <div class="stat-value" style="color: #58a6ff;"><%= repo.totalPRs %></div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Issues Found</div>
+              <div class="stat-value" style="color: #f0883e;"><%= repo.totalIssues %></div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Issues Solved</div>
+              <div class="stat-value" style="color: #3fb950;"><%= repo.issuesSolved %></div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Fix Rate</div>
+              <div class="stat-value" style="color: <%= repo.fixRate >= 75 ? '#3fb950' : repo.fixRate >= 50 ? '#f0883e' : '#da3633' %>">
+                <%= repo.fixRate %>%
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Success Rate</div>
+              <div class="stat-value">
+                <%= repo.successRate %>%
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #21262d; font-size: 12px; color: #8b949e;">
+            Last activity: <%= new Date(repo.lastActivity).toLocaleString() %>
+          </div>
+        </div>
+      <% }) %>
+      
+      <% if (repos.length === 0) { %>
+        <div style="text-align: center; padding: 60px 20px; color: #6e7681;">
+          <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+          <p>No repositories analyzed yet.</p>
+        </div>
+      <% } %>
+    </div>
+  </body>
+</html>

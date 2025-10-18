@@ -10,6 +10,7 @@ const configurePassport = require('../../shared/auth/passport');
 const { categorizeAllFindings, getCategorySummary } = require('../../shared/utils/issueCategorizer');
 const { requireAuth, redirectIfAuthenticated } = require('../../shared/middleware/requireAuth');
 const Installation = require('../../shared/models/Installation');
+const logger = require('../../shared/utils/prettyLogger');
 
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 
@@ -94,25 +95,81 @@ app.get('/auth/me', (req, res) => {
   }
 });
 
+// Onboarding routes
+app.get('/onboarding', requireAuth, (req, res) => {
+  res.render('onboarding', { title: 'Welcome to Peer' });
+});
+
+app.get('/api/onboarding/status', requireAuth, async (req, res) => {
+  try {
+    const Installation = require('../../shared/models/Installation');
+    const installations = await Installation.find({ userId: req.user._id });
+    res.json({ hasInstallation: installations.length > 0 });
+  } catch (error) {
+    res.json({ hasInstallation: false });
+  }
+});
+
+app.post('/api/onboarding/complete', requireAuth, async (req, res) => {
+  try {
+    const User = require('../../shared/models/User');
+    const Installation = require('../../shared/models/Installation');
+    const { mode } = req.body;
+    
+    // Mark onboarding complete
+    await User.findByIdAndUpdate(req.user._id, { onboardingComplete: true });
+    
+    // Update installation mode if provided
+    if (mode) {
+      await Installation.updateMany(
+        { userId: req.user._id },
+        { $set: { 'config.mode': mode } }
+      );
+    }
+    
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('[ui] Onboarding complete error:', error);
+    res.status(500).json({ ok: false, error: String(error) });
+  }
+});
+
 // Protected routes
 app.get('/', requireAuth, async (req, res) => {
+  // Check if user needs onboarding
+  if (!req.user.onboardingComplete) {
+    return res.redirect('/onboarding');
+  }
+  
   try {
     const PRRun = require('../../shared/models/PRRun');
     const Installation = require('../../shared/models/Installation');
     
-    // Get recent activity (last 10 runs)
-    const recentRuns = await PRRun.find({})
+    // Get ONLY this user's installations
+    const userInstallations = await Installation.find({ 
+      userId: req.user._id,
+      status: 'active' 
+    }).lean();
+    
+    const installationIds = userInstallations.map(i => i._id);
+    
+    // Filter for this user's data only
+    const userFilter = { installationId: { $in: installationIds } };
+    
+    // Get recent activity (last 10 runs) for user's installations
+    const recentRuns = await PRRun.find(userFilter)
       .sort({ createdAt: -1 })
       .limit(10)
       .lean();
     
-    // Get stats
-    const totalRuns = await PRRun.countDocuments({});
-    const completedRuns = await PRRun.countDocuments({ status: 'completed' });
-    const totalInstallations = await Installation.countDocuments({ status: 'active' });
+    // Get stats for user's installations only
+    const totalRuns = await PRRun.countDocuments(userFilter);
+    const completedRuns = await PRRun.countDocuments({ ...userFilter, status: 'completed' });
+    const totalInstallations = userInstallations.length;
     
-    // Calculate total issues found and fixed
+    // Calculate total issues found and fixed for user's data
     const statsAgg = await PRRun.aggregate([
+      { $match: userFilter },
       {
         $group: {
           _id: null,
@@ -148,8 +205,9 @@ app.get('/', requireAuth, async (req, res) => {
       } : null
     });
     
-    // Aggregate stats by repository
+    // Aggregate stats by repository for user's data
     const repoStatsAgg = await PRRun.aggregate([
+      { $match: userFilter },
       {
         $group: {
           _id: '$repo',
@@ -230,13 +288,198 @@ app.get('/', requireAuth, async (req, res) => {
 });
 app.get('/run', requireAuth, (req, res) => res.render('run', { title: 'Run' }));
 
+// LLM usage API proxy
+app.get('/api/llm/usage', async (req, res) => {
+  try {
+    const response = await axios.get(`${API_BASE}/api/llm/usage`);
+    res.json(response.data);
+  } catch (error) {
+    console.error('[ui] LLM usage fetch error:', error);
+    res.json({ ok: false, total: { calls: 0, tokens: 0 }, providers: {}, daily: [] });
+  }
+});
+
+// Repository overview page
+app.get('/repos', requireAuth, async (req, res) => {
+  try {
+    const PRRun = require('../../shared/models/PRRun');
+    const Installation = require('../../shared/models/Installation');
+    
+    // Get ONLY this user's installations
+    const userInstallations = await Installation.find({ 
+      userId: req.user._id,
+      status: 'active' 
+    }).lean();
+    
+    const installationIds = userInstallations.map(i => i._id);
+    const userFilter = { installationId: { $in: installationIds } };
+    
+    // Get runs grouped by repo for user's installations only
+    const repoData = await PRRun.aggregate([
+      { $match: userFilter },
+      {
+        $group: {
+          _id: '$repo',
+          totalPRs: { $sum: 1 },
+          totalIssues: { $sum: { $size: '$findings' } },
+          issuesSolved: {
+            $sum: {
+              $size: {
+                $filter: {
+                  input: '$findings',
+                  cond: { $eq: ['$$this.fixed', true] }
+                }
+              }
+            }
+          },
+          completedPRs: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+          },
+          lastActivity: { $max: '$updatedAt' },
+          installationId: { $first: '$installationId' }
+        }
+      },
+      { $sort: { totalPRs: -1 } }
+    ]);
+    
+    // Get installation data for modes
+    const installations = await Installation.find({}).lean();
+    const installationMap = {};
+    installations.forEach(inst => {
+      installationMap[String(inst._id)] = inst;
+    });
+    
+    const repos = repoData.map(r => {
+      const installation = installationMap[String(r.installationId)];
+      const modeNames = { commit: 'Auto Merge', merge: 'Auto Merge', review: 'Manual' };
+      const mode = installation ? installation.config.mode : 'review';
+      const modeNum = mode === 'commit' || mode === 'merge' ? 0 : 2;
+      
+      return {
+        name: r._id,
+        totalPRs: r.totalPRs,
+        totalIssues: r.totalIssues,
+        issuesSolved: r.issuesSolved,
+        fixRate: r.totalIssues > 0 ? Math.round((r.issuesSolved / r.totalIssues) * 100) : 0,
+        successRate: r.totalPRs > 0 ? Math.round((r.completedPRs / r.totalPRs) * 100) : 0,
+        lastActivity: r.lastActivity,
+        mode: modeNum,
+        modeName: modeNames[mode] || 'Manual'
+      };
+    });
+    
+    const totalRepos = repos.length;
+    const totalPRs = repos.reduce((sum, r) => sum + r.totalPRs, 0);
+    const totalIssues = repos.reduce((sum, r) => sum + r.totalIssues, 0);
+    const totalFixed = repos.reduce((sum, r) => sum + r.issuesSolved, 0);
+    
+    res.render('repo-overview', {
+      title: 'Repository Overview',
+      repos,
+      totalRepos,
+      totalPRs,
+      totalIssues,
+      totalFixed
+    });
+  } catch (error) {
+    console.error('[ui] Repository overview error:', error);
+    res.status(500).send('Failed to load repository overview');
+  }
+});
+
+// Repository details page (handles org/repo path)
+app.get('/repo/:owner/:repoName', requireAuth, async (req, res) => {
+  try {
+    const PRRun = require('../../shared/models/PRRun');
+    // Construct full repo name from owner and repo
+    const repoName = `${req.params.owner}/${req.params.repoName}`;
+    
+    const runs = await PRRun.find({ repo: repoName }).lean();
+    
+    if (runs.length === 0) {
+      return res.status(404).send('Repository not found');
+    }
+    
+    // Collect all issues across all PRs
+    const allIssues = [];
+    const filesSet = new Set();
+    
+    runs.forEach(run => {
+      (run.findings || []).forEach(finding => {
+        allIssues.push({
+          ...finding,
+          prNumber: run.prNumber,
+          createdAt: run.createdAt
+        });
+        filesSet.add(finding.file);
+      });
+    });
+    
+    const totalPRs = runs.length;
+    const totalIssues = allIssues.length;
+    const fixedIssues = allIssues.filter(i => i.fixed).length;
+    const fixRate = totalIssues > 0 ? Math.round((fixedIssues / totalIssues) * 100) : 0;
+    
+    res.render('repo-details', {
+      title: `${repoName} - Issues`,
+      repoName,
+      totalPRs,
+      totalIssues,
+      fixedIssues,
+      fixRate,
+      issues: allIssues,
+      files: Array.from(filesSet).sort()
+    });
+  } catch (error) {
+    console.error('[ui] Repository details error:', error);
+    res.status(500).send('Failed to load repository details');
+  }
+});
+
+// PR details page
+app.get('/pr/:runId', requireAuth, async (req, res) => {
+  try {
+    const PRRun = require('../../shared/models/PRRun');
+    const { runId } = req.params;
+    
+    const run = await PRRun.findById(runId).lean();
+    if (!run) {
+      return res.status(404).send('PR run not found');
+    }
+    
+    const findings = run.findings || [];
+    const fixedCount = findings.filter(f => f.fixed).length;
+    const fixRate = findings.length > 0 ? Math.round((fixedCount / findings.length) * 100) : 0;
+    
+    res.render('pr-details', { 
+      title: `PR #${run.prNumber} - ${run.repo}`,
+      run,
+      findings,
+      fixedCount,
+      fixRate
+    });
+  } catch (error) {
+    console.error('[ui] PR details error:', error);
+    res.status(500).send('Failed to load PR details');
+  }
+});
+
 // Audit logs page
 app.get('/audits', requireAuth, async (req, res) => {
   try {
     const PRRun = require('../../shared/models/PRRun');
+    const Installation = require('../../shared/models/Installation');
     
-    // Get all runs sorted by date
-    const audits = await PRRun.find({})
+    // Get ONLY this user's installations
+    const userInstallations = await Installation.find({ 
+      userId: req.user._id,
+      status: 'active' 
+    }).lean();
+    
+    const installationIds = userInstallations.map(i => i._id);
+    
+    // Get runs for user's installations only
+    const audits = await PRRun.find({ installationId: { $in: installationIds } })
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
@@ -268,8 +511,11 @@ app.get('/audits', requireAuth, async (req, res) => {
 // Installation routes
 app.get('/installations', requireAuth, async (req, res) => {
   try {
-    // Get all active installations (optionally filter by user later)
-    const installations = await Installation.find({ status: 'active' }).sort({ installedAt: -1 });
+    // Get ONLY this user's installations
+    const installations = await Installation.find({ 
+      userId: req.user._id,
+      status: 'active' 
+    }).sort({ installedAt: -1 });
     res.render('installations', { 
       title: 'GitHub App Installations', 
       installations 

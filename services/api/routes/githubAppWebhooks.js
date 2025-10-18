@@ -67,7 +67,9 @@ async function handleInstallationCreated(payload) {
     permissions: installation.permissions,
     events: installation.events,
     suspended: false,
-    suspendedAt: null
+    suspendedAt: null,
+    // Try to link to user who installed (sender)
+    // This will be updated when user logs in via OAuth
   });
 
   await installationDoc.save();

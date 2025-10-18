@@ -34,6 +34,22 @@ function configurePassport() {
         try {
           // Find or create user
           const user = await User.findOrCreateFromGitHub(profile, accessToken);
+          
+          // Auto-link any unlinked installations for this GitHub username
+          const Installation = require('../models/Installation');
+          const unlinkedInstallations = await Installation.find({
+            accountLogin: profile.username,
+            userId: { $exists: false }
+          });
+          
+          if (unlinkedInstallations.length > 0) {
+            console.log(`[auth] Auto-linking ${unlinkedInstallations.length} installations to user ${profile.username}`);
+            for (const installation of unlinkedInstallations) {
+              installation.userId = user._id;
+              await installation.save();
+            }
+          }
+          
           return done(null, user);
         } catch (error) {
           return done(error, null);

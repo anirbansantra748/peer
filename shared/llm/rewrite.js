@@ -2,6 +2,7 @@ const axios = require('axios');
 const path = require('path');
 const llmCache = require('../cache/llmCache');
 const { cleanLLMResponse, validateCodeStructure } = require('./responseFilter');
+const usageTracker = require('./usageTracker');
 
 function detectLanguage(file) {
   const ext = path.extname(file).toLowerCase();
@@ -216,8 +217,13 @@ async function callOpenRouter({ system, user }) {
     });
     const responseTime = Date.now() - startTime;
     let text = data?.choices?.[0]?.message?.content || '';
+    const tokens = data?.usage?.total_tokens || 0;
+    
+    // Track usage
+    await usageTracker.trackCall({ provider: 'openrouter', model, tokens });
+    
     if (process.env.LLM_DEBUG === '1') {
-      console.log('[LLM][OpenRouter] success', { model, responseTime: `${responseTime}ms`, tokens: data?.usage?.total_tokens });
+      console.log('[LLM][OpenRouter] success', { model, responseTime: `${responseTime}ms`, tokens });
     }
     return { text: stripFences(text), modelUsed: model, provider: 'openrouter', responseTime };
   } catch (e) {
