@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Peer Code Review' %></title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        line-height: 1.6;
+      }
+      
+      /* Navbar styles */
+      .navbar {
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+        padding: 12px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+      .navbar-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .navbar-brand {
+        font-size: 20px;
+        font-weight: 600;
+        color: #58a6ff;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .navbar-brand:hover {
+        color: #79c0ff;
+      }
+      .navbar-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      /* Profile dropdown */
+      .profile-dropdown {
+        position: relative;
+      }
+      .profile-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .profile-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 2px solid #30363d;
+        transition: border-color 0.2s;
+      }
+      .profile-btn:hover .profile-avatar {
+        border-color: #58a6ff;
+      }
+      .profile-menu {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 100%;
+        margin-top: 8px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        min-width: 280px;
+        z-index: 1000;
+      }
+      .profile-dropdown:hover .profile-menu,
+      .profile-dropdown:focus-within .profile-menu {
+        display: block;
+      }
+      .profile-header {
+        padding: 16px;
+        border-bottom: 1px solid #21262d;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .profile-header-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 2px solid #30363d;
+      }
+      .profile-info h4 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #c9d1d9;
+        margin-bottom: 2px;
+      }
+      .profile-info p {
+        font-size: 12px;
+        color: #8b949e;
+      }
+      .profile-menu-section {
+        padding: 8px 0;
+        border-bottom: 1px solid #21262d;
+      }
+      .profile-menu-section:last-child {
+        border-bottom: none;
+      }
+      .profile-menu-item {
+        display: block;
+        padding: 10px 16px;
+        color: #c9d1d9;
+        text-decoration: none;
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+      .profile-menu-item:hover {
+        background: #0d1117;
+        color: #58a6ff;
+      }
+      .profile-menu-label {
+        padding: 8px 16px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #6e7681;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      /* Settings button */
+      .settings-btn {
+        background: #21262d;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        transition: all 0.2s;
+      }
+      .settings-btn:hover {
+        background: #30363d;
+        border-color: #58a6ff;
+      }
+      .settings-dropdown {
+        position: relative;
+      }
+      .settings-menu {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 100%;
+        margin-top: 8px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        min-width: 200px;
+        z-index: 1000;
+      }
+      .settings-dropdown:hover .settings-menu {
+        display: block;
+      }
+      .settings-menu a {
+        display: block;
+        padding: 12px 16px;
+        color: #c9d1d9;
+        text-decoration: none;
+        font-size: 14px;
+        border-bottom: 1px solid #21262d;
+      }
+      .settings-menu a:last-child {
+        border-bottom: none;
+      }
+      .settings-menu a:hover {
+        background: #0d1117;
+        color: #58a6ff;
+      }
+      
+      /* Main content */
+      .main-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 30px 20px;
+      }
+    </style>
+    <% if (typeof blocks !== 'undefined' && blocks.additionalStyles) { %><%- blocks.additionalStyles %><% } %>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="navbar-container">
+        <a href="/" class="navbar-brand">
+          🤖 Peer
+        </a>
+        
+        <div class="navbar-right">
+          <!-- Settings Dropdown -->
+          <div class="settings-dropdown">
+            <button class="settings-btn">⚙️</button>
+            <div class="settings-menu">
+              <a href="/settings/api-keys">🔑 API Keys</a>
+              <a href="/settings/subscription">💎 Subscription</a>
+            </div>
+          </div>
+          
+          <!-- Profile Dropdown -->
+          <div class="profile-dropdown">
+            <button class="profile-btn">
+              <img src="<%= user.avatar || 'https://github.com/' + user.username + '.png?size=64' %>" 
+                   alt="<%= user.username %>" 
+                   class="profile-avatar"
+                   onerror="this.src='https://github.com/identicons/' + '<%= user.githubId %>' + '.png'">
+            </button>
+            <div class="profile-menu">
+              <div class="profile-header">
+                <img src="<%= user.avatar || 'https://github.com/' + user.username + '.png?size=64' %>" 
+                     alt="<%= user.username %>" 
+                     class="profile-header-avatar"
+                     onerror="this.src='https://github.com/identicons/' + '<%= user.githubId %>' + '.png'">
+                <div class="profile-info">
+                  <h4><%= user.displayName || user.username %></h4>
+                  <p>@<%= user.username %></p>
+                </div>
+              </div>
+              
+              <div class="profile-menu-section">
+                <div class="profile-menu-label">GitHub</div>
+                <a href="https://github.com/<%= user.username %>" target="_blank" class="profile-menu-item">
+                  🔗 View GitHub Profile
+                </a>
+                <a href="https://github.com/<%= user.username %>?tab=repositories" target="_blank" class="profile-menu-item">
+                  📦 Your Repositories
+                </a>
+                <a href="https://github.com/pulls" target="_blank" class="profile-menu-item">
+                  🔀 Your Pull Requests
+                </a>
+              </div>
+              
+              <div class="profile-menu-section">
+                <a href="/installations" class="profile-menu-item">
+                  🔧 Manage Installations
+                </a>
+                <a href="/audit" class="profile-menu-item">
+                  📊 Audit Logs
+                </a>
+              </div>
+              
+              <div class="profile-menu-section">
+                <a href="/auth/logout" class="profile-menu-item" style="color: #f85149;">
+                  🚪 Logout
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+      <%- body %>
+    </div>
+    
+    <% if (typeof blocks !== 'undefined' && blocks.additionalScripts) { %><%- blocks.additionalScripts %><% } %>
+  </body>
+</html>

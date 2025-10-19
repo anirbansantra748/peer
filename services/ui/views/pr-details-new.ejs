@@ -1,0 +1,412 @@
+<% layout('layout') %>
+
+<style>
+  .pr-header {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .pr-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #c9d1d9;
+    margin-bottom: 12px;
+  }
+  .pr-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .meta-label {
+    font-size: 11px;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .meta-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #c9d1d9;
+  }
+  
+  /* Filters */
+  .filters {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .filter-label {
+    font-size: 13px;
+    color: #8b949e;
+    font-weight: 500;
+  }
+  .filter-btn {
+    padding: 6px 12px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover {
+    border-color: #58a6ff;
+  }
+  .filter-btn.active {
+    background: #58a6ff;
+    border-color: #58a6ff;
+    color: #fff;
+  }
+  .search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    font-size: 13px;
+  }
+  .search-input:focus {
+    outline: none;
+    border-color: #58a6ff;
+  }
+  
+  /* Issues Table */
+  .issues-table {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #30363d;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #c9d1d9;
+  }
+  .issue-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 80px 100px 60px 100px 100px 120px;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid #21262d;
+    align-items: center;
+    font-size: 13px;
+    transition: background 0.2s;
+  }
+  .issue-row:hover {
+    background: #0d1117;
+  }
+  .issue-row.header {
+    background: #0d1117;
+    font-weight: 600;
+    font-size: 11px;
+    color: #8b949e;
+    text-transform: uppercase;
+  }
+  .issue-row:last-child {
+    border-bottom: none;
+  }
+  .severity-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .badge-critical { background: #a40e26; color: #ffdce0; }
+  .badge-high { background: #9a6700; color: #f0e6b9; }
+  .badge-medium { background: #0969da; color: #a5d6ff; }
+  .badge-low { background: #6e7681; color: #c9d1d9; }
+  
+  .fixed-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .fixed-yes { background: #1a7f37; color: #aff5b4; }
+  .fixed-no { background: #6e7681; color: #c9d1d9; }
+  
+  .file-name {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    color: #58a6ff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .issue-message {
+    color: #c9d1d9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .line-number {
+    color: #8b949e;
+    font-family: ui-monospace, monospace;
+  }
+  .rule-name {
+    color: #8b949e;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .analyzer-name {
+    color: #6e7681;
+    font-size: 11px;
+  }
+  .timestamp {
+    color: #6e7681;
+    font-size: 11px;
+  }
+  
+  .select-btn {
+    padding: 12px 20px;
+    background: #238636;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    display: inline-block;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+  .select-btn:hover {
+    background: #2ea043;
+  }
+  .empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: #6e7681;
+  }
+</style>
+
+<!-- Page Header -->
+<div style="margin-bottom: 30px;">
+  <h1 style="font-size: 28px; font-weight: 600; color: #58a6ff; margin-bottom: 8px;">PR Details</h1>
+  <p style="color: #8b949e; font-size: 14px;">View and analyze issues found in this pull request</p>
+</div>
+
+<!-- PR Header -->
+<div class="pr-header">
+  <div class="pr-title">
+    <%= run.repo %> #<%= run.prNumber %>
+  </div>
+  <div style="font-size: 13px; color: #8b949e; margin-bottom: 16px;">
+    Commit: <code style="color: #58a6ff;"><%= run.sha ? run.sha.substring(0, 7) : 'N/A' %></code>
+    <% if (installationMode) { %>
+      <% 
+        const modeLabels = {
+          'analyze': { text: 'Analyze Only', color: '#6e7681' },
+          'commit': { text: 'Auto-Commit', color: '#1f6feb' },
+          'merge': { text: 'Auto-Merge', color: '#238636' },
+          'review': { text: 'Manual Review', color: '#9a6700' }
+        };
+        const modeInfo = modeLabels[installationMode] || { text: installationMode, color: '#6e7681' };
+      %>
+      • Mode: <span style="padding: 3px 8px; border-radius: 12px; background: <%= modeInfo.color %>; color: #f0f6fc; font-size: 11px; font-weight: 600;"><%= modeInfo.text %></span>
+    <% } %>
+  </div>
+  
+  <div class="pr-meta">
+    <div class="meta-item">
+      <div class="meta-label">Status</div>
+      <div class="meta-value" style="color: <%= run.status === 'completed' ? '#3fb950' : run.status === 'failed' ? '#da3633' : '#58a6ff' %>">
+        <%= run.status.toUpperCase() %>
+      </div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Total Issues</div>
+      <div class="meta-value" style="color: #f0883e;"><%= findings.length %></div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Fixed</div>
+      <div class="meta-value" style="color: #3fb950;"><%= fixedCount %></div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Unfixed</div>
+      <div class="meta-value" style="color: #f0883e;"><%= unfixedCount %></div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Fix Rate</div>
+      <div class="meta-value"><%= fixRate %>%</div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Created</div>
+      <div class="meta-value" style="font-size: 13px;"><%= new Date(run.createdAt).toLocaleString() %></div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+  <div class="filter-group">
+    <span class="filter-label">Severity:</span>
+    <button class="filter-btn severity-filter active" data-severity="all">All</button>
+    <button class="filter-btn severity-filter" data-severity="critical">Critical</button>
+    <button class="filter-btn severity-filter" data-severity="high">High</button>
+    <button class="filter-btn severity-filter" data-severity="medium">Medium</button>
+    <button class="filter-btn severity-filter" data-severity="low">Low</button>
+  </div>
+  
+  <div class="filter-group">
+    <span class="filter-label">Status:</span>
+    <button class="filter-btn status-filter active" data-status="all">All</button>
+    <button class="filter-btn status-filter" data-status="fixed">Fixed</button>
+    <button class="filter-btn status-filter" data-status="unfixed">Unfixed</button>
+  </div>
+  
+  <input type="text" class="search-input" id="search-input" placeholder="🔍 Search issues by message, file, or rule...">
+</div>
+
+<!-- Issues Table -->
+<div class="issues-table">
+  <div class="table-header">
+    <div class="section-title">
+      🔍 Issues (<span id="visible-count"><%= findings.length %></span>)
+    </div>
+  </div>
+  
+  <div class="issue-row header">
+    <div>#</div>
+    <div>Message</div>
+    <div>Severity</div>
+    <div>File</div>
+    <div>Line</div>
+    <div>Rule</div>
+    <div>Analyzer</div>
+    <div>Fixed / Time</div>
+  </div>
+  
+  <% if (findings.length === 0) { %>
+    <div class="empty-state">
+      <div style="font-size: 48px; margin-bottom: 12px;">✨</div>
+      <p>No issues found in this PR!</p>
+    </div>
+  <% } else { %>
+    <% findings.forEach((finding, index) => { %>
+      <div class="issue-row" 
+           data-severity="<%= finding.severity %>"
+           data-fixed="<%= finding.fixed ? 'fixed' : 'unfixed' %>"
+           data-searchable="<%= (finding.message + ' ' + finding.file + ' ' + finding.rule + ' ' + finding.analyzer).toLowerCase() %>">
+        <div style="color: #6e7681;"><%= index + 1 %></div>
+        <div class="issue-message" title="<%= finding.message %>"><%= finding.message %></div>
+        <div>
+          <span class="severity-badge badge-<%= finding.severity %>">
+            <%= finding.severity.toUpperCase() %>
+          </span>
+        </div>
+        <div class="file-name" title="<%= finding.file %>"><%= finding.file %></div>
+        <div class="line-number"><%= finding.line || '-' %></div>
+        <div class="rule-name" title="<%= finding.rule %>"><%= finding.rule || '-' %></div>
+        <div class="analyzer-name"><%= finding.analyzer || '-' %></div>
+        <div>
+          <% if (finding.fixed) { %>
+            <span class="fixed-badge fixed-yes">✓ Fixed</span>
+            <% if (finding.fixedAt) { %>
+              <div class="timestamp"><%= new Date(finding.fixedAt).toLocaleDateString() %></div>
+            <% } %>
+          <% } else { %>
+            <span class="fixed-badge fixed-no">Pending</span>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+</div>
+
+<% if (showSelectButton) { %>
+  <div style="margin-top: 24px;">
+    <a href="/runs/<%= run._id %>/select" class="select-btn">
+      🔧 Select Issues to Fix
+    </a>
+  </div>
+<% } %>
+
+<script>
+  // Filter functionality
+  let currentSeverity = 'all';
+  let currentStatus = 'all';
+  let searchQuery = '';
+  
+  const severityButtons = document.querySelectorAll('.severity-filter');
+  const statusButtons = document.querySelectorAll('.status-filter');
+  const searchInput = document.getElementById('search-input');
+  const issueRows = document.querySelectorAll('.issue-row:not(.header)');
+  const visibleCount = document.getElementById('visible-count');
+  
+  function filterIssues() {
+    let visible = 0;
+    issueRows.forEach(row => {
+      const severity = row.dataset.severity;
+      const fixed = row.dataset.fixed;
+      const searchable = row.dataset.searchable;
+      
+      const matchSeverity = currentSeverity === 'all' || severity === currentSeverity;
+      const matchStatus = currentStatus === 'all' || fixed === currentStatus;
+      const matchSearch = !searchQuery || searchable.includes(searchQuery.toLowerCase());
+      
+      if (matchSeverity && matchStatus && matchSearch) {
+        row.style.display = 'grid';
+        visible++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+    
+    visibleCount.textContent = visible;
+  }
+  
+  severityButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      severityButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSeverity = btn.dataset.severity;
+      filterIssues();
+    });
+  });
+  
+  statusButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      statusButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentStatus = btn.dataset.status;
+      filterIssues();
+    });
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    filterIssues();
+  });
+</script>

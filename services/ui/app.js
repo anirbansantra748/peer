@@ -6,6 +6,7 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
+const ejsMate = require('ejs-mate');
 const configurePassport = require('../../shared/auth/passport');
 const { categorizeAllFindings, getCategorySummary } = require('../../shared/utils/issueCategorizer');
 const { requireAuth, redirectIfAuthenticated } = require('../../shared/middleware/requireAuth');
@@ -15,6 +16,7 @@ const logger = require('../../shared/utils/prettyLogger');
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 
 const app = express();
+app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
@@ -162,6 +164,15 @@ app.get('/', requireAuth, async (req, res) => {
       .limit(10)
       .lean();
     
+    // Enrich runs with installation mode info
+    const installationMap = new Map(userInstallations.map(i => [String(i._id), i]));
+    recentRuns.forEach(run => {
+      const installation = installationMap.get(String(run.installationId));
+      if (installation) {
+        run.installationMode = installation.config?.mode || 'analyze';
+      }
+    });
+    
     // Get stats for user's installations only
     const totalRuns = await PRRun.countDocuments(userFilter);
     const completedRuns = await PRRun.countDocuments({ ...userFilter, status: 'completed' });
@@ -268,8 +279,8 @@ app.get('/', requireAuth, async (req, res) => {
       fixRate: Math.round(r.fixRate)
     }));
     
-    res.render('index', { 
-      title: 'Peer Dashboard',
+    res.render('dashboard', { 
+      title: 'Dashboard | Peer',
       recentRuns,
       repoStats,
       stats: {
@@ -282,8 +293,8 @@ app.get('/', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('[ui] Dashboard error:', error);
-    res.render('index', { 
-      title: 'Peer Dashboard',
+    res.render('dashboard', { 
+      title: 'Dashboard | Peer',
       recentRuns: [],
       repoStats: [],
       stats: { totalRuns: 0, completedRuns: 0, totalConnectedRepos: 0, totalIssues: 0, fixedIssues: 0 }
@@ -444,6 +455,7 @@ app.get('/repo/:owner/:repoName', requireAuth, async (req, res) => {
 app.get('/pr/:runId', requireAuth, async (req, res) => {
   try {
     const PRRun = require('../../shared/models/PRRun');
+    const Installation = require('../../shared/models/Installation');
     const { runId } = req.params;
     
     const run = await PRRun.findById(runId).lean();
@@ -451,16 +463,29 @@ app.get('/pr/:runId', requireAuth, async (req, res) => {
       return res.status(404).send('PR run not found');
     }
     
+    // Get installation to check mode
+    const installation = await Installation.findById(run.installationId).lean();
+    const installationMode = installation?.config?.mode || 'analyze';
+    
     const findings = run.findings || [];
     const fixedCount = findings.filter(f => f.fixed).length;
+    const unfixedCount = findings.length - fixedCount;
     const fixRate = findings.length > 0 ? Math.round((fixedCount / findings.length) * 100) : 0;
     
-    res.render('pr-details', { 
+    // Determine if "Select Issues to Fix" should show
+    const showSelectButton = unfixedCount > 0 && 
+      (run.status === 'completed' || run.status === 'failed') &&
+      (installationMode !== 'merge' || run.status === 'failed');
+    
+    res.render('pr-details-new', { 
       title: `PR #${run.prNumber} - ${run.repo}`,
       run,
       findings,
       fixedCount,
-      fixRate
+      unfixedCount,
+      fixRate,
+      installationMode,
+      showSelectButton
     });
   } catch (error) {
     console.error('[ui] PR details error:', error);
