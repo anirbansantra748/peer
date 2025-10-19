@@ -65,6 +65,24 @@ const userSchema = new mongoose.Schema({
     enum: ['active', 'expired', 'cancelled'],
     default: 'active',
   },
+  // Notification preferences
+  notificationEmail: {
+    type: String, // Separate from GitHub email, user can override
+  },
+  notifications: {
+    email: {
+      prCreated: { type: Boolean, default: true },
+      autoMergeComplete: { type: Boolean, default: true },
+      approvalNeeded: { type: Boolean, default: true },
+      issueSelectionNeeded: { type: Boolean, default: true },
+    },
+    toast: {
+      prCreated: { type: Boolean, default: true },
+      autoMergeComplete: { type: Boolean, default: true },
+      approvalNeeded: { type: Boolean, default: true },
+      issueSelectionNeeded: { type: Boolean, default: true },
+    },
+  },
 }, {
   timestamps: true, // Adds createdAt and updatedAt
 });
