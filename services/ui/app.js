@@ -165,7 +165,10 @@ app.get('/', requireAuth, async (req, res) => {
     // Get stats for user's installations only
     const totalRuns = await PRRun.countDocuments(userFilter);
     const completedRuns = await PRRun.countDocuments({ ...userFilter, status: 'completed' });
-    const totalInstallations = userInstallations.length;
+    // Count total repositories across all user installations
+    const totalConnectedRepos = userInstallations.reduce((sum, inst) => {
+      return sum + (inst.repositories ? inst.repositories.length : 0);
+    }, 0);
     
     // Calculate total issues found and fixed for user's data
     const statsAgg = await PRRun.aggregate([
@@ -194,7 +197,8 @@ app.get('/', requireAuth, async (req, res) => {
     console.log('[ui] Dashboard stats:', {
       totalRuns,
       completedRuns,
-      totalInstallations,
+      totalInstallations: userInstallations.length,
+      totalConnectedRepos,
       totalIssues: stats.totalIssues,
       fixedIssues: stats.fixedIssues,
       recentRunsCount: recentRuns.length,
@@ -271,7 +275,7 @@ app.get('/', requireAuth, async (req, res) => {
       stats: {
         totalRuns,
         completedRuns,
-        totalInstallations,
+        totalConnectedRepos,
         totalIssues: stats.totalIssues,
         fixedIssues: stats.fixedIssues
       }
@@ -282,7 +286,7 @@ app.get('/', requireAuth, async (req, res) => {
       title: 'Peer Dashboard',
       recentRuns: [],
       repoStats: [],
-      stats: { totalRuns: 0, completedRuns: 0, totalInstallations: 0, totalIssues: 0, fixedIssues: 0 }
+      stats: { totalRuns: 0, completedRuns: 0, totalConnectedRepos: 0, totalIssues: 0, fixedIssues: 0 }
     });
   }
 });
@@ -703,6 +707,132 @@ app.post('/runs/:runId/rerun', requireAuth, async (req, res) => {
     res.redirect(`/runs/${runId}/preview?patchRequestId=${encodeURIComponent(newPatchId)}`);
   } catch (e) {
     res.status(500).send(`Failed to re-run AI fixes: ${e?.response?.data?.error || e.message}`);
+  }
+});
+
+// API Keys Settings
+app.get('/settings/api-keys', requireAuth, (req, res) => {
+  res.render('api-keys', { title: 'API Keys', user: req.user, query: req.query });
+});
+
+app.post('/settings/api-keys/:provider', requireAuth, async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const { apiKey } = req.body;
+    
+    if (!apiKey || apiKey.trim() === '') {
+      return res.redirect('/settings/api-keys?error=API key cannot be empty');
+    }
+    
+    const { encrypt } = require('../../shared/utils/encryption');
+    const User = require('../../shared/models/User');
+    
+    // Initialize apiKeys if not exists
+    if (!req.user.apiKeys) {
+      req.user.apiKeys = {};
+    }
+    
+    // Encrypt and save
+    req.user.apiKeys[provider] = encrypt(apiKey);
+    await req.user.save();
+    
+    logger.info('ui', 'API key added', { userId: req.user._id, provider });
+    res.redirect('/settings/api-keys?success=API+key+added+successfully');
+  } catch (error) {
+    logger.error('ui', 'Failed to add API key', { error: String(error) });
+    res.redirect('/settings/api-keys?error=Failed+to+add+API+key');
+  }
+});
+
+app.delete('/settings/api-keys/:provider', requireAuth, async (req, res) => {
+  try {
+    const { provider } = req.params;
+    
+    if (req.user.apiKeys && req.user.apiKeys[provider]) {
+      req.user.apiKeys[provider] = undefined;
+      await req.user.save();
+      logger.info('ui', 'API key removed', { userId: req.user._id, provider });
+      res.json({ ok: true });
+    } else {
+      res.status(404).json({ ok: false, error: 'API key not found' });
+    }
+  } catch (error) {
+    logger.error('ui', 'Failed to remove API key', { error: String(error) });
+    res.status(500).json({ ok: false, error: 'Failed to remove API key' });
+  }
+});
+
+// Subscription Management
+app.get('/settings/subscription', requireAuth, (req, res) => {
+  res.render('subscription', { title: 'Subscription', user: req.user });
+});
+
+app.post('/settings/subscription/checkout', requireAuth, async (req, res) => {
+  try {
+    const { plan } = req.body;
+    
+    // Validate plan
+    if (!['free', 'pro', 'enterprise'].includes(plan)) {
+      return res.redirect('/settings/subscription?error=Invalid+plan');
+    }
+    
+    // Dummy payment - just upgrade the user
+    req.user.subscriptionTier = plan;
+    
+    // Set token limits
+    if (plan === 'free') {
+      req.user.tokenLimit = 1000;
+    } else if (plan === 'pro') {
+      req.user.tokenLimit = 100000;
+    } else if (plan === 'enterprise') {
+      req.user.tokenLimit = -1; // Unlimited
+    }
+    
+    // Reset token usage on upgrade
+    req.user.tokensUsed = 0;
+    req.user.subscriptionStatus = 'active';
+    req.user.subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    
+    await req.user.save();
+    
+    logger.info('ui', 'Subscription upgraded', { 
+      userId: req.user._id, 
+      plan,
+      tokenLimit: req.user.tokenLimit 
+    });
+    
+    res.redirect('/settings/subscription?success=Subscription+upgraded+successfully');
+  } catch (error) {
+    logger.error('ui', 'Failed to upgrade subscription', { error: String(error) });
+    res.redirect('/settings/subscription?error=Failed+to+upgrade');
+  }
+});
+
+app.post('/settings/subscription/downgrade', requireAuth, async (req, res) => {
+  try {
+    req.user.subscriptionTier = 'free';
+    req.user.tokenLimit = 1000;
+    req.user.tokensUsed = Math.min(req.user.tokensUsed, 1000); // Cap to free tier limit
+    
+    await req.user.save();
+    
+    logger.info('ui', 'Subscription downgraded', { userId: req.user._id });
+    res.redirect('/settings/subscription?success=Downgraded+to+free+plan');
+  } catch (error) {
+    logger.error('ui', 'Failed to downgrade subscription', { error: String(error) });
+    res.redirect('/settings/subscription?error=Failed+to+downgrade');
+  }
+});
+
+// User Token Usage API
+app.get('/api/user/usage', requireAuth, async (req, res) => {
+  try {
+    const { getUserTokenStats } = require('../../shared/utils/userTokens');
+    const stats = await getUserTokenStats(req.user._id);
+    res.json({ ok: true, ...stats });
+  } catch (error) {
+    logger.error('ui', 'Failed to get user usage', { error: String(error) });
+    res.status(500).json({ ok: false, error: 'Failed to fetch usage statistics' });
   }
 });
 

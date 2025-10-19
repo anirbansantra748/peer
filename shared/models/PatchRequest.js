@@ -50,7 +50,12 @@ const patchRequestSchema = new mongoose.Schema({
   prNumber: { type: Number, required: true },
   sha: { type: String, required: true },
   selectedFindingIds: { type: [String], default: [] },
-status: { type: String, enum: ['queued', 'preview_partial', 'preview_ready', 'applying', 'completed', 'failed'], default: 'queued', index: true },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    index: true
+  },
+  status: { type: String, enum: ['queued', 'preview_partial', 'preview_ready', 'applying', 'completed', 'failed'], default: 'queued', index: true },
   preview: { type: previewSchema },
   results: { type: resultSchema },
 }, { timestamps: true });

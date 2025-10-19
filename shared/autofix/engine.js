@@ -106,6 +106,36 @@ async function buildPreview(patchRequestId) {
   if (!patch) throw new Error('PatchRequest not found');
   const prRun = await PRRun.findById(patch.runId);
   if (!prRun) throw new Error('Run not found');
+  
+  // Load user context for API keys and token tracking
+  const User = require('../models/User');
+  const userContext = patch.userId ? await User.findById(patch.userId) : null;
+  
+  // Check token limit before starting (estimate ~2000 tokens per file)
+  if (userContext) {
+    const { checkUserTokenLimit } = require('../utils/userTokens');
+    const estimatedTokens = 2000; // Conservative estimate
+    const check = await checkUserTokenLimit(userContext, estimatedTokens);
+    if (!check.allowed && !check.useUserKeys) {
+      patch.status = 'failed';
+      patch.error = check.reason;
+      await patch.save();
+      logger.error('autofix', 'Token limit exceeded', { 
+        patchRequestId, 
+        userId: userContext._id,
+        reason: check.reason 
+      });
+      throw new Error(check.reason);
+    }
+    logger.info('autofix', 'User context loaded', { 
+      patchRequestId, 
+      userId: userContext._id,
+      hasGroqKey: !!userContext.apiKeys?.groq,
+      hasGeminiKey: !!userContext.apiKeys?.gemini,
+      tokenLimit: userContext.tokenLimit,
+      tokensUsed: userContext.tokensUsed
+    });
+  }
 
   const startTs = Date.now();
   const timeBudgetMs = parseInt(process.env.PREVIEW_TIME_BUDGET_MS || '30000', 10) || 30000;
@@ -237,7 +267,12 @@ async function buildPreview(patchRequestId) {
         // If no patches returned, leave as-is
       } else {
         // Full-file rewrite
-        const improved = await rewriteFileWithAI({ file, code: currentText, findings: relatedFindings });
+        const improved = await rewriteFileWithAI({ 
+          file, 
+          code: currentText, 
+          findings: relatedFindings,
+          userContext // Pass user context for API keys and token tracking
+        });
         if (improved && improved.text && typeof improved.text === 'string') {
           const normalized = String(improved.text).replace(/\r\n/g, '\n');
           if (normalized.trim() && normalized.trim() !== currentText.trim()) {
@@ -591,6 +626,10 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
   if (!patch) throw new Error('PatchRequest not found');
   const prRun = await PRRun.findById(patch.runId);
   if (!prRun) throw new Error('Run not found');
+  
+  // Load user context for API keys and token tracking
+  const User = require('../models/User');
+  const userContext = patch.userId ? await User.findById(patch.userId) : null;
 
   // Skip non-code files that shouldn't be auto-fixed
   const nonCodeFiles = [
@@ -726,7 +765,12 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
       // ignore
     }
   } else {
-    const out = await rewriteFileWithAI({ file: filePath, code: currentText, findings });
+    const out = await rewriteFileWithAI({ 
+      file: filePath, 
+      code: currentText, 
+      findings,
+      userContext // Pass user context for API keys and token tracking
+    });
     const text = out?.text || '';
     if (text && text.trim() && text.trim() !== currentText.trim()) {
       newLines = String(text).replace(/\r\n/g, '\n').split('\n');

@@ -66,6 +66,11 @@ router.post('/:runId/create-patch', async (req, res) => {
       return res.status(400).json({ error: 'No valid findings selected' });
     }
     
+    // Get userId from installation if available
+    const Installation = require('../../../shared/models/Installation');
+    const installation = prRun.installationId ? await Installation.findById(prRun.installationId) : null;
+    const userId = installation?.userId || null;
+    
     // Create PatchRequest
     const patch = new PatchRequest({
       runId,
@@ -73,6 +78,7 @@ router.post('/:runId/create-patch', async (req, res) => {
       prNumber: prRun.prNumber,
       sha: prRun.sha,
       selectedFindingIds: validFindingIds,
+      userId, // Add user context for token tracking
       status: 'queued',
       preview: { unifiedDiff: '', files: [], filesExpected: 0 },
     });

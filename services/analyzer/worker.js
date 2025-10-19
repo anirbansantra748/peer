@@ -143,12 +143,18 @@ const analyzerWorker = new Worker(
           const { autofixQueue } = require('../../shared/queue');
           // Create preview first (automatically creates PatchRequest)
           const PatchRequest = require('../../shared/models/PatchRequest');
+          
+          // Get userId from installation if available
+          const installation = prRun.installationId ? await Installation.findById(prRun.installationId) : null;
+          const userId = installation?.userId || null;
+          
           const patch = new PatchRequest({
             runId,
             repo: prRun.repo,
             prNumber: prRun.prNumber,
             sha: prRun.sha,
             selectedFindingIds: findingIds,
+            userId, // Add user context for token tracking
             status: 'queued',
             preview: { unifiedDiff: '', files: [], filesExpected: 0 },
           });

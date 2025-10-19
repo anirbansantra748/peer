@@ -5,11 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %></title>
     <script>
-      // Manual refresh button
-      function refreshDashboard() {
-        window.location.reload();
-      }
-      
       // Fetch and display LLM usage
       async function refreshUsage() {
         try {
@@ -32,6 +27,69 @@
       
       // Load usage on page load
       window.addEventListener('load', refreshUsage);
+      
+      // Fetch and display user token usage
+      async function refreshUserUsage() {
+        try {
+          const res = await fetch('/api/user/usage');
+          const data = await res.json();
+          
+          if (data.ok) {
+            document.getElementById('user-tokens-used').textContent = data.tokensUsed.toLocaleString();
+            document.getElementById('user-token-limit').textContent = data.unlimited ? 'Unlimited' : data.tokenLimit.toLocaleString();
+            document.getElementById('user-tokens-remaining').textContent = data.unlimited ? 'Unlimited' : data.remaining.toLocaleString();
+            
+            // Update progress bar
+            const progressBar = document.getElementById('usage-progress');
+            const progressFill = document.getElementById('usage-progress-fill');
+            const progressText = document.getElementById('usage-progress-text');
+            
+            if (progressBar && progressFill && progressText) {
+              if (data.unlimited) {
+                progressFill.style.width = '0%';
+                progressFill.style.background = '#238636';
+                progressText.textContent = 'Unlimited';
+              } else {
+                const percentage = data.percentage;
+                progressFill.style.width = percentage + '%';
+                
+                // Color based on usage
+                if (percentage >= 90) {
+                  progressFill.style.background = '#da3633';
+                } else if (percentage >= 75) {
+                  progressFill.style.background = '#f0883e';
+                } else {
+                  progressFill.style.background = '#238636';
+                }
+                
+                progressText.textContent = percentage + '%';
+              }
+            }
+            
+            // Update subscription badge
+            const subBadge = document.getElementById('subscription-badge');
+            if (subBadge) {
+              subBadge.textContent = data.subscriptionTier.toUpperCase();
+              subBadge.className = 'subscription-badge ' + (data.subscriptionTier === 'free' ? 'sub-free' : data.subscriptionTier === 'pro' ? 'sub-pro' : 'sub-enterprise');
+            }
+            
+            // Show/hide upgrade message
+            const upgradeMsg = document.getElementById('upgrade-message');
+            if (upgradeMsg) {
+              if (data.percentage >= 90 && !data.hasOwnKeys && !data.unlimited) {
+                upgradeMsg.style.display = 'block';
+              } else {
+                upgradeMsg.style.display = 'none';
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch user usage:', error);
+        }
+      }
+      
+      // Load user usage on page load
+      window.addEventListener('load', refreshUserUsage);
     </script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -53,20 +111,6 @@
         border-bottom: 1px solid #21262d;
         position: relative;
       }
-      .refresh-btn {
-        padding: 8px 16px;
-        background: #238636;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-      .refresh-btn:hover {
-        background: #2ea043;
-      }
       h1 { 
         font-size: 28px;
         font-weight: 600;
@@ -76,6 +120,9 @@
         display: flex;
         align-items: center;
         gap: 15px;
+        position: absolute;
+        right: 0;
+        top: 0;
       }
       .user-info a {
         color: #8b949e;
@@ -83,6 +130,141 @@
         font-size: 14px;
       }
       .user-info a:hover { color: #58a6ff; }
+      .user-name {
+        color: #8b949e;
+        font-size: 14px;
+      }
+      .settings-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+      .settings-btn {
+        padding: 8px 12px;
+        background: #21262d;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .settings-btn:hover {
+        background: #30363d;
+        border-color: #58a6ff;
+      }
+      .settings-menu {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 100%;
+        margin-top: 8px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        min-width: 200px;
+        z-index: 1000;
+      }
+      .settings-dropdown:hover .settings-menu {
+        display: block;
+      }
+      .settings-menu a {
+        display: block;
+        padding: 12px 16px;
+        color: #c9d1d9;
+        text-decoration: none;
+        font-size: 14px;
+        border-bottom: 1px solid #21262d;
+      }
+      .settings-menu a:last-child {
+        border-bottom: none;
+      }
+      .settings-menu a:hover {
+        background: #0d1117;
+        color: #58a6ff;
+      }
+      .token-usage-card {
+        background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .usage-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .usage-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #c9d1d9;
+      }
+      .subscription-badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .sub-free {
+        background: #6e7681;
+        color: #f0f6fc;
+      }
+      .sub-pro {
+        background: #238636;
+        color: #aff5b4;
+      }
+      .sub-enterprise {
+        background: #1f6feb;
+        color: #a5d6ff;
+      }
+      .usage-progress {
+        height: 8px;
+        background: #21262d;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+      .usage-progress-fill {
+        height: 100%;
+        background: #238636;
+        transition: width 0.3s ease, background 0.3s ease;
+      }
+      .usage-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .usage-stat {
+        text-align: center;
+      }
+      .usage-stat-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #c9d1d9;
+      }
+      .usage-stat-label {
+        font-size: 11px;
+        color: #8b949e;
+        text-transform: uppercase;
+        margin-top: 4px;
+      }
+      .upgrade-message {
+        display: none;
+        background: #9a6700;
+        color: #f0e6b9;
+        padding: 12px;
+        border-radius: 6px;
+        margin-top: 12px;
+        font-size: 13px;
+      }
+      .upgrade-message a {
+        color: #f0e6b9;
+        text-decoration: underline;
+      }
       
       .stats-grid {
         display: grid;
@@ -246,11 +428,46 @@
       <header>
         <h1>🤖 Peer Dashboard</h1>
         <div class="user-info">
-          <button onclick="refreshDashboard()" class="refresh-btn">🔄 Refresh</button>
-          <span>👤 <%= user ? user.username : 'Guest' %></span>
-          <a href="/auth/logout">Logout</a>
+          <div class="settings-dropdown">
+            <button class="settings-btn">⚙️ Settings ▾</button>
+            <div class="settings-menu">
+              <a href="/settings/api-keys">🔑 API Keys</a>
+              <a href="/settings/subscription">💎 Subscription</a>
+            </div>
+          </div>
         </div>
       </header>
+      
+      <!-- Token Usage Widget -->
+      <div class="token-usage-card">
+        <div class="usage-header">
+          <div class="usage-title">🎯 Your Token Usage</div>
+          <span id="subscription-badge" class="subscription-badge sub-free">FREE</span>
+        </div>
+        <div id="usage-progress" class="usage-progress">
+          <div id="usage-progress-fill" class="usage-progress-fill" style="width: 0%;"></div>
+        </div>
+        <div style="text-align: center; margin-bottom: 8px;">
+          <span id="usage-progress-text" style="font-size: 14px; font-weight: 600; color: #c9d1d9;">0%</span>
+        </div>
+        <div class="usage-stats">
+          <div class="usage-stat">
+            <div class="usage-stat-value" id="user-tokens-used">0</div>
+            <div class="usage-stat-label">Tokens Used</div>
+          </div>
+          <div class="usage-stat">
+            <div class="usage-stat-value" id="user-tokens-remaining">1,000</div>
+            <div class="usage-stat-label">Remaining</div>
+          </div>
+          <div class="usage-stat">
+            <div class="usage-stat-value" id="user-token-limit">1,000</div>
+            <div class="usage-stat-label">Total Limit</div>
+          </div>
+        </div>
+        <div id="upgrade-message" class="upgrade-message">
+          ⚠️ You're running low on tokens! <a href="/settings/api-keys">Add your API keys</a> or <a href="/settings/subscription">upgrade your plan</a> to continue.
+        </div>
+      </div>
       
       <!-- Stats Summary -->
       <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
@@ -329,8 +546,8 @@
         <a href="/installations" style="text-decoration: none; color: inherit;">
           <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
             <div class="stat-label">🔗 Connected Repos</div>
-            <div class="stat-value"><%= stats.totalInstallations %></div>
-            <div class="stat-desc">Active GitHub installations</div>
+            <div class="stat-value"><%= stats.totalConnectedRepos %></div>
+            <div class="stat-desc">Repositories with Peer installed</div>
           </div>
         </a>
       </div>
@@ -454,6 +671,8 @@
           <a href="/installations" class="quick-link">📦 Manage Installations</a>
           <a href="/audits" class="quick-link">📋 View All Audit Logs</a>
           <a href="/run" class="quick-link">▶️ Trigger Manual Run</a>
+          <a href="/settings/api-keys" class="quick-link">🔑 API Keys</a>
+          <a href="/settings/subscription" class="quick-link">💎 Subscription</a>
         </div>
       </div>
     </div>

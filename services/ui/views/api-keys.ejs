@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #21262d;
+    }
+    h1 { font-size: 28px; font-weight: 600; color: #58a6ff; }
+    .nav-links { display: flex; gap: 15px; }
+    .nav-links a {
+      color: #8b949e;
+      text-decoration: none;
+      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+    .nav-links a:hover { color: #58a6ff; background: #161b22; }
+    
+    .section {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 16px;
+    }
+    .section-desc {
+      font-size: 14px;
+      color: #8b949e;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    
+    .key-card {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .key-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .key-icon {
+      width: 40px;
+      height: 40px;
+      background: #238636;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .key-info h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #c9d1d9;
+    }
+    .key-info p {
+      font-size: 13px;
+      color: #8b949e;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #c9d1d9;
+      margin-bottom: 8px;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 14px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #238636;
+      color: white;
+    }
+    .btn-primary:hover { background: #2ea043; }
+    .btn-danger {
+      background: #da3633;
+      color: white;
+    }
+    .btn-danger:hover { background: #f85149; }
+    .btn-secondary {
+      background: #21262d;
+      color: #c9d1d9;
+    }
+    .btn-secondary:hover { background: #30363d; }
+    
+    .help-link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 13px;
+      color: #58a6ff;
+      text-decoration: none;
+    }
+    .help-link:hover { text-decoration: underline; }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .badge-success { background: #238636; color: white; }
+    .badge-warning { background: #9a6700; color: #f0e6b9; }
+    
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .alert-success {
+      background: #1a7f37;
+      color: #aff5b4;
+      border: 1px solid #238636;
+    }
+    .alert-info {
+      background: #0969da;
+      color: #a5d6ff;
+      border: 1px solid #1f6feb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔑 API Keys</h1>
+      <div class="nav-links">
+        <a href="/">← Dashboard</a>
+        <a href="/settings/subscription">Subscription</a>
+      </div>
+    </header>
+
+    <% if (user.tokensUsed >= user.tokenLimit && !user.apiKeys?.groq && !user.apiKeys?.gemini) { %>
+    <div class="alert alert-info">
+      ⚠️ You've reached your token limit. Add your own API keys to continue using Peer, or <a href="/settings/subscription" style="color: #a5d6ff; text-decoration: underline;">upgrade your plan</a>.
+    </div>
+    <% } %>
+
+    <% if (query.success) { %>
+    <div class="alert alert-success">
+      ✓ <%= query.success %>
+    </div>
+    <% } %>
+
+    <div class="section">
+      <div class="section-title">Why Add Your Own API Keys?</div>
+      <div class="section-desc">
+        Peer uses AI models to analyze code and suggest fixes. You get <strong>1,000 free tokens</strong> to try it out.
+        After that, you can either:
+        <ul style="margin-top: 12px; margin-left: 20px; color: #8b949e;">
+          <li>Add your own API keys (use your own credits)</li>
+          <li>Upgrade to a paid plan (use our infrastructure)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Groq API Key -->
+    <div class="key-card">
+      <div class="key-header">
+        <div class="key-icon">🤖</div>
+        <div class="key-info">
+          <h3>
+            Groq API Key
+            <% if (user.apiKeys?.groq) { %>
+              <span class="status-badge badge-success">✓ Added</span>
+            <% } else { %>
+              <span class="status-badge badge-warning">Not Added</span>
+            <% } %>
+          </h3>
+          <p>Used for fast code analysis with Llama models</p>
+        </div>
+      </div>
+
+      <form action="/settings/api-keys/groq" method="POST">
+        <div class="form-group">
+          <label for="groq-key">Groq API Key</label>
+          <input
+            type="password"
+            id="groq-key"
+            name="apiKey"
+            placeholder="<%= user.apiKeys?.groq ? '••••••••••••••••' : 'gsk_...' %>"
+          />
+          <a href="https://console.groq.com/keys" target="_blank" class="help-link">
+            → Get your free Groq API key
+          </a>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <%= user.apiKeys?.groq ? 'Update Key' : 'Add Key' %>
+        </button>
+        <% if (user.apiKeys?.groq) { %>
+        <button type="button" onclick="removeKey('groq')" class="btn btn-danger" style="margin-left: 8px;">
+          Remove Key
+        </button>
+        <% } %>
+      </form>
+    </div>
+
+    <!-- Gemini API Key -->
+    <div class="key-card">
+      <div class="key-header">
+        <div class="key-icon" style="background: #1f6feb;">🌟</div>
+        <div class="key-info">
+          <h3>
+            Gemini API Key
+            <% if (user.apiKeys?.gemini) { %>
+              <span class="status-badge badge-success">✓ Added</span>
+            <% } else { %>
+              <span class="status-badge badge-warning">Not Added</span>
+            <% } %>
+          </h3>
+          <p>Used for intelligent code fixes with Google's Gemini</p>
+        </div>
+      </div>
+
+      <form action="/settings/api-keys/gemini" method="POST">
+        <div class="form-group">
+          <label for="gemini-key">Gemini API Key</label>
+          <input
+            type="password"
+            id="gemini-key"
+            name="apiKey"
+            placeholder="<%= user.apiKeys?.gemini ? '••••••••••••••••' : 'AIza...' %>"
+          />
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" class="help-link">
+            → Get your free Gemini API key
+          </a>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <%= user.apiKeys?.gemini ? 'Update Key' : 'Add Key' %>
+        </button>
+        <% if (user.apiKeys?.gemini) { %>
+        <button type="button" onclick="removeKey('gemini')" class="btn btn-danger" style="margin-left: 8px;">
+          Remove Key
+        </button>
+        <% } %>
+      </form>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🔒 Security</div>
+      <div class="section-desc">
+        Your API keys are encrypted and stored securely. We never share them or use them for anything other than your code analysis requests.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function removeKey(provider) {
+      if (confirm(`Remove your ${provider.toUpperCase()} API key?`)) {
+        fetch(`/settings/api-keys/${provider}`, {
+          method: 'DELETE'
+        }).then(res => {
+          if (res.ok) {
+            window.location.reload();
+          } else {
+            alert('Failed to remove key');
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>

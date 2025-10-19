@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #21262d;
+    }
+    h1 { font-size: 36px; font-weight: 700; color: #58a6ff; margin-bottom: 12px; }
+    .subtitle { font-size: 18px; color: #8b949e; }
+    .nav-link {
+      display: inline-block;
+      margin-top: 16px;
+      color: #8b949e;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .nav-link:hover { color: #58a6ff; }
+    
+    .plans {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+    
+    .plan-card {
+      background: #161b22;
+      border: 2px solid #30363d;
+      border-radius: 12px;
+      padding: 32px;
+      transition: all 0.3s;
+      position: relative;
+    }
+    .plan-card:hover {
+      transform: translateY(-4px);
+      border-color: #58a6ff;
+    }
+    .plan-card.popular {
+      border-color: #238636;
+      background: #0d1b0f;
+    }
+    .plan-card.popular::before {
+      content: '⭐ MOST POPULAR';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #238636;
+      color: white;
+      padding: 4px 16px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .plan-card.current {
+      border-color: #1f6feb;
+    }
+    
+    .plan-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: #c9d1d9;
+      margin-bottom: 8px;
+    }
+    .plan-price {
+      font-size: 42px;
+      font-weight: 700;
+      color: #58a6ff;
+      margin-bottom: 4px;
+    }
+    .plan-price small {
+      font-size: 16px;
+      color: #8b949e;
+    }
+    .plan-desc {
+      font-size: 14px;
+      color: #8b949e;
+      margin-bottom: 24px;
+      min-height: 40px;
+    }
+    
+    .plan-features {
+      list-style: none;
+      margin-bottom: 24px;
+    }
+    .plan-features li {
+      padding: 8px 0;
+      font-size: 14px;
+      color: #c9d1d9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .plan-features li::before {
+      content: '✓';
+      color: #238636;
+      font-weight: 700;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+    }
+    .btn-primary {
+      background: #238636;
+      color: white;
+    }
+    .btn-primary:hover { background: #2ea043; }
+    .btn-secondary {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+    }
+    .btn-secondary:hover { background: #30363d; }
+    .btn-outline {
+      background: transparent;
+      color: #58a6ff;
+      border: 1px solid #58a6ff;
+    }
+    .btn-outline:hover {
+      background: #58a6ff;
+      color: #0d1117;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .faq {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 32px;
+      margin-top: 40px;
+    }
+    .faq h2 {
+      font-size: 24px;
+      margin-bottom: 24px;
+      color: #c9d1d9;
+    }
+    .faq-item {
+      margin-bottom: 20px;
+    }
+    .faq-question {
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 8px;
+    }
+    .faq-answer {
+      color: #8b949e;
+      font-size: 14px;
+    }
+    
+    .current-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #1f6feb;
+      color: white;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>💎 Choose Your Plan</h1>
+      <p class="subtitle">Select the plan that works best for your team</p>
+      <a href="/" class="nav-link">← Back to Dashboard</a>
+    </header>
+
+    <div class="plans">
+      <!-- Free Plan -->
+      <div class="plan-card <%= user.subscriptionTier === 'free' ? 'current' : '' %>">
+        <div class="plan-name">
+          Free
+          <% if (user.subscriptionTier === 'free') { %>
+            <span class="current-badge">CURRENT</span>
+          <% } %>
+        </div>
+        <div class="plan-price">
+          $0
+          <small>/month</small>
+        </div>
+        <div class="plan-desc">Perfect for trying out Peer</div>
+        <ul class="plan-features">
+          <li>1,000 AI tokens</li>
+          <li>Unlimited repositories</li>
+          <li>Basic code analysis</li>
+          <li>Community support</li>
+        </ul>
+        <% if (user.subscriptionTier === 'free') { %>
+          <button class="btn btn-secondary" disabled>Current Plan</button>
+        <% } else { %>
+          <form action="/settings/subscription/downgrade" method="POST">
+            <button class="btn btn-outline" type="submit">Downgrade</button>
+          </form>
+        <% } %>
+      </div>
+
+      <!-- Pro Plan -->
+      <div class="plan-card popular <%= user.subscriptionTier === 'pro' ? 'current' : '' %>">
+        <div class="plan-name">
+          Pro
+          <% if (user.subscriptionTier === 'pro') { %>
+            <span class="current-badge">CURRENT</span>
+          <% } %>
+        </div>
+        <div class="plan-price">
+          $29
+          <small>/month</small>
+        </div>
+        <div class="plan-desc">For professional developers</div>
+        <ul class="plan-features">
+          <li>100,000 AI tokens/month</li>
+          <li>Unlimited repositories</li>
+          <li>Advanced code analysis</li>
+          <li>Priority support</li>
+          <li>Auto-merge capabilities</li>
+          <li>Custom rules</li>
+        </ul>
+        <% if (user.subscriptionTier === 'pro') { %>
+          <button class="btn btn-secondary" disabled>Current Plan</button>
+        <% } else { %>
+          <form action="/settings/subscription/checkout" method="POST">
+            <input type="hidden" name="plan" value="pro" />
+            <button class="btn btn-primary" type="submit">Upgrade to Pro</button>
+          </form>
+        <% } %>
+      </div>
+
+      <!-- Enterprise Plan -->
+      <div class="plan-card <%= user.subscriptionTier === 'enterprise' ? 'current' : '' %>">
+        <div class="plan-name">
+          Enterprise
+          <% if (user.subscriptionTier === 'enterprise') { %>
+            <span class="current-badge">CURRENT</span>
+          <% } %>
+        </div>
+        <div class="plan-price">
+          $99
+          <small>/month</small>
+        </div>
+        <div class="plan-desc">For teams and organizations</div>
+        <ul class="plan-features">
+          <li>Unlimited AI tokens</li>
+          <li>Unlimited repositories</li>
+          <li>Advanced code analysis</li>
+          <li>24/7 dedicated support</li>
+          <li>Auto-merge capabilities</li>
+          <li>Custom rules & workflows</li>
+          <li>SSO & team management</li>
+          <li>SLA guarantee</li>
+        </ul>
+        <% if (user.subscriptionTier === 'enterprise') { %>
+          <button class="btn btn-secondary" disabled>Current Plan</button>
+        <% } else { %>
+          <form action="/settings/subscription/checkout" method="POST">
+            <input type="hidden" name="plan" value="enterprise" />
+            <button class="btn btn-primary" type="submit">Upgrade to Enterprise</button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="faq">
+      <h2>❓ Frequently Asked Questions</h2>
+      
+      <div class="faq-item">
+        <div class="faq-question">What are AI tokens?</div>
+        <div class="faq-answer">
+          Tokens are units of text that AI models process. Roughly, 1 token ≈ 4 characters. 
+          Analyzing a typical PR uses 500-2000 tokens.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">Can I use my own API keys?</div>
+        <div class="faq-answer">
+          Yes! Go to <a href="/settings/api-keys" style="color: #58a6ff;">API Keys</a> to add your own Groq or Gemini keys. 
+          This lets you use your own credits instead of ours.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">Can I cancel anytime?</div>
+        <div class="faq-answer">
+          Yes, you can cancel your subscription at any time. You'll keep access until the end of your billing period.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">Is payment secure?</div>
+        <div class="faq-answer">
+          We use industry-standard encryption and never store your payment details directly.
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

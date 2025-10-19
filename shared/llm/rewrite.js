@@ -94,6 +94,7 @@ async function callOpenAI({ system, user }) {
   const model = process.env.OPENAI_MODEL || process.env.LLM_MODEL || 'gpt-4o-mini';
   const url = 'https://api.openai.com/v1/chat/completions';
   try {
+    const startTime = Date.now();
 const { data } = await axios.post(url, {
     model,
     messages: [
@@ -105,8 +106,13 @@ const { data } = await axios.post(url, {
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     timeout: parseInt(process.env.LLM_TIMEOUT_MS || '20000', 10),
   });
+    const responseTime = Date.now() - startTime;
+    const tokens = data?.usage?.total_tokens || 0;
     let text = data?.choices?.[0]?.message?.content || '';
-    return { text: stripFences(text), modelUsed: model };
+    if (process.env.LLM_DEBUG === '1') {
+      console.log('[LLM][OpenAI] success', { model, responseTime: `${responseTime}ms`, tokens });
+    }
+    return { text: stripFences(text), modelUsed: model, provider: 'openai', responseTime, tokens };
   } catch (e) {
     if (process.env.LLM_DEBUG === '1') {
       console.error('[LLM][OpenAI] error', e?.response?.status, e?.response?.data || String(e));
@@ -128,8 +134,8 @@ function geminiModelCandidates() {
   return Array.from(new Set(candidates));
 }
 
-async function callGroq({ system, user }) {
-  const apiKey = process.env.GROQ_API_KEY;
+async function callGroq({ system, user, userApiKey = null }) {
+  const apiKey = userApiKey || process.env.GROQ_API_KEY;
   const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   const url = 'https://api.groq.com/openai/v1/chat/completions';
   try {
@@ -147,11 +153,12 @@ async function callGroq({ system, user }) {
       timeout: parseInt(process.env.LLM_TIMEOUT_MS || '20000', 10),
     });
     const responseTime = Date.now() - startTime;
+    const tokens = data?.usage?.total_tokens || 0;
     let text = data?.choices?.[0]?.message?.content || '';
     if (process.env.LLM_DEBUG === '1') {
-      console.log('[LLM][Groq] success', { model, responseTime: `${responseTime}ms`, tokens: data?.usage?.total_tokens });
+      console.log('[LLM][Groq] success', { model, responseTime: `${responseTime}ms`, tokens, userKey: !!userApiKey });
     }
-    return { text: stripFences(text), modelUsed: model, provider: 'groq', responseTime };
+    return { text: stripFences(text), modelUsed: model, provider: 'groq', responseTime, tokens };
   } catch (e) {
     if (process.env.LLM_DEBUG === '1') {
       console.error('[LLM][Groq] error', e?.response?.status, e?.response?.data || String(e));
@@ -179,11 +186,12 @@ async function callDeepSeek({ system, user }) {
       timeout: parseInt(process.env.LLM_TIMEOUT_MS || '20000', 10),
     });
     const responseTime = Date.now() - startTime;
+    const tokens = data?.usage?.total_tokens || 0;
     let text = data?.choices?.[0]?.message?.content || '';
     if (process.env.LLM_DEBUG === '1') {
-      console.log('[LLM][DeepSeek] success', { model, responseTime: `${responseTime}ms`, tokens: data?.usage?.total_tokens });
+      console.log('[LLM][DeepSeek] success', { model, responseTime: `${responseTime}ms`, tokens });
     }
-    return { text: stripFences(text), modelUsed: model, provider: 'deepseek', responseTime };
+    return { text: stripFences(text), modelUsed: model, provider: 'deepseek', responseTime, tokens };
   } catch (e) {
     if (process.env.LLM_DEBUG === '1') {
       console.error('[LLM][DeepSeek] error', e?.response?.status, e?.response?.data || String(e));
@@ -225,7 +233,7 @@ async function callOpenRouter({ system, user }) {
     if (process.env.LLM_DEBUG === '1') {
       console.log('[LLM][OpenRouter] success', { model, responseTime: `${responseTime}ms`, tokens });
     }
-    return { text: stripFences(text), modelUsed: model, provider: 'openrouter', responseTime };
+    return { text: stripFences(text), modelUsed: model, provider: 'openrouter', responseTime, tokens };
   } catch (e) {
     if (process.env.LLM_DEBUG === '1') {
       console.error('[LLM][OpenRouter] error', e?.response?.status, e?.response?.data || String(e));
@@ -234,8 +242,8 @@ async function callOpenRouter({ system, user }) {
   }
 }
 
-async function callGemini({ system, user }) {
-  const apiKey = process.env.GEMINI_API_KEY;
+async function callGemini({ system, user, userApiKey = null }) {
+  const apiKey = userApiKey || process.env.GEMINI_API_KEY;
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const baseUrl = process.env.GEMINI_API_BASE || 'https://generativelanguage.googleapis.com/v1beta/models';
   
@@ -255,15 +263,16 @@ async function callGemini({ system, user }) {
     });
     const responseTime = Date.now() - startTime;
     const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+    const tokens = data?.usageMetadata?.totalTokenCount || 0;
     
     if (process.env.LLM_DEBUG === '1') {
-      console.log('[LLM][Gemini] success', { model, responseTime: `${responseTime}ms` });
+      console.log('[LLM][Gemini] success', { model, responseTime: `${responseTime}ms`, tokens, userKey: !!userApiKey });
     }
     
     if (text && text.trim()) {
-      return { text: stripFences(text), modelUsed: model, provider: 'gemini', responseTime };
+      return { text: stripFences(text), modelUsed: model, provider: 'gemini', responseTime, tokens };
     }
-    return { text: '' };
+    return { text: '', tokens: 0 };
   } catch (e) {
     if (process.env.LLM_DEBUG === '1') {
       const safeUrl = String(url).replace(/key=[^&]+/, 'key={{GEMINI_API_KEY}}');
@@ -284,9 +293,13 @@ function stripFences(s) {
   return cleaned;
 }
 
-async function rewriteFileWithAI({ file, code, findings }) {
+async function rewriteFileWithAI({ file, code, findings, userContext = null }) {
   const { system, user } = buildPrompt({ file, code, findings });
   const complexity = analyzeComplexity(findings);
+  
+  // Extract user API keys if provided
+  const { getUserApiKeys } = require('../utils/userTokens');
+  const userKeys = userContext ? getUserApiKeys(userContext) : { groq: null, gemini: null };
   
   // Check cache first
   const cachedResult = await llmCache.get(file, code, findings);
@@ -299,14 +312,15 @@ async function rewriteFileWithAI({ file, code, findings }) {
       modelUsed: cachedResult.model, 
       provider: 'cache',
       responseTime: 0,
-      cached: true 
+      cached: true,
+      tokens: 0
     };
   }
   
-  // Check available providers
-  const haveGroq = !!process.env.GROQ_API_KEY;
+  // Check available providers (system or user keys)
+  const haveGroq = !!(userKeys.groq || process.env.GROQ_API_KEY);
   const haveDeepSeek = !!process.env.DEEPSEEK_API_KEY;
-  const haveGemini = !!process.env.GEMINI_API_KEY;
+  const haveGemini = !!(userKeys.gemini || process.env.GEMINI_API_KEY);
   const haveOpenAI = !!process.env.OPENAI_API_KEY;
   const haveOpenRouter = !!process.env.OPENROUTER_API_KEY;
   
@@ -314,49 +328,77 @@ async function rewriteFileWithAI({ file, code, findings }) {
   const provider = (process.env.LLM_PROVIDER || '').toLowerCase();
   if (provider === 'groq' && haveGroq) {
     try { 
-      const result = await callGroq({ system, user });
+      const result = await callGroq({ system, user, userApiKey: userKeys.groq });
       await llmCache.set(file, code, findings, result.text, result.modelUsed, result.responseTime);
+      // Track user tokens if using platform keys
+      if (!userKeys.groq && userContext && result.tokens) {
+        const { incrementUserTokens } = require('../utils/userTokens');
+        await incrementUserTokens(userContext._id, result.tokens);
+      }
       return result;
     } catch (e) {
       if (process.env.LLM_DEBUG === '1') console.error('[LLM] Groq failed, no fallback');
     }
-    return { text: '' };
+    return { text: '', tokens: 0 };
   }
   if (provider === 'deepseek' && haveDeepSeek) {
     try { 
       const result = await callDeepSeek({ system, user });
       await llmCache.set(file, code, findings, result.text, result.modelUsed, result.responseTime);
+      // Track user tokens if using platform keys
+      if (userContext && result.tokens) {
+        const { incrementUserTokens } = require('../utils/userTokens');
+        await incrementUserTokens(userContext._id, result.tokens);
+        if (process.env.LLM_DEBUG === '1') console.log('[LLM] Tracked tokens for user', { userId: userContext._id, tokens: result.tokens });
+      }
       return result;
     } catch (e) {
       if (process.env.LLM_DEBUG === '1') console.error('[LLM] DeepSeek failed, no fallback');
     }
-    return { text: '' };
+    return { text: '', tokens: 0 };
   }
   if (provider === 'openrouter' && haveOpenRouter) {
     try { 
       const result = await callOpenRouter({ system, user });
       await llmCache.set(file, code, findings, result.text, result.modelUsed, result.responseTime);
+      // Track user tokens if using platform keys
+      if (userContext && result.tokens) {
+        const { incrementUserTokens } = require('../utils/userTokens');
+        await incrementUserTokens(userContext._id, result.tokens);
+        if (process.env.LLM_DEBUG === '1') console.log('[LLM] Tracked tokens for user', { userId: userContext._id, tokens: result.tokens });
+      }
       return result;
     } catch (e) {
       if (process.env.LLM_DEBUG === '1') console.error('[LLM] OpenRouter failed, no fallback');
     }
-    return { text: '' };
+    return { text: '', tokens: 0 };
   }
   if (provider === 'gemini' && haveGemini) {
     try { 
-      const result = await callGemini({ system, user });
+      const result = await callGemini({ system, user, userApiKey: userKeys.gemini });
       await llmCache.set(file, code, findings, result.text, result.modelUsed, result.responseTime);
+      // Track user tokens if using platform keys
+      if (!userKeys.gemini && userContext && result.tokens) {
+        const { incrementUserTokens } = require('../utils/userTokens');
+        await incrementUserTokens(userContext._id, result.tokens);
+      }
       return result;
     } catch {}
-    return { text: '' };
+    return { text: '', tokens: 0 };
   }
   if (provider === 'openai' && haveOpenAI) {
     try { 
       const result = await callOpenAI({ system, user });
       await llmCache.set(file, code, findings, result.text, result.modelUsed, result.responseTime);
+      // Track user tokens if using platform keys
+      if (userContext && result.tokens) {
+        const { incrementUserTokens } = require('../utils/userTokens');
+        await incrementUserTokens(userContext._id, result.tokens);
+        if (process.env.LLM_DEBUG === '1') console.log('[LLM] Tracked tokens for user', { userId: userContext._id, tokens: result.tokens });
+      }
       return result;
     } catch {}
-    return { text: '' };
+    return { text: '', tokens: 0 };
   }
 
   // Smart routing based on complexity
@@ -366,9 +408,14 @@ async function rewriteFileWithAI({ file, code, findings }) {
     // Simple fixes: Use Groq (fastest) -> OpenRouter -> Gemini -> DeepSeek
     if (haveGroq) {
       try { 
-        out = await callGroq({ system, user }); 
+        out = await callGroq({ system, user, userApiKey: userKeys.groq }); 
         if (out.text && out.text.trim()) {
           await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          // Track user tokens if using platform keys
+          if (!userKeys.groq && userContext && out.tokens) {
+            const { incrementUserTokens } = require('../utils/userTokens');
+            await incrementUserTokens(userContext._id, out.tokens);
+          }
           return out;
         }
       } catch (e) {
@@ -380,6 +427,11 @@ async function rewriteFileWithAI({ file, code, findings }) {
         out = await callOpenRouter({ system, user }); 
         if (out.text && out.text.trim()) {
           await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          // Track user tokens if using platform keys
+          if (userContext && out.tokens) {
+            const { incrementUserTokens } = require('../utils/userTokens');
+            await incrementUserTokens(userContext._id, out.tokens);
+          }
           return out;
         }
       } catch (e) {
@@ -388,9 +440,14 @@ async function rewriteFileWithAI({ file, code, findings }) {
     }
     if (haveGemini) {
       try { 
-        out = await callGemini({ system, user }); 
+        out = await callGemini({ system, user, userApiKey: userKeys.gemini }); 
         if (out.text && out.text.trim()) {
           await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          // Track user tokens if using platform keys
+          if (!userKeys.gemini && userContext && out.tokens) {
+            const { incrementUserTokens } = require('../utils/userTokens');
+            await incrementUserTokens(userContext._id, out.tokens);
+          }
           return out;
         }
       } catch (e) {
@@ -402,6 +459,11 @@ async function rewriteFileWithAI({ file, code, findings }) {
         out = await callDeepSeek({ system, user });
         if (out.text && out.text.trim()) {
           await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          // Track user tokens if using platform keys
+          if (userContext && out.tokens) {
+            const { incrementUserTokens } = require('../utils/userTokens');
+            await incrementUserTokens(userContext._id, out.tokens);
+          }
         }
       } catch {}
     }
@@ -412,6 +474,11 @@ async function rewriteFileWithAI({ file, code, findings }) {
         out = await callDeepSeek({ system, user }); 
         if (out.text && out.text.trim()) {
           await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          // Track user tokens if using platform keys
+          if (userContext && out.tokens) {
+            const { incrementUserTokens } = require('../utils/userTokens');
+            await incrementUserTokens(userContext._id, out.tokens);
+          }
           return out;
         }
       } catch (e) {
@@ -420,9 +487,14 @@ async function rewriteFileWithAI({ file, code, findings }) {
     }
     if (haveGemini) {
       try { 
-        out = await callGemini({ system, user }); 
+        out = await callGemini({ system, user, userApiKey: userKeys.gemini }); 
         if (out.text && out.text.trim()) {
           await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          // Track user tokens if using platform keys
+          if (!userKeys.gemini && userContext && out.tokens) {
+            const { incrementUserTokens } = require('../utils/userTokens');
+            await incrementUserTokens(userContext._id, out.tokens);
+          }
           return out;
         }
       } catch (e) {
@@ -431,9 +503,14 @@ async function rewriteFileWithAI({ file, code, findings }) {
     }
     if (haveGroq) {
       try { 
-        out = await callGroq({ system, user });
+        out = await callGroq({ system, user, userApiKey: userKeys.groq });
         if (out.text && out.text.trim()) {
           await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          // Track user tokens if using platform keys
+          if (!userKeys.groq && userContext && out.tokens) {
+            const { incrementUserTokens } = require('../utils/userTokens');
+            await incrementUserTokens(userContext._id, out.tokens);
+          }
           return out;
         }
       } catch {}
@@ -443,6 +520,11 @@ async function rewriteFileWithAI({ file, code, findings }) {
         out = await callOpenRouter({ system, user });
         if (out.text && out.text.trim()) {
           await llmCache.set(file, code, findings, out.text, out.modelUsed, out.responseTime);
+          // Track user tokens if using platform keys
+          if (userContext && out.tokens) {
+            const { incrementUserTokens } = require('../utils/userTokens');
+            await incrementUserTokens(userContext._id, out.tokens);
+          }
         }
       } catch {}
     }

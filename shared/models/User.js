@@ -39,6 +39,32 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  // Token usage tracking
+  tokensUsed: {
+    type: Number,
+    default: 0,
+  },
+  tokenLimit: {
+    type: Number,
+    default: 1000, // Free tier: 1000 tokens
+  },
+  // User's own API keys (encrypted)
+  apiKeys: {
+    groq: String,
+    gemini: String,
+  },
+  // Subscription tier
+  subscriptionTier: {
+    type: String,
+    enum: ['free', 'pro', 'enterprise'],
+    default: 'free',
+  },
+  subscriptionExpiry: Date,
+  subscriptionStatus: {
+    type: String,
+    enum: ['active', 'expired', 'cancelled'],
+    default: 'active',
+  },
 }, {
   timestamps: true, // Adds createdAt and updatedAt
 });
