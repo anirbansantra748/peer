@@ -4,51 +4,179 @@
     <meta charset="utf-8" />
     <title><%= title %></title>
     <style>
-      body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; padding: 20px; background: #f5f5f5; }
-      .status { padding: 6px 10px; border-radius: 4px; background: #eef; display: inline-block; font-family: system-ui, Arial, sans-serif; }
-      .hdr { font-family: system-ui, Arial, sans-serif; }
-      .fileHdr { font-weight: 600; margin: 8px 0; font-family: system-ui, Arial, sans-serif; }
-      .diffSummary { margin: 8px 0 16px; font-family: system-ui, Arial, sans-serif; color: #333; }
-      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-      .panel { border: 1px solid #ddd; background: #fafbfc; border-radius: 4px; overflow: auto; }
-      .codeTbl { width: 100%; border-collapse: collapse; }
-      .codeTbl th { background: #f0f3f6; border-bottom: 1px solid #ddd; padding: 6px 8px; text-align: left; font-weight: 600; font-family: system-ui, Arial, sans-serif; }
-      .codeTbl td { vertical-align: top; padding: 0; }
-      .codeBlk { display: grid; grid-template-columns: 56px 1fr; }
-      .lnCol { background: #f6f8fa; border-right: 1px solid #eaeef2; color: #6a737d; text-align: right; padding: 6px 8px; }
-      .codeCol { padding: 6px 8px; white-space: pre; }
-      .removed { background: #ffeaea; }
-      .added { background: #eaffea; }
-      .actions { margin-top: 12px; font-family: system-ui, Arial, sans-serif; }
-      .btn { display: inline-block; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; text-decoration: none; color: #222; background: #fff; }
-      .btn + .btn { margin-left: 8px; }
-      details { margin-top: 16px; }
-      details > summary { cursor: pointer; font-weight: 600; font-family: system-ui, Arial, sans-serif; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        padding: 24px; 
+        background: #0d1117;
+        color: #c9d1d9;
+      }
+      .container { max-width: 1600px; margin: 0 auto; }
+      h1 { color: #58a6ff; font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+      .status { 
+        padding: 6px 12px; 
+        border-radius: 6px; 
+        background: #161b22; 
+        border: 1px solid #30363d;
+        display: inline-block; 
+        font-size: 14px;
+        color: #58a6ff;
+        font-weight: 500;
+      }
+      .hdr { margin: 6px 0; font-size: 14px; color: #8b949e; }
+      .hdr code { 
+        background: #161b22; 
+        padding: 2px 6px; 
+        border-radius: 3px; 
+        color: #c9d1d9;
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+      }
+      .fileHdr { 
+        font-weight: 600; 
+        margin: 20px 0 12px; 
+        font-size: 16px;
+        color: #c9d1d9;
+      }
+      .diffSummary { 
+        margin: 12px 0 20px; 
+        color: #8b949e;
+        font-size: 14px;
+      }
+      .panel { 
+        background: #0d1117; 
+        border: 1px solid #30363d;
+        border-radius: 6px; 
+        overflow: hidden;
+      }
+      .codeTbl { 
+        width: 100%; 
+        border-collapse: collapse;
+        background: #161b22;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid #30363d;
+      }
+      .codeTbl th { 
+        background: #161b22; 
+        border-bottom: 2px solid #30363d; 
+        padding: 12px 16px; 
+        text-align: center; 
+        font-weight: 600;
+        font-size: 13px;
+        color: #8b949e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .codeTbl td { 
+        vertical-align: top; 
+        padding: 0;
+        border-left: 1px solid #21262d;
+      }
+      .codeTbl td:first-child { border-left: none; }
+      .codeBlk { 
+        display: grid; 
+        grid-template-columns: 48px 1fr;
+      }
+      .lnCol { 
+        background: #0d1117; 
+        border-right: 1px solid #21262d; 
+        color: #6e7681; 
+        text-align: right; 
+        padding: 4px 8px;
+        font-size: 12px;
+        user-select: none;
+      }
+      .codeCol { 
+        padding: 4px 12px; 
+        white-space: pre; 
+        font-size: 13px;
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+        line-height: 20px;
+      }
+      .removed { background: #2d0f0f; color: #ff7b72; }
+      .removed .lnCol { background: #2d0f0f; color: #ff7b72; opacity: 0.7; }
+      .added { background: #0d2e0d; color: #7ee787; }
+      .added .lnCol { background: #0d2e0d; color: #7ee787; opacity: 0.7; }
+      .actions { 
+        margin-top: 20px; 
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .btn { 
+        display: inline-block; 
+        padding: 8px 16px; 
+        border: 1px solid #30363d; 
+        border-radius: 6px; 
+        text-decoration: none; 
+        color: #c9d1d9; 
+        background: #21262d;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn:hover { background: #30363d; border-color: #58a6ff; }
+      .btn-primary { background: #238636; border-color: #238636; color: white; }
+      .btn-primary:hover { background: #2ea043; border-color: #2ea043; }
       /* Step Tracker */
-      .step-tracker { background: white; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-      .steps { display: flex; justify-content: space-between; align-items: center; }
-      .step { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; position: relative; }
-      .step-icon { width: 36px; height: 36px; border-radius: 50%; background: #e9ecef; color: #6c757d; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; z-index: 2; }
-      .step.completed .step-icon { background: #28a745; color: white; }
-      .step.active .step-icon { background: #0066cc; color: white; box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.2); }
-      .step-label { font-size: 11px; color: #6c757d; font-weight: 500; text-align: center; }
-      .step.completed .step-label, .step.active .step-label { color: #333; font-weight: 600; }
-      .step-connector { position: absolute; top: 18px; left: 50%; right: -50%; height: 2px; background: #e9ecef; z-index: 1; }
+      .step-tracker { 
+        background: #161b22; 
+        padding: 20px; 
+        border-radius: 8px; 
+        margin-bottom: 24px;
+        border: 1px solid #30363d;
+      }
+      .steps { display: flex; justify-content: space-between; align-items: center; position: relative; }
+      .step { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; position: relative; }
+      .step-icon { 
+        width: 40px; 
+        height: 40px; 
+        border-radius: 50%; 
+        background: #21262d; 
+        color: #8b949e; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 18px; 
+        font-weight: 600;
+        z-index: 2;
+        border: 2px solid #30363d;
+        transition: all 0.3s;
+      }
+      .step.completed .step-icon { background: #238636; color: white; border-color: #2ea043; }
+      .step.active .step-icon { background: #1f6feb; color: white; border-color: #58a6ff; box-shadow: 0 0 0 4px rgba(31, 111, 235, 0.2); }
+      .step-label { font-size: 12px; color: #8b949e; font-weight: 500; text-align: center; }
+      .step.completed .step-label, .step.active .step-label { color: #c9d1d9; font-weight: 600; }
+      .step-connector { position: absolute; top: 20px; left: 50%; right: -50%; height: 2px; background: #21262d; z-index: 1; }
       .step:last-child .step-connector { display: none; }
-      .step.completed .step-connector { background: #28a745; }
+      .step.completed .step-connector { background: #238636; }
+      /* Change summary box */
+      #change-summary {
+        margin: 16px 0;
+        padding: 16px;
+        background: #161b22;
+        border-left: 4px solid #1f6feb;
+        border-radius: 6px;
+        color: #c9d1d9;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      #change-summary strong { color: #58a6ff; }
       /* Typing animation */
       @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(5px); }
+        from { opacity: 0; transform: translateY(3px); }
         to { opacity: 1; transform: translateY(0); }
       }
       .typing-line {
-        animation: fadeIn 0.3s ease-out;
+        animation: fadeIn 0.2s ease-out;
         opacity: 0;
       }
       .typing-complete { opacity: 1; }
     </style>
   </head>
   <body>
+    <div class="container">
     <!-- Step Tracker -->
     <div class="step-tracker">
       <div class="steps">
@@ -79,8 +207,7 @@
       </div>
     </div>
     
-    <h1 class="hdr">Preview — Run <%= runId %></h1>
-    <p class="hdr">Patch Request: <code><%= patchRequestId %></code></p>
+    <h1>🔍 Preview Fixes — Run <%= runId %></h1>
     <p class="hdr">Status: <span class="status"><%= patch.status %></span></p>
 
     <% if (!(patch.status === 'preview_ready' || patch.status === 'preview_partial')) { %>
@@ -94,10 +221,10 @@
       <% const _q = (typeof query !== 'undefined' && query) ? query : {}; %>
       <div id="diff-summary" class="diffSummary"></div>
       <% if (patch.status === 'preview_partial') { %>
-        <div class="hdr" style="color:#8a6d3b;">Building preview... Some files may still be processing. This page will auto-refresh.</div>
+        <div class="hdr" style="color:#f0883e;background:#2d2013;padding:12px;border-radius:6px;border:1px solid #6e5a33;margin:12px 0;">⏳ Building preview... Some files may still be processing. This page will auto-refresh.</div>
       <% } %>
       <div id="file-header" class="fileHdr"></div>
-      <div id="change-summary" class="hdr" style="margin:16px 0;padding:12px;background:#f8f9fa;border-left:4px solid #0066cc;border-radius:4px;display:none;"></div>
+      <div id="change-summary" style="display:none;"></div>
       <table class="codeTbl" id="diff-table" style="display:none;">
         <thead>
           <tr>
@@ -113,7 +240,7 @@
         <a class="btn" id="btn-next" href="#">Next file</a>
         <form method="post" action="/runs/<%= runId %>/patches/apply" id="apply-form" style="display:inline;">
           <input type="hidden" name="patchRequestId" value="<%= patchRequestId %>">
-          <button class="btn" type="submit">Apply Preview</button>
+          <button class="btn btn-primary" type="submit">✓ Apply Fixes</button>
         </form>
       </div>
 
@@ -182,35 +309,30 @@
             // Render change summary with typing animation
             if (data.changeSummary && data.changeSummary.patches && data.changeSummary.patches.length > 0) {
               changeSummaryEl.style.display = 'block';
-              const summaryHTML = `<div style="font-weight:600;margin-bottom:8px;">📝 Changes Summary:</div>`;
+              const summaryHTML = `<div style="font-weight:600;margin-bottom:10px;font-size:15px;">📝 What Changed:</div>`;
               changeSummaryEl.innerHTML = summaryHTML;
               
               // Type out each change one by one
               for (let i = 0; i < data.changeSummary.patches.length; i++) {
                 const patch = data.changeSummary.patches[i];
-                const changeText = `<div style="margin:4px 0;padding-left:8px;">• Line ${patch.line}: ${escapeHtml(patch.reason || 'Applied fix')}</div>`;
-                await new Promise(resolve => setTimeout(resolve, 80)); // Typing delay per change
+                const changeText = `<div style="margin:6px 0;padding-left:4px;line-height:1.5;">• <span style="color:#58a6ff;">Line ${patch.line}:</span> ${escapeHtml(patch.reason || 'Applied fix')}</div>`;
+                await new Promise(resolve => setTimeout(resolve, 60)); // Typing delay per change
                 changeSummaryEl.innerHTML += changeText;
               }
               
-              // Show AI model info
-              const modelInfo = `<div style="margin-top:8px;font-size:0.85em;color:#666;padding-left:8px;">✨ Generated by ${escapeHtml(data.changeSummary.model || 'AI')}</div>`;
-              await new Promise(resolve => setTimeout(resolve, 50));
-              changeSummaryEl.innerHTML += modelInfo;
-              
               // Wait a bit before showing code
-              await new Promise(resolve => setTimeout(resolve, 200));
+              await new Promise(resolve => setTimeout(resolve, 150));
             }
             
-            // Render side-by-side with ChatGPT-style typing animation
+            // Render side-by-side with typing animation
             const left = String(data.originalText||'').split(/\r?\n/);
             const right = String(data.improvedText||'').split(/\r?\n/);
             const maxLen = Math.max(left.length, right.length);
             diffBody.innerHTML = '';
             
             // Typing animation - render lines progressively
-            const linesPerBatch = 3; // Show 3 lines at a time for smooth feel
-            const batchDelay = 50;   // 50ms between batches (adjust for speed)
+            const linesPerBatch = 5; // Show 5 lines at a time for smooth feel
+            const batchDelay = 30;   // 30ms between batches
             
             for (let j=0; j<maxLen; j+=linesPerBatch){
               await new Promise(resolve => setTimeout(resolve, batchDelay));
@@ -240,5 +362,6 @@
         })();
       </script>
     <% } %>
+    </div>
   </body>
 </html>

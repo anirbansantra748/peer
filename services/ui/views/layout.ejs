@@ -6,22 +6,62 @@
     <title><%= title || 'Peer Code Review' %></title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
     <style>
+      :root {
+        /* Dark theme (default) */
+        --bg-primary: #0d1117;
+        --bg-secondary: #161b22;
+        --bg-tertiary: #21262d;
+        --border-primary: #30363d;
+        --border-secondary: #21262d;
+        --text-primary: #c9d1d9;
+        --text-secondary: #8b949e;
+        --text-tertiary: #6e7681;
+        --accent-primary: #58a6ff;
+        --accent-hover: #79c0ff;
+        --success: #238636;
+        --success-light: #2ea043;
+        --warning: #f0883e;
+        --danger: #da3633;
+        --danger-light: #ff7b72;
+      }
+      
+      body.light-theme {
+        /* Light theme */
+        --bg-primary: #ffffff;
+        --bg-secondary: #f6f8fa;
+        --bg-tertiary: #ffffff;
+        --border-primary: #d0d7de;
+        --border-secondary: #d8dee4;
+        --text-primary: #24292f;
+        --text-secondary: #57606a;
+        --text-tertiary: #6e7781;
+        --accent-primary: #0969da;
+        --accent-hover: #0550ae;
+        --success: #1a7f37;
+        --success-light: #1f8839;
+        --warning: #9a6700;
+        --danger: #cf222e;
+        --danger-light: #a40e26;
+      }
+      
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #0d1117;
-        color: #c9d1d9;
+        background: var(--bg-primary);
+        color: var(--text-primary);
         line-height: 1.6;
+        transition: background 0.3s ease, color 0.3s ease;
       }
       
       /* Navbar styles */
       .navbar {
-        background: #161b22;
-        border-bottom: 1px solid #30363d;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-primary);
         padding: 12px 0;
         position: sticky;
         top: 0;
         z-index: 1000;
+        transition: background 0.3s ease, border-color 0.3s ease;
       }
       .navbar-container {
         max-width: 1400px;
@@ -34,14 +74,14 @@
       .navbar-brand {
         font-size: 20px;
         font-weight: 600;
-        color: #58a6ff;
+        color: var(--accent-primary);
         text-decoration: none;
         display: flex;
         align-items: center;
         gap: 8px;
       }
       .navbar-brand:hover {
-        color: #79c0ff;
+        color: var(--accent-hover);
       }
       .navbar-right {
         display: flex;
@@ -66,11 +106,11 @@
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        border: 2px solid #30363d;
+        border: 2px solid var(--border-primary);
         transition: border-color 0.2s;
       }
       .profile-btn:hover .profile-avatar {
-        border-color: #58a6ff;
+        border-color: var(--accent-primary);
       }
       .profile-menu {
         display: none;
@@ -78,10 +118,10 @@
         right: 0;
         top: 100%;
         margin-top: 8px;
-        background: #161b22;
-        border: 1px solid #30363d;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
         border-radius: 8px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         min-width: 280px;
         z-index: 1000;
       }
@@ -91,7 +131,7 @@
       }
       .profile-header {
         padding: 16px;
-        border-bottom: 1px solid #21262d;
+        border-bottom: 1px solid var(--border-secondary);
         display: flex;
         align-items: center;
         gap: 12px;
@@ -100,21 +140,21 @@
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        border: 2px solid #30363d;
+        border: 2px solid var(--border-primary);
       }
       .profile-info h4 {
         font-size: 14px;
         font-weight: 600;
-        color: #c9d1d9;
+        color: var(--text-primary);
         margin-bottom: 2px;
       }
       .profile-info p {
         font-size: 12px;
-        color: #8b949e;
+        color: var(--text-secondary);
       }
       .profile-menu-section {
         padding: 8px 0;
-        border-bottom: 1px solid #21262d;
+        border-bottom: 1px solid var(--border-secondary);
       }
       .profile-menu-section:last-child {
         border-bottom: none;
@@ -122,29 +162,49 @@
       .profile-menu-item {
         display: block;
         padding: 10px 16px;
-        color: #c9d1d9;
+        color: var(--text-primary);
         text-decoration: none;
         font-size: 14px;
         transition: background 0.2s;
       }
       .profile-menu-item:hover {
-        background: #0d1117;
-        color: #58a6ff;
+        background: var(--bg-primary);
+        color: var(--accent-primary);
       }
       .profile-menu-label {
         padding: 8px 16px;
         font-size: 11px;
         font-weight: 600;
-        color: #6e7681;
+        color: var(--text-tertiary);
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
       
+      /* Theme toggle */
+      .theme-toggle {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-primary);
+        color: var(--text-primary);
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        transition: all 0.2s;
+      }
+      .theme-toggle:hover {
+        background: var(--border-primary);
+        border-color: var(--accent-primary);
+      }
+      
       /* Settings button */
       .settings-btn {
-        background: #21262d;
-        border: 1px solid #30363d;
-        color: #c9d1d9;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-primary);
+        color: var(--text-primary);
         width: 36px;
         height: 36px;
         border-radius: 6px;
@@ -156,8 +216,8 @@
         transition: all 0.2s;
       }
       .settings-btn:hover {
-        background: #30363d;
-        border-color: #58a6ff;
+        background: var(--border-primary);
+        border-color: var(--accent-primary);
       }
       .settings-dropdown {
         position: relative;
@@ -168,10 +228,10 @@
         right: 0;
         top: 100%;
         margin-top: 8px;
-        background: #161b22;
-        border: 1px solid #30363d;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
         border-radius: 6px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         min-width: 200px;
         z-index: 1000;
       }
@@ -181,17 +241,17 @@
       .settings-menu a {
         display: block;
         padding: 12px 16px;
-        color: #c9d1d9;
+        color: var(--text-primary);
         text-decoration: none;
         font-size: 14px;
-        border-bottom: 1px solid #21262d;
+        border-bottom: 1px solid var(--border-secondary);
       }
       .settings-menu a:last-child {
         border-bottom: none;
       }
       .settings-menu a:hover {
-        background: #0d1117;
-        color: #58a6ff;
+        background: var(--bg-primary);
+        color: var(--accent-primary);
       }
       
       /* Main content */
@@ -212,6 +272,11 @@
         </a>
         
         <div class="navbar-right">
+          <!-- Theme Toggle -->
+          <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+            <span id="theme-icon">🌙</span>
+          </button>
+          
           <!-- Settings Dropdown -->
           <div class="settings-dropdown">
             <button class="settings-btn">⚙️</button>
@@ -283,6 +348,39 @@
     
     <!-- Toast Notifications -->
     <%- include('partials/toast-notifications') %>
+    
+    <!-- Theme Toggle Script -->
+    <script>
+      (function() {
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        
+        // Load saved theme or default to dark
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        
+        function setTheme(theme) {
+          if (theme === 'light') {
+            document.body.classList.add('light-theme');
+            themeIcon.textContent = '☀️';
+            localStorage.setItem('theme', 'light');
+          } else {
+            document.body.classList.remove('light-theme');
+            themeIcon.textContent = '🌙';
+            localStorage.setItem('theme', 'dark');
+          }
+        }
+        
+        // Apply saved theme on page load
+        setTheme(savedTheme);
+        
+        // Toggle theme on button click
+        themeToggle.addEventListener('click', () => {
+          const currentTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+          const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+          setTheme(newTheme);
+        });
+      })();
+    </script>
     
     <% if (typeof blocks !== 'undefined' && blocks.additionalScripts) { %><%- blocks.additionalScripts %><% } %>
   </body>

@@ -61,10 +61,13 @@ const analyzerWorker = new Worker(
         }
       }
 
-      // Update status to running
+      // Update status to running and store the mode at creation time
       prRun.status = 'running';
+      if (installationConfig && installationConfig.mode) {
+        prRun.mode = installationConfig.mode;
+      }
       await prRun.save();
-      logger.info('analyzer', 'PRRun set to running', { runId });
+      logger.info('analyzer', 'PRRun set to running', { runId, mode: prRun.mode });
 
       // Analyze repository with all 4 analyzers (style, logic, security, improvement)
       const { findings, changed, analyzerResults } = await analyzeRepoDeep({ repo, sha, baseSha });

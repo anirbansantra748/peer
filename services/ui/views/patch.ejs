@@ -4,66 +4,202 @@
     <meta charset="utf-8" />
     <title><%= title %></title>
     <style>
-      body { font-family: system-ui, Arial, sans-serif; padding: 20px; }
-      .status { padding: 8px; border-radius: 4px; background: #eef; display: inline-block; }
-      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-      pre { background: #f6f8fa; padding: 12px; border: 1px solid #ddd; overflow: auto; }
-      .ok { color: #0a8; }
-      .warn { color: #d77a00; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        padding: 24px; 
+        background: #0d1117;
+        color: #c9d1d9;
+      }
+      .container { max-width: 1400px; margin: 0 auto; }
+      h1 { color: #58a6ff; font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+      h3 { color: #c9d1d9; font-size: 18px; font-weight: 600; margin: 20px 0 12px; }
+      p { margin: 8px 0; color: #8b949e; font-size: 14px; }
+      code { 
+        background: #161b22; 
+        padding: 2px 6px; 
+        border-radius: 3px; 
+        color: #c9d1d9;
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 13px;
+      }
+      .status { 
+        padding: 6px 12px; 
+        border-radius: 6px; 
+        background: #161b22;
+        border: 1px solid #30363d;
+        display: inline-block; 
+        font-weight: 500;
+        color: #58a6ff;
+      }
+      .status.completed { background: #0f2e0f; color: #7ee787; border-color: #2ea043; }
+      .status.failed { background: #2d0f0f; color: #ff7b72; border-color: #da3633; }
+      .grid { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+        gap: 20px;
+        margin: 20px 0;
+      }
+      .panel {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 20px;
+      }
+      .panel h3 { margin-top: 0; }
+      ul { list-style: none; padding: 0; }
+      li { 
+        margin: 8px 0; 
+        padding: 8px 12px;
+        background: #0d1117;
+        border-radius: 4px;
+        border-left: 3px solid transparent;
+        font-size: 14px;
+      }
+      .ok { border-color: #2ea043; }
+      .ok code { color: #7ee787; }
+      .warn { border-color: #f0883e; }
+      .warn code { color: #f0883e; }
+      .error { border-color: #da3633; }
+      .error code { color: #ff7b72; }
+      .info-box {
+        background: #161b22;
+        padding: 16px;
+        border-radius: 6px;
+        border: 1px solid #30363d;
+        margin: 20px 0;
+      }
+      .success-box {
+        background: #0f2e0f;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #2ea043;
+        margin: 20px 0;
+        text-align: center;
+      }
+      .success-box h2 { color: #7ee787; font-size: 24px; margin-bottom: 12px; }
+      .success-box p { color: #7ee787; font-size: 16px; }
+      .btn {
+        display: inline-block;
+        padding: 8px 16px;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #c9d1d9;
+        background: #21262d;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn:hover { background: #30363d; border-color: #58a6ff; }
+      .btn-small {
+        padding: 6px 12px;
+        font-size: 13px;
+      }
+      .btn-primary { background: #1f6feb; border-color: #1f6feb; color: white; }
+      .btn-primary:hover { background: #1a5ad8; border-color: #1a5ad8; }
+      .rerun-section {
+        background: #161b22;
+        padding: 16px;
+        border-radius: 6px;
+        border-left: 4px solid #1f6feb;
+        margin: 20px 0;
+      }
+      .rerun-section h3 { margin-top: 0; font-size: 16px; }
+      .rerun-section p { font-size: 13px; margin: 8px 0 12px; }
     </style>
   </head>
   <body>
-    <h1>Patch Results — Run <%= runId %></h1>
-    <p>Patch Request: <code><%= patchRequestId %></code></p>
-    <p>Status: <span class="status"><%= patch.status %></span></p>
+    <div class="container">
+    <h1>✅ Patch Results — Run <%= runId %></h1>
+    <p>Status: <span class="status <%= patch.status %>"><%= patch.status %></span></p>
+
+    <% if (patch.status === 'completed') { %>
+      <div class="success-box">
+        <h2>🎉 Fixes Applied Successfully!</h2>
+        <p>Your changes have been committed and pushed. Redirecting to dashboard...</p>
+      </div>
+      <script>
+        // Auto-redirect to dashboard after 3 seconds
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+      </script>
+    <% } %>
 
     <% if (patch.results) { %>
-      <h3>Git</h3>
-      <ul>
-        <li>Branch: <code><%= patch.results.branchName || '(n/a)' %></code></li>
-        <li>Commit: <code><%= patch.results.commitSha || '(n/a)' %></code></li>
-      </ul>
+      <div class="info-box">
+        <h3>📋 Git Details</h3>
+        <p style="margin-top:8px;">Branch: <code><%= patch.results.branchName || '(n/a)' %></code></p>
+        <p>Commit: <code><%= patch.results.commitSha || '(n/a)' %></code></p>
+      </div>
       <div class="grid">
-        <div>
-          <h3>Applied (<%= (patch.results.applied || []).length %>)</h3>
+        <div class="panel">
+          <h3>✅ Applied (<%= (patch.results.applied || []).length %>)</h3>
           <ul>
-            <% (patch.results.applied || []).forEach(a => { %>
-              <li class="ok"><code><%= a.file %></code> — finding <code><%= a.findingId %></code></li>
-            <% }) %>
+            <% if ((patch.results.applied || []).length === 0) { %>
+              <li style="border:none;background:#0d1117;color:#6e7681;">No fixes applied</li>
+            <% } else { %>
+              <% (patch.results.applied || []).forEach(a => { %>
+                <li class="ok"><code><%= a.file %></code></li>
+              <% }) %>
+            <% } %>
           </ul>
         </div>
-        <div>
-          <h3>Skipped (<%= (patch.results.skipped || []).length %>)</h3>
+        <div class="panel">
+          <h3>⚠️ Skipped (<%= (patch.results.skipped || []).length %>)</h3>
           <ul>
-            <% (patch.results.skipped || []).forEach(s => { %>
-              <li class="warn"><code><%= s.file %></code> — finding <code><%= s.findingId %></code> — <%= s.reason %></li>
-            <% }) %>
+            <% if ((patch.results.skipped || []).length === 0) { %>
+              <li style="border:none;background:#0d1117;color:#6e7681;">No issues skipped</li>
+            <% } else { %>
+              <% (patch.results.skipped || []).forEach(s => { %>
+                <li class="warn"><code><%= s.file %></code> — <%= s.reason %></li>
+              <% }) %>
+            <% } %>
           </ul>
         </div>
       </div>
       <% if ((patch.results.errors || []).length) { %>
-        <h3>Errors</h3>
-        <ul>
-          <% (patch.results.errors || []).forEach(err => { %>
-            <li class="warn"><%= err.message %></li>
-          <% }) %>
-        </ul>
+        <div class="panel">
+          <h3>❌ Errors</h3>
+          <ul>
+            <% (patch.results.errors || []).forEach(err => { %>
+              <li class="error"><%= err.message %></li>
+            <% }) %>
+          </ul>
+        </div>
       <% } %>
     <% } %>
 
     <% if (patch.status !== 'completed' && patch.status !== 'failed') { %>
-      <p>Patch is still processing. <a href="/runs/<%= runId %>/patches/<%= patchRequestId %>">Refresh</a></p>
+      <div class="info-box" style="border-left:4px solid #1f6feb;">
+        <p style="color:#58a6ff;font-size:15px;font-weight:500;">⏳ Patch is still processing...</p>
+        <p style="margin-top:8px;">This page will automatically refresh when complete.</p>
+      </div>
+      <script>
+        // Auto-refresh every 3 seconds until processing is complete
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      </script>
     <% } %>
 
-    <div style="margin: 20px 0; padding: 16px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #0066cc;">
-      <h3 style="margin-top: 0;">Re-run AI Fixes</h3>
-      <p style="color: #666; margin: 8px 0;">Generate new fixes for the same issues using the latest AI model. This will create a new preview with potentially improved suggestions.</p>
-      <form method="post" action="/runs/<%= runId %>/rerun" style="display: inline;">
-        <input type="hidden" name="patchRequestId" value="<%= patchRequestId %>">
-        <button type="submit" style="padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">🔄 Re-run AI Fixes</button>
-      </form>
-    </div>
+    <% if (patch.status === 'completed' || patch.status === 'failed') { %>
+      <div class="rerun-section">
+        <h3>🔄 Re-run AI Fixes</h3>
+        <p>Generate new fixes for the same issues using the latest AI model.</p>
+        <form method="post" action="/runs/<%= runId %>/rerun" style="display: inline;">
+          <input type="hidden" name="patchRequestId" value="<%= patchRequestId %>">
+          <button type="submit" class="btn btn-primary btn-small">🔄 Re-run Fixes</button>
+        </form>
+      </div>
+    <% } %>
 
-    <p><a href="/runs/<%= runId %>/select">Back to selection</a></p>
+    <div style="margin-top:24px;">
+      <a href="/" class="btn">← Back to Dashboard</a>
+      <a href="/runs/<%= runId %>/select" class="btn" style="margin-left:12px;">Back to Selection</a>
+    </div>
+    </div>
   </body>
 </html>

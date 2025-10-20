@@ -164,13 +164,11 @@ app.get('/', requireAuth, async (req, res) => {
       .limit(10)
       .lean();
     
-    // Enrich runs with installation mode info
-    const installationMap = new Map(userInstallations.map(i => [String(i._id), i]));
+    // Runs already have the mode stored at creation time
+    // Use run.mode (persisted) instead of current installation config
     recentRuns.forEach(run => {
-      const installation = installationMap.get(String(run.installationId));
-      if (installation) {
-        run.installationMode = installation.config?.mode || 'analyze';
-      }
+      // Use the persisted mode from the run, fallback to 'analyze' if not set
+      run.installationMode = run.mode || 'analyze';
     });
     
     // Get stats for user's installations only
