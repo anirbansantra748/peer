@@ -122,6 +122,26 @@ const analyzerWorker = new Worker(
       }
       console.log('========================================\n');
 
+      // Send notification after analysis completes
+      try {
+        const notificationHelper = require('../../shared/utils/notificationHelper');
+        const installation = prRun.installationId ? await Installation.findById(prRun.installationId) : null;
+        
+        if (installation && installation.userId) {
+          await notificationHelper.notifyPRAnalyzed({
+            userId: installation.userId,
+            repo: prRun.repo,
+            prNumber: prRun.prNumber,
+            runId: prRun._id.toString(),
+            issuesCount: prRun.findings.length,
+            mode: installationConfig?.mode || 'review'
+          });
+          logger.info('analyzer', 'PR analyzed notification sent', { runId, userId: installation.userId });
+        }
+      } catch (notifError) {
+        logger.warn('analyzer', 'Failed to send notification', { runId, error: String(notifError) });
+      }
+
       // Auto-trigger autofix if mode is 'commit' or 'merge' (skip for 'review' mode)
       if (installationConfig && (installationConfig.mode === 'commit' || installationConfig.mode === 'merge')) {
         // Get all finding IDs to auto-fix

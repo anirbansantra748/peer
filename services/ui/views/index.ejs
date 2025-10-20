@@ -431,8 +431,13 @@
           <div class="settings-dropdown">
             <button class="settings-btn">⚙️ Settings ▾</button>
             <div class="settings-menu">
+              <a href="/profile-settings">👤 Profile & Email</a>
+              <a href="/notification-preferences">🔔 Notifications</a>
               <a href="/settings/api-keys">🔑 API Keys</a>
               <a href="/settings/subscription">💎 Subscription</a>
+              <a href="/installations">📦 Installations</a>
+              <a href="/audits">📊 Audit Logs</a>
+              <a href="/auth/logout">🚪 Logout</a>
             </div>
           </div>
         </div>
@@ -676,5 +681,7 @@
         </div>
       </div>
     </div>
+    
+    <%- include('partials/toast-notifications') %>
   </body>
 </html>

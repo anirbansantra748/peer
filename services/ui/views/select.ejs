@@ -8,20 +8,21 @@
       body { 
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
         padding: 24px; 
-        background: #f5f5f5;
+        background: #0d1117;
+        color: #c9d1d9;
       }
       .container { max-width: 1400px; margin: 0 auto; }
-      h1 { margin-bottom: 24px; color: #333; }
+      h1 { margin-bottom: 12px; color: #58a6ff; font-size: 28px; font-weight: 700; }
       
       /* Summary Panel */
       .summary {
-        background: white;
+        background: #161b22;
         padding: 20px;
         border-radius: 8px;
         margin-bottom: 24px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #30363d;
       }
-      .summary-title { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+      .summary-title { font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #c9d1d9; }
       .summary-stats {
         display: flex;
         gap: 24px;
@@ -35,22 +36,23 @@
       }
       .stat-icon { font-size: 24px; }
       .stat-count { font-size: 24px; font-weight: bold; }
-      .stat-label { font-size: 14px; color: #666; }
+      .stat-label { font-size: 14px; color: #8b949e; }
       .summary-info {
-        background: #f8f9fa;
+        background: #0d1117;
         padding: 12px;
         border-radius: 6px;
         font-size: 14px;
-        color: #555;
+        color: #8b949e;
+        border: 1px solid #21262d;
       }
       
       /* Toolbar */
       .toolbar {
-        background: white;
+        background: #161b22;
         padding: 16px;
         border-radius: 8px;
         margin-bottom: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #30363d;
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
@@ -58,9 +60,15 @@
       }
       .toolbar select, .toolbar input {
         padding: 8px 12px;
-        border: 1px solid #ddd;
+        border: 1px solid #30363d;
         border-radius: 6px;
         font-size: 14px;
+        background: #0d1117;
+        color: #c9d1d9;
+      }
+      .toolbar select:focus, .toolbar input:focus {
+        outline: none;
+        border-color: #58a6ff;
       }
       .toolbar input[type="text"] { width: 320px; }
       .toolbar button {
@@ -72,25 +80,25 @@
         cursor: pointer;
         transition: all 0.2s;
       }
-      .btn-primary { background: #0066cc; color: white; }
-      .btn-primary:hover { background: #0052a3; }
-      .btn-secondary { background: #6c757d; color: white; }
-      .btn-secondary:hover { background: #5a6268; }
-      .btn-danger { background: #dc3545; color: white; }
-      .btn-danger:hover { background: #c82333; }
-      .btn-success { background: #28a745; color: white; }
-      .btn-success:hover { background: #218838; }
-      .btn-warning { background: #ffc107; color: #333; }
-      .btn-warning:hover { background: #e0a800; }
-      .toolbar .error { color: #dc3545; font-weight: 500; }
+      .btn-primary { background: #1f6feb; color: white; }
+      .btn-primary:hover { background: #1a5ad8; }
+      .btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+      .btn-secondary:hover { background: #30363d; }
+      .btn-danger { background: #da3633; color: white; }
+      .btn-danger:hover { background: #b62324; }
+      .btn-success { background: #238636; color: white; }
+      .btn-success:hover { background: #2ea043; }
+      .btn-warning { background: #f0883e; color: white; }
+      .btn-warning:hover { background: #d67e3a; }
+      .toolbar .error { color: #f85149; font-weight: 500; }
       
       /* Step Tracker */
       .step-tracker {
-        background: white;
+        background: #161b22;
         padding: 20px;
         border-radius: 8px;
         margin-bottom: 24px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #30363d;
       }
       .steps {
         display: flex;
@@ -110,8 +118,8 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: #e9ecef;
-        color: #6c757d;
+        background: #21262d;
+        color: #8b949e;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -120,24 +128,27 @@
         position: relative;
         z-index: 2;
         transition: all 0.3s;
+        border: 2px solid #30363d;
       }
       .step.completed .step-icon {
-        background: #28a745;
+        background: #238636;
         color: white;
+        border-color: #2ea043;
       }
       .step.active .step-icon {
-        background: #0066cc;
+        background: #1f6feb;
         color: white;
-        box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.2);
+        border-color: #58a6ff;
+        box-shadow: 0 0 0 4px rgba(31, 111, 235, 0.2);
       }
       .step-label {
         font-size: 12px;
-        color: #6c757d;
+        color: #8b949e;
         font-weight: 500;
         text-align: center;
       }
       .step.completed .step-label, .step.active .step-label {
-        color: #333;
+        color: #c9d1d9;
         font-weight: 600;
       }
       .step-connector {
@@ -146,34 +157,39 @@
         left: 50%;
         right: -50%;
         height: 2px;
-        background: #e9ecef;
+        background: #21262d;
         z-index: 1;
       }
       .step:last-child .step-connector { display: none; }
       .step.completed .step-connector {
-        background: #28a745;
+        background: #238636;
       }
       
       /* Issue Table */
       .issues-table {
-        background: white;
+        background: #161b22;
         border-radius: 8px;
         overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #30363d;
       }
       .issue-row {
-        border-bottom: 1px solid #e9ecef;
+        border-bottom: 1px solid #21262d;
         padding: 16px;
         display: flex;
         gap: 16px;
         align-items: flex-start;
         transition: background 0.2s;
       }
-      .issue-row:hover { background: #f8f9fa; }
+      .issue-row:hover { background: #0d1117; }
       .issue-row.hidden { display: none; }
       
       .issue-checkbox { flex-shrink: 0; padding-top: 2px; }
-      .issue-checkbox input { width: 18px; height: 18px; cursor: pointer; }
+      .issue-checkbox input { 
+        width: 18px; 
+        height: 18px; 
+        cursor: pointer;
+        accent-color: #1f6feb;
+      }
       
       .issue-category {
         flex-shrink: 0;
@@ -189,45 +205,47 @@
         letter-spacing: 0.5px;
       }
       .category-BLOCKING {
-        background: #fee;
-        color: #c00;
-        border: 2px solid #c00;
+        background: rgba(248, 81, 73, 0.15);
+        color: #ff7b72;
+        border: 2px solid #da3633;
       }
       .category-URGENT {
-        background: #fff3cd;
-        color: #856404;
-        border: 2px solid #ffc107;
+        background: rgba(187, 128, 9, 0.15);
+        color: #f0883e;
+        border: 2px solid #d29922;
       }
       .category-RECOMMENDED {
-        background: #d1ecf1;
-        color: #0c5460;
-        border: 2px solid #17a2b8;
+        background: rgba(56, 139, 253, 0.15);
+        color: #79c0ff;
+        border: 2px solid #1f6feb;
       }
       .category-OPTIONAL {
-        background: #d4edda;
-        color: #155724;
-        border: 2px solid #28a745;
+        background: rgba(46, 160, 67, 0.15);
+        color: #56d364;
+        border: 2px solid #238636;
       }
       
       .issue-content { flex: 1; min-width: 0; }
       .issue-file {
         font-family: 'Consolas', 'Monaco', monospace;
         font-size: 13px;
-        color: #0066cc;
+        color: #58a6ff;
         margin-bottom: 6px;
         font-weight: 500;
       }
       .issue-rule {
-        background: #f1f3f5;
+        background: #21262d;
         padding: 4px 8px;
         border-radius: 4px;
         font-size: 12px;
         font-family: monospace;
         display: inline-block;
         margin-bottom: 6px;
+        color: #8b949e;
+        border: 1px solid #30363d;
       }
       .issue-message {
-        color: #333;
+        color: #c9d1d9;
         font-size: 14px;
         margin-bottom: 8px;
         line-height: 1.5;
@@ -236,44 +254,45 @@
         display: flex;
         gap: 16px;
         font-size: 12px;
-        color: #666;
+        color: #8b949e;
       }
-      .meta-impact { color: #dc3545; font-weight: 500; }
-      .meta-effort { color: #28a745; font-weight: 500; }
+      .meta-impact { color: #ff7b72; font-weight: 500; }
+      .meta-effort { color: #56d364; font-weight: 500; }
       .consequence-box {
-        background: #fff3cd;
-        border-left: 4px solid #ffc107;
+        background: rgba(187, 128, 9, 0.15);
+        border-left: 4px solid #d29922;
         padding: 8px 12px;
         margin-top: 8px;
         font-size: 13px;
-        color: #856404;
+        color: #f0883e;
         border-radius: 4px;
       }
       .consequence-box.blocking {
-        background: #fee;
-        border-color: #c00;
-        color: #c00;
+        background: rgba(248, 81, 73, 0.15);
+        border-color: #da3633;
+        color: #ff7b72;
       }
       
       /* Submit Bar */
       .submit-bar {
         position: sticky;
         bottom: 0;
-        background: white;
+        background: #161b22;
         padding: 16px;
         border-radius: 8px;
         margin-top: 24px;
-        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
         display: flex;
         justify-content: space-between;
         align-items: center;
+        border: 1px solid #30363d;
       }
       .selection-count {
         font-size: 16px;
         font-weight: 600;
-        color: #333;
+        color: #c9d1d9;
       }
-      .submit-actions { display: flex; gap: 12px; }
+      .submit-actions { display: flex; gap: 12px; align-items: center; }
       .submit-actions button {
         padding: 12px 24px;
         font-size: 16px;
@@ -282,6 +301,9 @@
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
+      }
+      .submit-actions a {
+        color: #c9d1d9;
       }
       
       /* Modal */
@@ -292,46 +314,62 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0,0,0,0.5);
+        background: rgba(1, 4, 9, 0.8);
         z-index: 1000;
         align-items: center;
         justify-content: center;
       }
       .modal.active { display: flex; }
       .modal-content {
-        background: white;
+        background: #161b22;
         padding: 32px;
         border-radius: 12px;
         max-width: 600px;
         margin: 20px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        border: 1px solid #30363d;
       }
       .modal-title {
         font-size: 24px;
         font-weight: 700;
-        color: #dc3545;
+        color: #ff7b72;
         margin-bottom: 16px;
       }
-      .modal-body { margin-bottom: 24px; line-height: 1.6; }
+      .modal-body { 
+        margin-bottom: 24px; 
+        line-height: 1.6;
+        color: #c9d1d9;
+      }
       .modal-list {
-        background: #f8f9fa;
+        background: #0d1117;
         padding: 16px;
         border-radius: 6px;
         margin: 16px 0;
+        border: 1px solid #21262d;
       }
       .modal-list li {
         margin: 8px 0;
         padding-left: 8px;
+        color: #c9d1d9;
       }
       .modal-confirmation {
         margin-top: 16px;
       }
+      .modal-confirmation label {
+        color: #c9d1d9;
+      }
       .modal-confirmation input {
         padding: 8px;
         width: 100%;
-        border: 2px solid #ddd;
+        border: 2px solid #30363d;
         border-radius: 6px;
         font-size: 14px;
+        background: #0d1117;
+        color: #c9d1d9;
+      }
+      .modal-confirmation input:focus {
+        outline: none;
+        border-color: #58a6ff;
       }
       .modal-actions {
         display: flex;
@@ -343,7 +381,7 @@
   <body>
     <div class="container">
       <h1>🔍 Select Issues to Fix — Run <%= runId %></h1>
-      <div style="margin:6px 0 18px;color:#555;font-size:14px;">
+      <div style="margin:6px 0 18px;color:#8b949e;font-size:14px;">
         Repository: <code><%= run?.repo %></code> • PR: <code>#<%= run?.prNumber %></code> • Findings: <strong><%= (run?.findings||[]).length %></strong>
       </div>
       
@@ -486,7 +524,7 @@
         <div class="submit-bar">
           <div class="selection-count" id="selectionCount">0 issues selected</div>
           <div class="submit-actions">
-            <div id="selectedBreakdown" style="font-size:12px;color:#666;margin-right:12px;display:none;"></div>
+            <div id="selectedBreakdown" style="font-size:12px;color:#8b949e;margin-right:12px;display:none;"></div>
             <a href="/" class="btn-secondary" style="padding: 12px 24px; text-decoration: none; display: inline-block;">Cancel</a>
             <button type="submit" class="btn-success">Fix Selected Issues →</button>
           </div>
@@ -501,7 +539,7 @@
         <div class="modal-body">
           <p>You're about to skip <strong id="skipCount">0</strong> BLOCKING issues that <strong>WILL cause serious problems:</strong></p>
           <ul class="modal-list" id="skipList"></ul>
-          <p style="margin-top: 16px; color: #c00; font-weight: 600;">
+          <p style="margin-top: 16px; color: #ff7b72; font-weight: 600;">
             These issues can compromise security, crash your app, or cause data loss in production.
           </p>
           <div class="modal-confirmation">

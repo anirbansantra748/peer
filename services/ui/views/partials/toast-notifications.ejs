@@ -1,0 +1,234 @@
+<!-- Toast Notification System -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+<style>
+  .toastify {
+    padding: 20px 24px;
+    border-radius: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    max-width: 420px;
+    min-width: 340px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  
+  .toastify.toast-success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%);
+    background-color: #0f172a;
+    border-left: 4px solid #10b981;
+    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3), 0 6px 20px rgba(0,0,0,0.5);
+  }
+  
+  .toastify.toast-info {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%);
+    background-color: #0f172a;
+    border-left: 4px solid #3b82f6;
+    box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3), 0 6px 20px rgba(0,0,0,0.5);
+  }
+  
+  .toastify.toast-warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%);
+    background-color: #0f172a;
+    border-left: 4px solid #f59e0b;
+    box-shadow: 0 10px 40px rgba(245, 158, 11, 0.3), 0 6px 20px rgba(0,0,0,0.5);
+  }
+  
+  .toastify.toast-error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.95) 100%);
+    background-color: #0f172a;
+    border-left: 4px solid #ef4444;
+    box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3), 0 6px 20px rgba(0,0,0,0.5);
+  }
+  
+  .toast-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  
+  .toast-message {
+    opacity: 0.95;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.95);
+    font-size: 13px;
+  }
+  
+  .toast-link {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+  
+  .toast-link:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  
+  /* Close button styling */
+  .toastify .toast-close {
+    opacity: 0.7;
+    font-weight: bold;
+    transition: opacity 0.2s;
+  }
+  
+  .toastify .toast-close:hover {
+    opacity: 1;
+  }
+  
+  /* Animation */
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  .toastify {
+    animation: slideIn 0.3s ease-out;
+  }
+</style>
+
+<script>
+(function() {
+  // Toast notification handler
+  window.showToast = function(title, message, type = 'info', link = null) {
+    const className = `toast-${type}`;
+    
+    // Add icon based on type
+    let icon = '📢';
+    switch(type) {
+      case 'success': icon = '✅'; break;
+      case 'warning': icon = '⚠️'; break;
+      case 'error': icon = '❌'; break;
+      case 'info': icon = '📝'; break;
+    }
+    
+    let html = `
+      <div style="display: flex; gap: 14px; align-items: start;">
+        <div style="font-size: 26px; line-height: 1; margin-top: 2px;">${icon}</div>
+        <div style="flex: 1;">
+          <div class="toast-title">${title}</div>
+          <div class="toast-message">${message}</div>
+          ${link ? `<a href="${link}" class="toast-link">View Details →</a>` : ''}
+        </div>
+      </div>
+    `;
+    
+    const toast = Toastify({
+      text: html,
+      duration: 10000, // 10 seconds
+      close: true,
+      gravity: "top",
+      position: "right",
+      stopOnFocus: true,
+      escapeMarkup: false,
+      className: className,
+      onClick: function() {
+        if (link) {
+          window.location.href = link;
+        }
+      }
+    });
+    
+    toast.showToast();
+    
+    // Play notification sound (optional)
+    try {
+      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiqF0PLYiTcIG2m98OScTgwOUqrk7bFeHAfBh4qFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiqF0PLYiTcIG2m98OScTgwOUqrk7bFeHAfBh4qFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiqF0PLYiTcIG2m98OScTgwOUqrk7bFeHAfBh4qFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiqF0PLYiTcIG2m98OScTgwOUqrk7bFeHAfBh4qFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiqF0PLYiTcIG2m98OScTgwOUqrk7bFeHAfBh4qFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiqF0PLYiTcIG2m98OScTgwOUqrk7bFeHAfBh4qFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiqF0PLYiTcIG2m98OScTgwOUqrk7bFeHAfBh4qFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiqF0PLYiTcIG2m98OScTgwOUqrk7bFeHA==');
+      audio.volume = 0.3;
+      audio.play().catch(() => {}); // Ignore if autoplay blocked
+    } catch (e) {}
+  };
+  
+  // Notification polling - simple, no storage
+  let lastCheckTime = Date.now();
+  const POLL_INTERVAL = 5000; // 5 seconds for faster updates
+  
+  async function fetchNewNotifications() {
+    try {
+      <% if (user) { %>
+      const apiUrl = `/api/notifications/unread?since=${lastCheckTime}`;
+      
+      console.log('[Toast] Fetching notifications since:', new Date(lastCheckTime).toISOString());
+      
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) {
+        console.error('[Toast] API error:', response.status, response.statusText);
+        return;
+      }
+      
+      const data = await response.json();
+      const notifications = data.notifications || [];
+      
+      console.log('[Toast] Fetched notifications:', notifications.length, notifications);
+      
+      // Show new notifications as toasts
+      notifications.forEach(notification => {
+        const createdAt = new Date(notification.createdAt).getTime();
+        if (createdAt > lastCheckTime) {
+          let type = 'info';
+          
+          // Map notification type to toast type
+          switch(notification.type) {
+            case 'auto_merge_complete':
+            case 'fix_complete':
+              type = 'success';
+              break;
+            case 'approval_needed':
+            case 'manual_selection_needed':
+              type = 'warning';
+              break;
+            case 'fix_failed':
+              type = 'error';
+              break;
+            case 'pr_created':
+            default:
+              type = 'info';
+          }
+          
+          console.log('[Toast] Showing notification:', notification.title, type);
+          showToast(notification.title, notification.message, type, notification.link);
+        }
+      });
+      
+      lastCheckTime = Date.now();
+      <% } %>
+    } catch (error) {
+      console.error('[Toast] Failed to fetch notifications:', error);
+    }
+  }
+  
+  // Start polling when page loads
+  if (typeof window !== 'undefined') {
+    console.log('[Toast] Starting notification polling...');
+    console.log('[Toast] User ID:', '<%= user ? user._id : "none" %>');
+    console.log('[Toast] API Base:', 'http://localhost:3001');
+    
+    // Initial fetch after 2 seconds
+    setTimeout(fetchNewNotifications, 2000);
+    
+    // Poll every 5 seconds
+    setInterval(fetchNewNotifications, POLL_INTERVAL);
+  }
+})();
+</script>

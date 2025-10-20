@@ -18,6 +18,10 @@ app.use('/webhook/github-app', githubAppWebhooks);
 const runsRoutes = require('./routes/runs');
 app.use('/api/runs', runsRoutes);
 
+// Notifications API routes
+const notificationsRoutes = require('./routes/notifications');
+app.use('/api/notifications', notificationsRoutes);
+
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/peer')

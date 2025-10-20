@@ -608,6 +608,76 @@ app.post('/installations/:id/settings', requireAuth, async (req, res) => {
   }
 });
 
+// Notification preferences routes
+app.get('/notification-preferences', requireAuth, (req, res) => {
+  res.render('notification-preferences', { 
+    title: 'Notification Preferences',
+    user: req.user
+  });
+});
+
+app.post('/notification-preferences', requireAuth, async (req, res) => {
+  try {
+    const User = require('../../shared/models/User');
+    const { notificationEmail, notifications } = req.body;
+    
+    await User.findByIdAndUpdate(req.user._id, {
+      notificationEmail,
+      notifications
+    });
+    
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('[ui] Error saving notification preferences:', error);
+    res.status(500).json({ ok: false, error: String(error) });
+  }
+});
+
+// Profile settings routes
+app.get('/profile-settings', requireAuth, (req, res) => {
+  res.render('profile-settings', { 
+    title: 'Profile Settings',
+    user: req.user
+  });
+});
+
+app.post('/profile-settings', requireAuth, async (req, res) => {
+  try {
+    const User = require('../../shared/models/User');
+    const { notificationEmail } = req.body;
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(notificationEmail)) {
+      return res.render('profile-settings', { 
+        title: 'Profile Settings',
+        user: req.user,
+        error: 'Please enter a valid email address'
+      });
+    }
+    
+    await User.findByIdAndUpdate(req.user._id, {
+      notificationEmail
+    }, { new: true });
+    
+    // Reload user to show updated data
+    const updatedUser = await User.findById(req.user._id);
+    
+    res.render('profile-settings', { 
+      title: 'Profile Settings',
+      user: updatedUser,
+      success: true
+    });
+  } catch (error) {
+    console.error('[ui] Error saving profile settings:', error);
+    res.render('profile-settings', { 
+      title: 'Profile Settings',
+      user: req.user,
+      error: 'Failed to save settings. Please try again.'
+    });
+  }
+});
+
 // Select page: list findings for a run
 app.get('/runs/:runId/select', requireAuth, async (req, res) => {
   try {
@@ -858,6 +928,60 @@ app.get('/api/user/usage', requireAuth, async (req, res) => {
   } catch (error) {
     logger.error('ui', 'Failed to get user usage', { error: String(error) });
     res.status(500).json({ ok: false, error: 'Failed to fetch usage statistics' });
+  }
+});
+
+// Proxy notification API calls to backend
+app.get('/api/notifications/unread', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const since = req.query.since;
+    
+    const Notification = require('../../shared/models/Notification');
+    
+    const query = { userId, read: false };
+    if (since) {
+      query.createdAt = { $gt: new Date(parseInt(since)) };
+    }
+    
+    const notifications = await Notification.find(query)
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    
+    const totalUnread = await Notification.countDocuments({ userId, read: false });
+    
+    console.log('[ui] Notifications fetched:', {
+      userId: String(userId),
+      since: since ? new Date(parseInt(since)).toISOString() : 'none',
+      returned: notifications.length,
+      totalUnread
+    });
+    
+    res.json({
+      ok: true,
+      notifications,
+      count: totalUnread
+    });
+  } catch (error) {
+    console.error('[ui] Failed to fetch notifications:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+app.post('/api/notifications/read-all', requireAuth, async (req, res) => {
+  try {
+    const Notification = require('../../shared/models/Notification');
+    
+    const result = await Notification.updateMany(
+      { userId: req.user._id, read: false },
+      { $set: { read: true } }
+    );
+    
+    res.json({ ok: true, updated: result.modifiedCount });
+  } catch (error) {
+    console.error('[ui] Failed to mark notifications as read:', error);
+    res.status(500).json({ error: 'Failed to mark notifications as read' });
   }
 });
 

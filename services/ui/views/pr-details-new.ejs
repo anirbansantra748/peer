@@ -345,13 +345,23 @@
   <% } %>
 </div>
 
-<% if (showSelectButton) { %>
-  <div style="margin-top: 24px;">
+<!-- Action Buttons -->
+<div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+  <% if (showSelectButton) { %>
     <a href="/runs/<%= run._id %>/select" class="select-btn">
       🔧 Select Issues to Fix
     </a>
-  </div>
-<% } %>
+  <% } %>
+  
+  <!-- GitHub PR Link Button -->
+  <a href="https://github.com/<%= run.repo %>/pull/<%= run.prNumber %>" 
+     target="_blank"
+     style="padding: 12px 20px; background: #21262d; color: #c9d1d9; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 500; transition: all 0.2s; border: 1px solid #30363d;"
+     onmouseover="this.style.background='#30363d'; this.style.borderColor='#58a6ff';"
+     onmouseout="this.style.background='#21262d'; this.style.borderColor='#30363d';">
+    🔗 View PR on GitHub →
+  </a>
+</div>
 
 <script>
   // Filter functionality

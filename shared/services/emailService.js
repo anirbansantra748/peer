@@ -12,7 +12,7 @@ class EmailService {
     this.enabled = !!(process.env.SMTP_HOST && process.env.SMTP_USER);
     
     if (this.enabled) {
-      this.transporter = nodemailer.createTransporter({
+      this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT || '587', 10),
         secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
@@ -311,7 +311,75 @@ class EmailService {
 
     return await this.send({ to: email, subject, html });
   }
+
+  /**
+   * Send notification email based on notification object
+   */
+  async sendNotificationEmail(user, notification) {
+    const email = this.getUserEmail(user);
+    if (!email) return { sent: false, reason: 'no_email' };
+
+    // Map notification type to specific email method
+    const { type, metadata } = notification;
+    
+    switch(type) {
+      case 'pr_created':
+        return await this.sendPRCreated({
+          user,
+          repo: metadata.repo,
+          prNumber: metadata.prNumber,
+          runId: metadata.runId,
+          issuesFound: metadata.issuesCount
+        });
+      
+      case 'auto_merge_complete':
+        return await this.sendAutoMergeComplete({
+          user,
+          repo: metadata.repo,
+          prNumber: metadata.prNumber,
+          runId: metadata.runId,
+          issuesFixed: metadata.fixedCount,
+          fixPrNumber: metadata.fixPrNumber,
+          fixPrUrl: metadata.fixPrUrl
+        });
+      
+      case 'approval_needed':
+        return await this.sendApprovalNeeded({
+          user,
+          repo: metadata.repo,
+          prNumber: metadata.prNumber,
+          runId: metadata.runId,
+          issuesFixed: metadata.fixedCount,
+          fixPrNumber: metadata.fixPrNumber,
+          fixPrUrl: metadata.fixPrUrl
+        });
+      
+      case 'manual_selection_needed':
+        return await this.sendIssueSelectionNeeded({
+          user,
+          repo: metadata.repo,
+          prNumber: metadata.prNumber,
+          runId: metadata.runId,
+          issuesFound: metadata.issuesCount
+        });
+      
+      default:
+        logger.warn('email', 'Unknown notification type', { type });
+        return { sent: false, reason: 'unknown_type' };
+    }
+  }
 }
 
 // Export singleton instance
-module.exports = new EmailService();
+const instance = new EmailService();
+
+// Debug: Log what we're exporting
+console.log('[EmailService] Exporting instance:', {
+  hasTransporter: !!instance.transporter,
+  enabled: instance.enabled,
+  hasSendMethod: typeof instance.send === 'function',
+  hasSendNotificationEmail: typeof instance.sendNotificationEmail === 'function',
+  from: instance.from
+});
+
+module.exports = instance;

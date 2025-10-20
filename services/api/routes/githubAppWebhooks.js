@@ -377,7 +377,16 @@ router.post('/', verifyGitHubSignature, async (req, res) => {
 
       case 'pull_request':
         // Forward to main PR webhook handler
-        logger.info('githubApp', 'Forwarding PR event to main handler', { event, action: req.body.action });
+        const prAction = req.body.action;
+        logger.info('githubApp', 'Forwarding PR event to main handler', { event, action: prAction });
+        
+        // Only process opened and synchronize actions
+        if (prAction !== 'opened' && prAction !== 'synchronize') {
+          logger.info('githubApp', 'Ignoring PR action', { action: prAction });
+          result = { ok: true, ignored: true, reason: 'action_not_handled' };
+          break;
+        }
+        
         // Re-process through main webhook by calling it internally
         const PRRun = require('../../../shared/models/PRRun');
         const Installation = require('../../../shared/models/Installation');

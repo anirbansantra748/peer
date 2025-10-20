@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Notification Preferences - Peer</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 40px 20px;
+      }
+      .container { max-width: 900px; margin: 0 auto; }
+      
+      h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: #58a6ff;
+        margin-bottom: 8px;
+      }
+      
+      .subtitle {
+        color: #8b949e;
+        font-size: 16px;
+        margin-bottom: 32px;
+      }
+      
+      .card {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 24px;
+      }
+      
+      .card-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #c9d1d9;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .card-description {
+        color: #8b949e;
+        font-size: 14px;
+        margin-bottom: 24px;
+      }
+      
+      .form-group {
+        margin-bottom: 24px;
+      }
+      
+      .form-label {
+        display: block;
+        color: #c9d1d9;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+      
+      .form-input {
+        width: 100%;
+        padding: 8px 12px;
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        color: #c9d1d9;
+        font-size: 14px;
+      }
+      
+      .form-input:focus {
+        outline: none;
+        border-color: #58a6ff;
+      }
+      
+      .notification-grid {
+        display: grid;
+        gap: 16px;
+      }
+      
+      .notification-item {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .notification-info {
+        flex: 1;
+      }
+      
+      .notification-title {
+        color: #c9d1d9;
+        font-weight: 500;
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+      
+      .notification-desc {
+        color: #8b949e;
+        font-size: 13px;
+      }
+      
+      .notification-controls {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+      }
+      
+      .toggle-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .toggle-label {
+        color: #8b949e;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      /* Toggle switch */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+      }
+      
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #21262d;
+        transition: 0.3s;
+        border-radius: 24px;
+        border: 1px solid #30363d;
+      }
+      
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 3px;
+        bottom: 3px;
+        background-color: #8b949e;
+        transition: 0.3s;
+        border-radius: 50%;
+      }
+      
+      input:checked + .slider {
+        background-color: #238636;
+        border-color: #238636;
+      }
+      
+      input:checked + .slider:before {
+        background-color: white;
+        transform: translateX(20px);
+      }
+      
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+      }
+      
+      .btn-primary {
+        background: #238636;
+        color: white;
+      }
+      
+      .btn-primary:hover {
+        background: #2ea043;
+      }
+      
+      .btn-secondary {
+        background: #21262d;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+      }
+      
+      .btn-secondary:hover {
+        background: #30363d;
+      }
+      
+      .actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+      }
+      
+      .success-message {
+        background: #238636;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 24px;
+        display: none;
+      }
+      
+      .success-message.show {
+        display: block;
+      }
+      
+      .icon {
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔔 Notification Preferences</h1>
+      <p class="subtitle">Manage how you receive notifications for PR events</p>
+      
+      <div id="successMessage" class="success-message">
+        ✓ Preferences saved successfully!
+      </div>
+      
+      <form id="preferencesForm" method="post" action="/notification-preferences">
+        <!-- Email Settings -->
+        <div class="card">
+          <div class="card-title">
+            <span class="icon">📧</span>
+            Email Notifications
+          </div>
+          <div class="card-description">
+            Configure your notification email address and which events trigger email notifications
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="notificationEmail">
+              Notification Email Address
+            </label>
+            <input 
+              type="email" 
+              id="notificationEmail" 
+              name="notificationEmail" 
+              class="form-input"
+              value="<%= user.notificationEmail || user.email || '' %>"
+              placeholder="your@email.com"
+            />
+          </div>
+          
+          <div class="notification-grid">
+            <div class="notification-item">
+              <div class="notification-info">
+                <div class="notification-title">PR Created & Analyzed</div>
+                <div class="notification-desc">When a pull request is created and analysis completes</div>
+              </div>
+              <div class="notification-controls">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    name="email_prCreated" 
+                    <%= user.notifications?.email?.prCreated !== false ? 'checked' : '' %>
+                  />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="notification-item">
+              <div class="notification-info">
+                <div class="notification-title">Auto-Merge Complete</div>
+                <div class="notification-desc">When fixes are automatically merged (Mode 0)</div>
+              </div>
+              <div class="notification-controls">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    name="email_autoMergeComplete" 
+                    <%= user.notifications?.email?.autoMergeComplete !== false ? 'checked' : '' %>
+                  />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="notification-item">
+              <div class="notification-info">
+                <div class="notification-title">Approval Needed</div>
+                <div class="notification-desc">When fixes need your approval before merging (Mode 1)</div>
+              </div>
+              <div class="notification-controls">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    name="email_approvalNeeded" 
+                    <%= user.notifications?.email?.approvalNeeded !== false ? 'checked' : '' %>
+                  />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="notification-item">
+              <div class="notification-info">
+                <div class="notification-title">Issue Selection Needed</div>
+                <div class="notification-desc">When you need to manually select issues to fix (Mode 2)</div>
+              </div>
+              <div class="notification-controls">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    name="email_issueSelectionNeeded" 
+                    <%= user.notifications?.email?.issueSelectionNeeded !== false ? 'checked' : '' %>
+                  />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Toast Settings -->
+        <div class="card">
+          <div class="card-title">
+            <span class="icon">💬</span>
+            In-App Toast Notifications
+          </div>
+          <div class="card-description">
+            Control which events show toast notifications in the app
+          </div>
+          
+          <div class="notification-grid">
+            <div class="notification-item">
+              <div class="notification-info">
+                <div class="notification-title">PR Created & Analyzed</div>
+                <div class="notification-desc">When a pull request is created and analysis completes</div>
+              </div>
+              <div class="notification-controls">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    name="toast_prCreated" 
+                    <%= user.notifications?.toast?.prCreated !== false ? 'checked' : '' %>
+                  />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="notification-item">
+              <div class="notification-info">
+                <div class="notification-title">Auto-Merge Complete</div>
+                <div class="notification-desc">When fixes are automatically merged (Mode 0)</div>
+              </div>
+              <div class="notification-controls">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    name="toast_autoMergeComplete" 
+                    <%= user.notifications?.toast?.autoMergeComplete !== false ? 'checked' : '' %>
+                  />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="notification-item">
+              <div class="notification-info">
+                <div class="notification-title">Approval Needed</div>
+                <div class="notification-desc">When fixes need your approval before merging (Mode 1)</div>
+              </div>
+              <div class="notification-controls">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    name="toast_approvalNeeded" 
+                    <%= user.notifications?.toast?.approvalNeeded !== false ? 'checked' : '' %>
+                  />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="notification-item">
+              <div class="notification-info">
+                <div class="notification-title">Issue Selection Needed</div>
+                <div class="notification-desc">When you need to manually select issues to fix (Mode 2)</div>
+              </div>
+              <div class="notification-controls">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    name="toast_issueSelectionNeeded" 
+                    <%= user.notifications?.toast?.issueSelectionNeeded !== false ? 'checked' : '' %>
+                  />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Save Preferences</button>
+          <a href="/" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+    
+    <script>
+      const form = document.getElementById('preferencesForm');
+      const successMessage = document.getElementById('successMessage');
+      
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const data = {
+          notificationEmail: formData.get('notificationEmail'),
+          notifications: {
+            email: {
+              prCreated: formData.get('email_prCreated') === 'on',
+              autoMergeComplete: formData.get('email_autoMergeComplete') === 'on',
+              approvalNeeded: formData.get('email_approvalNeeded') === 'on',
+              issueSelectionNeeded: formData.get('email_issueSelectionNeeded') === 'on',
+            },
+            toast: {
+              prCreated: formData.get('toast_prCreated') === 'on',
+              autoMergeComplete: formData.get('toast_autoMergeComplete') === 'on',
+              approvalNeeded: formData.get('toast_approvalNeeded') === 'on',
+              issueSelectionNeeded: formData.get('toast_issueSelectionNeeded') === 'on',
+            }
+          }
+        };
+        
+        try {
+          const response = await fetch('/notification-preferences', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+          
+          if (response.ok) {
+            successMessage.classList.add('show');
+            setTimeout(() => {
+              successMessage.classList.remove('show');
+            }, 3000);
+          } else {
+            alert('Failed to save preferences. Please try again.');
+          }
+        } catch (error) {
+          console.error('Error saving preferences:', error);
+          alert('Failed to save preferences. Please try again.');
+        }
+      });
+    </script>
+  </body>
+</html>
