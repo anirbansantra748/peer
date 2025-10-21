@@ -23,6 +23,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+// Serve static files (favicon, etc.)
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Connect to MongoDB (for session store and user data)
 mongoose
   .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/peer')
@@ -47,6 +50,7 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'lax', // Allow cross-site requests for login flow
     },
   })
 );
