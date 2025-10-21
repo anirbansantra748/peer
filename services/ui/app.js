@@ -987,5 +987,41 @@ app.post('/api/notifications/read-all', requireAuth, async (req, res) => {
   }
 });
 
+// Error handling middleware (must be last)
+const { 
+  handleSpecificErrors, 
+  globalErrorHandler, 
+  notFoundHandler 
+} = require('../../shared/middleware/errorHandler');
+
+// Handle 404s
+app.use(notFoundHandler);
+
+// Handle specific error types
+app.use(handleSpecificErrors);
+
+// Global error handler
+app.use(globalErrorHandler);
+
+// Unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('ui', 'Unhandled Promise Rejection', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+
+// Uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('ui', 'Uncaught Exception', {
+    error: error.message,
+    stack: error.stack,
+  });
+  // Give time for logs to flush, then exit
+  setTimeout(() => {
+    process.exit(1);
+  }, 1000);
+});
+
 const PORT = process.env.UI_PORT || 3000;
 app.listen(PORT, () => console.log(`[ui] listening on ${PORT}`));

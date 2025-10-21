@@ -196,9 +196,14 @@
               break;
             case 'approval_needed':
             case 'manual_selection_needed':
+            case 'token_limit_exceeded':
               type = 'warning';
               break;
             case 'fix_failed':
+            case 'api_error':
+            case 'github_error':
+            case 'installation_error':
+            case 'error':
               type = 'error';
               break;
             case 'pr_created':

@@ -657,4 +657,40 @@ app.get('/runs/:runId/patches/:patchRequestId/file', async (req, res) => {
   }
 });
 
+// Error handling middleware (must be last)
+const { 
+  handleSpecificErrors, 
+  globalErrorHandler, 
+  notFoundHandler 
+} = require('../../shared/middleware/errorHandler');
+
+// Handle 404s
+app.use(notFoundHandler);
+
+// Handle specific error types
+app.use(handleSpecificErrors);
+
+// Global error handler
+app.use(globalErrorHandler);
+
+// Unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('api', 'Unhandled Promise Rejection', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+
+// Uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('api', 'Uncaught Exception', {
+    error: error.message,
+    stack: error.stack,
+  });
+  // Give time for logs to flush, then exit
+  setTimeout(() => {
+    process.exit(1);
+  }, 1000);
+});
+
 app.listen(PORT, () => logger.info('api', `listening`, { port: PORT }));

@@ -9,7 +9,19 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['pr_created', 'auto_merge_complete', 'approval_needed', 'manual_selection_needed', 'fix_complete', 'fix_failed'],
+    enum: [
+      'pr_created', 
+      'auto_merge_complete', 
+      'approval_needed', 
+      'manual_selection_needed', 
+      'fix_complete', 
+      'fix_failed',
+      'token_limit_exceeded',
+      'api_error',
+      'github_error',
+      'installation_error',
+      'error'
+    ],
     required: true,
   },
   title: {

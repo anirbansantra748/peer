@@ -1,0 +1,46 @@
+<% layout('layout') %>
+
+<div class="container" style="max-width: 800px; margin: 60px auto; padding: 40px 20px; text-align: center;">
+  <div style="font-size: 120px; margin-bottom: 20px;">
+    <%= status === 404 ? '🔍' : '⚠️' %>
+  </div>
+  
+  <h1 style="font-size: 36px; margin-bottom: 16px; color: var(--text-primary);">
+    <%= status === 404 ? 'Page Not Found' : 'Oops! Something went wrong' %>
+  </h1>
+  
+  <p style="font-size: 18px; color: var(--text-secondary); margin-bottom: 32px;">
+    <%= message || 'An unexpected error occurred' %>
+  </p>
+  
+  <% if (process.env.NODE_ENV === 'development' && error) { %>
+    <div style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 24px; margin-bottom: 32px; text-align: left;">
+      <h3 style="margin-bottom: 12px; color: var(--text-primary);">Error Details (Development Only)</h3>
+      <pre style="color: var(--danger-light); overflow-x: auto; font-size: 14px; white-space: pre-wrap; word-break: break-word;"><%= error.stack || error.message %></pre>
+    </div>
+  <% } %>
+  
+  <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+    <a href="/" class="btn-primary" style="display: inline-block; padding: 12px 32px; background: var(--accent-primary); color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">
+      Go to Dashboard
+    </a>
+    <button onclick="window.history.back()" class="btn-secondary" style="padding: 12px 32px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: 8px; font-weight: 500; cursor: pointer;">
+      Go Back
+    </button>
+  </div>
+</div>
+
+<style>
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    transition: all 0.2s;
+  }
+  
+  .btn-secondary:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+    transition: all 0.2s;
+  }
+</style>

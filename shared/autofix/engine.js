@@ -114,6 +114,7 @@ async function buildPreview(patchRequestId) {
   // Check token limit before starting (estimate ~2000 tokens per file)
   if (userContext) {
     const { checkUserTokenLimit } = require('../utils/userTokens');
+    const { notifyTokenLimitExceeded } = require('../utils/errorNotification');
     const estimatedTokens = 2000; // Conservative estimate
     const check = await checkUserTokenLimit(userContext, estimatedTokens);
     if (!check.allowed && !check.useUserKeys) {
@@ -125,6 +126,14 @@ async function buildPreview(patchRequestId) {
         userId: userContext._id,
         reason: check.reason 
       });
+      
+      // Notify user about token limit
+      await notifyTokenLimitExceeded(
+        userContext._id,
+        userContext.tokensUsed || 0,
+        userContext.tokenLimit || 1000
+      );
+      
       throw new Error(check.reason);
     }
     logger.info('autofix', 'User context loaded', { 
