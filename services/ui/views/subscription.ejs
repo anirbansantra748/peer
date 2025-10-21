@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
+<title><%= title %></title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -233,13 +234,13 @@
             <span class="current-badge">CURRENT</span>
           <% } %>
         </div>
-        <div class="plan-price">
-          $29
+<div class="plan-price">
+          ₹<%= proPriceInr %>
           <small>/month</small>
         </div>
         <div class="plan-desc">For professional developers</div>
         <ul class="plan-features">
-          <li>100,000 AI tokens/month</li>
+          <li>10,000 AI tokens</li>
           <li>Unlimited repositories</li>
           <li>Advanced code analysis</li>
           <li>Priority support</li>
@@ -249,10 +250,7 @@
         <% if (user.subscriptionTier === 'pro') { %>
           <button class="btn btn-secondary" disabled>Current Plan</button>
         <% } else { %>
-          <form action="/settings/subscription/checkout" method="POST">
-            <input type="hidden" name="plan" value="pro" />
-            <button class="btn btn-primary" type="submit">Upgrade to Pro</button>
-          </form>
+          <button id="rzp-pro-btn" class="btn btn-primary" type="button">Upgrade to Pro</button>
         <% } %>
       </div>
 
@@ -264,9 +262,9 @@
             <span class="current-badge">CURRENT</span>
           <% } %>
         </div>
-        <div class="plan-price">
-          $99
-          <small>/month</small>
+<div class="plan-price">
+          —
+          <small>custom</small>
         </div>
         <div class="plan-desc">For teams and organizations</div>
         <ul class="plan-features">
@@ -282,10 +280,7 @@
         <% if (user.subscriptionTier === 'enterprise') { %>
           <button class="btn btn-secondary" disabled>Current Plan</button>
         <% } else { %>
-          <form action="/settings/subscription/checkout" method="POST">
-            <input type="hidden" name="plan" value="enterprise" />
-            <button class="btn btn-primary" type="submit">Upgrade to Enterprise</button>
-          </form>
+          <button class="btn btn-secondary" type="button" disabled>Enterprise (Coming Soon)</button>
         <% } %>
       </div>
     </div>
@@ -322,7 +317,69 @@
           We use industry-standard encryption and never store your payment details directly.
         </div>
       </div>
-    </div>
+</div>
   </div>
+
+  <script>
+    (function() {
+      const btn = document.getElementById('rzp-pro-btn');
+      if (!btn) return;
+      const keyId = '<%= razorpayKeyId %>';
+      if (!keyId) {
+        btn.disabled = true;
+        btn.textContent = 'Payment unavailable';
+        return;
+      }
+      btn.addEventListener('click', async () => {
+        try {
+          btn.disabled = true;
+          btn.textContent = 'Processing...';
+          const resp = await fetch('/settings/subscription/razorpay/order', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+          const data = await resp.json();
+          if (!data.ok) throw new Error(data.error || 'Failed to create order');
+          const order = data.order;
+          const options = {
+            key: keyId,
+            amount: order.amount,
+            currency: order.currency,
+            name: 'Peer Pro',
+            description: '10,000 tokens',
+            order_id: order.id,
+            prefill: {
+              name: '<%= user.displayName || user.username %>',
+              email: '<%= user.email || '' %>'
+            },
+            theme: { color: '#238636' },
+            handler: async function (response) {
+              try {
+                const verify = await fetch('/settings/subscription/razorpay/verify', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(response)
+                });
+                const result = await verify.json();
+                if (!result.ok) throw new Error(result.error || 'Verification failed');
+                window.location.href = '/settings/subscription?success=' + encodeURIComponent('Payment successful');
+              } catch (e) {
+                window.location.href = '/settings/subscription?error=' + encodeURIComponent(e.message || 'Verification failed');
+              }
+            },
+            modal: {
+              ondismiss: function() {
+                btn.disabled = false;
+                btn.textContent = 'Upgrade to Pro';
+              }
+            }
+          };
+          const rzp = new Razorpay(options);
+          rzp.open();
+        } catch (e) {
+          btn.disabled = false;
+          btn.textContent = 'Upgrade to Pro';
+          alert(e.message || 'Something went wrong');
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

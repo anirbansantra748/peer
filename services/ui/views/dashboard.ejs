@@ -1,30 +1,62 @@
 <% layout('layout') %>
 
 <style>
+  /* Premium Professional Design */
   .token-usage-card {
-    background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
+    background: linear-gradient(135deg, rgba(22, 27, 34, 0.9) 0%, rgba(13, 17, 23, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(88, 166, 255, 0.1);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .token-usage-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(88, 166, 255, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  
+  .token-usage-card:hover {
+    border-color: rgba(88, 166, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 48px rgba(88, 166, 255, 0.15), 0 0 0 1px rgba(88, 166, 255, 0.1) inset;
   }
   .usage-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
   }
   .usage-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #c9d1d9;
+    font-size: 18px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #c9d1d9 0%, #8b949e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
   }
   .subscription-badge {
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 800;
     text-transform: uppercase;
+    letter-spacing: 0.8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
   .sub-free {
     background: #6e7681;
@@ -39,16 +71,37 @@
     color: #a5d6ff;
   }
   .usage-progress {
-    height: 8px;
-    background: #21262d;
-    border-radius: 4px;
+    height: 10px;
+    background: rgba(33, 38, 45, 0.6);
+    border-radius: 12px;
     overflow: hidden;
-    margin-bottom: 12px;
+    margin-bottom: 20px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
   }
   .usage-progress-fill {
     height: 100%;
-    background: #238636;
-    transition: width 0.3s ease, background 0.3s ease;
+    background: linear-gradient(90deg, #238636 0%, #2ea043 100%);
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+    box-shadow: 0 0 12px rgba(35, 134, 54, 0.5);
+    position: relative;
+  }
+  
+  .usage-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 2s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
   .usage-stats {
     display: grid;
@@ -86,72 +139,121 @@
   
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-    margin-bottom: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
   }
   .stat-card {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    padding: 20px;
-    transition: border-color 0.2s, transform 0.2s;
+    background: linear-gradient(135deg, rgba(22, 27, 34, 0.8) 0%, rgba(13, 17, 23, 0.9) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(88, 166, 255, 0.1);
+    border-radius: 16px;
+    padding: 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   }
+  
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #58a6ff 0%, #1f6feb 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .stat-card:hover::before {
+    opacity: 1;
+  }
+  
   .stat-card:hover { 
-    border-color: #58a6ff;
+    border-color: rgba(88, 166, 255, 0.4);
+    box-shadow: 0 8px 40px rgba(88, 166, 255, 0.2), 0 0 0 1px rgba(88, 166, 255, 0.1) inset;
   }
   .stat-card.clickable {
     cursor: pointer;
   }
   .stat-card.clickable:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px);
   }
   .stat-label {
     color: #8b949e;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .stat-value {
-    font-size: 32px;
-    font-weight: 700;
+    font-size: 42px;
+    font-weight: 900;
     color: #c9d1d9;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
+    letter-spacing: -0.03em;
+    line-height: 1;
   }
   .stat-desc {
-    font-size: 12px;
+    font-size: 13px;
     color: #6e7681;
+    line-height: 1.5;
   }
   
   .section {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    padding: 24px;
-    margin-bottom: 20px;
+    background: linear-gradient(135deg, rgba(22, 27, 34, 0.8) 0%, rgba(13, 17, 23, 0.9) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(88, 166, 255, 0.1);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
   }
+  
+  .section:hover {
+    border-color: rgba(88, 166, 255, 0.2);
+  }
+  
   .section-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #c9d1d9;
-    margin-bottom: 20px;
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #c9d1d9 0%, #8b949e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 28px;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   
   .activity-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 16px 12px;
-    border-bottom: 1px solid #21262d;
-    transition: background 0.2s;
+    gap: 16px;
+    padding: 20px 16px;
+    border-bottom: 1px solid rgba(33, 38, 45, 0.5);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     text-decoration: none;
     color: inherit;
+    border-radius: 12px;
+    margin-bottom: 4px;
   }
   .activity-item:last-child { border-bottom: none; }
-  .activity-item:hover { background: #0d1117; }
+  .activity-item:hover { 
+    background: rgba(88, 166, 255, 0.05);
+    transform: translateX(4px);
+    border-color: rgba(88, 166, 255, 0.2);
+  }
   .activity-details {
     display: flex;
     flex-direction: column;
@@ -170,10 +272,12 @@
     gap: 4px;
   }
   .badge {
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
   .badge-success { background: #1a7f37; color: #aff5b4; }
   .badge-warning { background: #9a6700; color: #f0e6b9; }
@@ -184,20 +288,40 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    font-size: 14px;
+    font-size: 16px;
     flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.1);
   }
-  .status-queued { background: #848d97; }
-  .status-running { background: #1f6feb; animation: pulse 2s infinite; }
-  .status-completed { background: #238636; }
-  .status-failed { background: #da3633; }
+  .status-queued { 
+    background: linear-gradient(135deg, #848d97 0%, #6e7681 100%);
+  }
+  .status-running { 
+    background: linear-gradient(135deg, #1f6feb 0%, #0969da 100%);
+    animation: pulse-glow 2s infinite;
+    box-shadow: 0 0 20px rgba(31, 111, 235, 0.6);
+  }
+  .status-completed { 
+    background: linear-gradient(135deg, #238636 0%, #1a7f37 100%);
+    box-shadow: 0 0 16px rgba(35, 134, 54, 0.4);
+  }
+  .status-failed { 
+    background: linear-gradient(135deg, #da3633 0%, #a40e26 100%);
+    box-shadow: 0 0 16px rgba(218, 54, 51, 0.4);
+  }
   
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+  @keyframes pulse-glow {
+    0%, 100% { 
+      opacity: 1;
+      box-shadow: 0 0 20px rgba(31, 111, 235, 0.6);
+    }
+    50% { 
+      opacity: 0.8;
+      box-shadow: 0 0 30px rgba(31, 111, 235, 0.9);
+    }
   }
   
   .activity-content {
@@ -215,28 +339,6 @@
     color: #6e7681;
   }
   
-  .quick-links {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-  }
-  .quick-link {
-    display: block;
-    padding: 14px 18px;
-    background: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    color: #c9d1d9;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-  .quick-link:hover {
-    border-color: #58a6ff;
-    background: #161b22;
-  }
-  
   .empty-state {
     text-align: center;
     padding: 40px 20px;
@@ -245,10 +347,13 @@
   .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
 </style>
 
-<!-- Page Header -->
-<div style="margin-bottom: 30px;">
-  <h1 style="font-size: 28px; font-weight: 600; color: #58a6ff; margin-bottom: 8px;">Dashboard</h1>
-  <p style="color: #8b949e; font-size: 14px;">Monitor your code review activities and AI-powered fixes</p>
+<!-- Premium Page Header -->
+<div style="margin-bottom: 48px; position: relative;">
+  <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+    <div style="width: 4px; height: 48px; background: linear-gradient(180deg, #58a6ff 0%, #1f6feb 100%); border-radius: 4px; box-shadow: 0 0 20px rgba(88, 166, 255, 0.5);"></div>
+    <h1 style="font-size: 36px; font-weight: 900; background: linear-gradient(135deg, #58a6ff 0%, #79c0ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.03em; margin: 0;">Dashboard</h1>
+  </div>
+  <p style="color: #8b949e; font-size: 15px; margin-left: 20px; line-height: 1.6;">Monitor your code review activities and AI-powered fixes in real-time</p>
 </div>
 
 <!-- Token Usage Widget -->
@@ -285,28 +390,32 @@
   </div>
 </div>
 
-<!-- Stats Summary -->
-<div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-  <div>
-    <div style="font-size: 13px; color: #8b949e; margin-bottom: 4px;">⏱️ Last Updated</div>
-    <div style="font-size: 14px; color: #c9d1d9; font-weight: 500;"><%= new Date().toLocaleString() %></div>
+<!-- Premium Stats Summary Banner -->
+<div style="background: linear-gradient(135deg, rgba(22, 27, 34, 0.8) 0%, rgba(13, 17, 23, 0.9) 100%); backdrop-filter: blur(20px); border: 1px solid rgba(88, 166, 255, 0.15); border-radius: 20px; padding: 32px 36px; margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03) inset; position: relative; overflow: hidden;">
+  <div style="position: absolute; top: -50%; right: -20%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(88, 166, 255, 0.08) 0%, transparent 70%); pointer-events: none;"></div>
+  <div style="position: relative; z-index: 1;">
+    <div style="font-size: 12px; color: #8b949e; margin-bottom: 6px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">⏱️ Last Updated</div>
+    <div style="font-size: 15px; color: #c9d1d9; font-weight: 600;"><%= new Date().toLocaleString() %></div>
   </div>
-  <div style="display: flex; gap: 24px;">
-    <div>
-      <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Total PRs</div>
-      <div style="font-size: 24px; font-weight: 700; color: #c9d1d9;"><%= stats.totalRuns %></div>
+  <div style="display: flex; gap: 40px; position: relative; z-index: 1;">
+    <div style="text-align: center;">
+      <div style="font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px;">Total PRs</div>
+      <div style="font-size: 32px; font-weight: 900; background: linear-gradient(135deg, #c9d1d9 0%, #8b949e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em;"><%= stats.totalRuns %></div>
     </div>
-    <div>
-      <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Issues Found</div>
-      <div style="font-size: 24px; font-weight: 700; color: #f0883e;"><%= stats.totalIssues %></div>
+    <div style="width: 1px; background: linear-gradient(180deg, transparent 0%, rgba(88, 166, 255, 0.2) 50%, transparent 100%);"></div>
+    <div style="text-align: center;">
+      <div style="font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px;">Issues Found</div>
+      <div style="font-size: 32px; font-weight: 900; background: linear-gradient(135deg, #f0883e 0%, #d97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em;"><%= stats.totalIssues %></div>
     </div>
-    <div>
-      <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Issues Fixed</div>
-      <div style="font-size: 24px; font-weight: 700; color: #3fb950;"><%= stats.fixedIssues %></div>
+    <div style="width: 1px; background: linear-gradient(180deg, transparent 0%, rgba(88, 166, 255, 0.2) 50%, transparent 100%);"></div>
+    <div style="text-align: center;">
+      <div style="font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px;">Issues Fixed</div>
+      <div style="font-size: 32px; font-weight: 900; background: linear-gradient(135deg, #3fb950 0%, #2ea043 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em;"><%= stats.fixedIssues %></div>
     </div>
-    <div>
-      <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Fix Rate</div>
-      <div style="font-size: 24px; font-weight: 700; color: #58a6ff;"><%= stats.totalIssues > 0 ? Math.round(stats.fixedIssues / stats.totalIssues * 100) : 0 %>%</div>
+    <div style="width: 1px; background: linear-gradient(180deg, transparent 0%, rgba(88, 166, 255, 0.2) 50%, transparent 100%);"></div>
+    <div style="text-align: center;">
+      <div style="font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px;">Fix Rate</div>
+      <div style="font-size: 32px; font-weight: 900; background: linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em;"><%= stats.totalIssues > 0 ? Math.round(stats.fixedIssues / stats.totalIssues * 100) : 0 %>%</div>
     </div>
   </div>
 </div>
@@ -462,17 +571,6 @@
   <% } %>
 </div>
 
-<!-- Quick Links -->
-<div class="section">
-  <div class="section-title">⚡ Quick Actions</div>
-  <div class="quick-links">
-    <a href="/installations" class="quick-link">📦 Manage Installations</a>
-    <a href="/audit" class="quick-link">📋 View All Audit Logs</a>
-    <a href="/run" class="quick-link">▶️ Trigger Manual Run</a>
-    <a href="/settings/api-keys" class="quick-link">🔑 API Keys</a>
-    <a href="/settings/subscription" class="quick-link">💎 Subscription</a>
-  </div>
-</div>
 
 <script>
   // Fetch and display user token usage

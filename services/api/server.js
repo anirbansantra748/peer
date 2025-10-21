@@ -8,6 +8,36 @@ const logger = require('../../shared/utils/prettyLogger');
 const llmCache = require('../../shared/cache/llmCache');
 
 const app = express();
+
+// Razorpay webhook must use raw body for signature verification; register BEFORE json parser
+app.post('/webhook/razorpay', express.raw({ type: '*/*' }), async (req, res) => {
+  try {
+    const signature = req.header('x-razorpay-signature') || req.header('X-Razorpay-Signature');
+    const body = req.body instanceof Buffer ? req.body.toString('utf8') : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+    const { verifyWebhookSignature, processSuccessfulPayment } = require('../../shared/services/razorpayService');
+
+    if (!signature) return res.status(400).send('Missing signature');
+    const valid = verifyWebhookSignature(body, signature);
+    if (!valid) return res.status(400).send('Invalid signature');
+
+    const event = JSON.parse(body);
+    const eventType = event.event;
+
+    if (eventType === 'payment.captured' || eventType === 'payment.authorized') {
+      const payment = event.payload?.payment?.entity;
+      if (payment) {
+        await processSuccessfulPayment(payment);
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    logger.error('api', 'Razorpay webhook error', { error: String(error) });
+    res.status(500).json({ ok: false });
+  }
+});
+
+// JSON parser for regular routes (must be after webhook raw route)
 app.use(express.json({ limit: '2mb' }));
 
 // GitHub App webhook routes

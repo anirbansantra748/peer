@@ -861,47 +861,58 @@ app.delete('/settings/api-keys/:provider', requireAuth, async (req, res) => {
 
 // Subscription Management
 app.get('/settings/subscription', requireAuth, (req, res) => {
-  res.render('subscription', { title: 'Subscription', user: req.user });
+  res.render('subscription', { 
+    title: 'Subscription', 
+    user: req.user,
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
+    proPriceInr: 800, // Production price
+  });
 });
 
-app.post('/settings/subscription/checkout', requireAuth, async (req, res) => {
+// Razorpay: create order for Pro purchase
+app.post('/settings/subscription/razorpay/order', requireAuth, async (req, res) => {
   try {
-    const { plan } = req.body;
-    
-    // Validate plan
-    if (!['free', 'pro', 'enterprise'].includes(plan)) {
-      return res.redirect('/settings/subscription?error=Invalid+plan');
-    }
-    
-    // Dummy payment - just upgrade the user
-    req.user.subscriptionTier = plan;
-    
-    // Set token limits
-    if (plan === 'free') {
-      req.user.tokenLimit = 1000;
-    } else if (plan === 'pro') {
-      req.user.tokenLimit = 100000;
-    } else if (plan === 'enterprise') {
-      req.user.tokenLimit = -1; // Unlimited
-    }
-    
-    // Reset token usage on upgrade
-    req.user.tokensUsed = 0;
-    req.user.subscriptionStatus = 'active';
-    req.user.subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-    
-    await req.user.save();
-    
-    logger.info('ui', 'Subscription upgraded', { 
-      userId: req.user._id, 
-      plan,
-      tokenLimit: req.user.tokenLimit 
-    });
-    
-    res.redirect('/settings/subscription?success=Subscription+upgraded+successfully');
+    const { createProOrder } = require('../../shared/services/razorpayService');
+    const order = await createProOrder(req.user, 800); // Production price
+    res.json({ ok: true, order });
   } catch (error) {
-    logger.error('ui', 'Failed to upgrade subscription', { error: String(error) });
-    res.redirect('/settings/subscription?error=Failed+to+upgrade');
+    logger.error('ui', 'Failed to create Razorpay order', { 
+      error: error.message || String(error),
+      stack: error.stack 
+    });
+    res.status(500).json({ 
+      ok: false, 
+      error: error.message || 'Failed to create order' 
+    });
+  }
+});
+
+// Razorpay: verify payment signature and upgrade user immediately
+app.post('/settings/subscription/razorpay/verify', requireAuth, async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+    const { verifyPaymentSignature, fetchPayment, processSuccessfulPayment } = require('../../shared/services/razorpayService');
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ ok: false, error: 'Missing payment verification fields' });
+    }
+
+    const valid = verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+    if (!valid) {
+      return res.status(400).json({ ok: false, error: 'Invalid signature' });
+    }
+
+    const payment = await fetchPayment(razorpay_payment_id);
+    if (payment.status !== 'captured' && payment.status !== 'authorized') {
+      return res.status(400).json({ ok: false, error: `Unexpected payment status: ${payment.status}` });
+    }
+
+    await processSuccessfulPayment(payment);
+
+    res.json({ ok: true });
+  } catch (error) {
+    logger.error('ui', 'Payment verification failed', { error: String(error) });
+    res.status(500).json({ ok: false, error: 'Payment verification failed' });
   }
 });
 

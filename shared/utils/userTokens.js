@@ -14,6 +14,8 @@ async function checkUserTokenLimit(user, estimatedTokens = 0) {
 
   const tokensUsed = user.tokensUsed || 0;
   const tokenLimit = user.tokenLimit || 1000;
+  const purchasedTokens = user.purchasedTokens || 0;
+  const totalAvailable = tokenLimit + purchasedTokens;
 
   // Unlimited tokens (Enterprise plan)
   if (tokenLimit === -1) {
@@ -25,14 +27,14 @@ async function checkUserTokenLimit(user, estimatedTokens = 0) {
     return { allowed: true, reason: 'Using own API keys', useUserKeys: true };
   }
 
-  // Check if within limit
-  if (tokensUsed + estimatedTokens <= tokenLimit) {
-    return { allowed: true, remaining: tokenLimit - tokensUsed };
+  // Check if within total available tokens (free + purchased)
+  if (tokensUsed + estimatedTokens <= totalAvailable) {
+    return { allowed: true, remaining: totalAvailable - tokensUsed };
   }
 
   return { 
     allowed: false, 
-    reason: `Token limit exceeded (${tokensUsed}/${tokenLimit})`,
+    reason: `Token limit exceeded (${tokensUsed}/${totalAvailable})`,
     needsUpgrade: true
   };
 }
@@ -105,19 +107,27 @@ async function getUserTokenStats(userId) {
 
     const tokensUsed = user.tokensUsed || 0;
     const tokenLimit = user.tokenLimit || 1000;
+    const purchasedTokens = user.purchasedTokens || 0;
     const hasOwnKeys = !!(user.apiKeys?.groq || user.apiKeys?.gemini);
+    
+    // Total available = free tier limit + purchased tokens
+    const totalAvailable = tokenLimit + purchasedTokens;
+    const remaining = Math.max(0, totalAvailable - tokensUsed);
     
     // Calculate percentage
     let percentage = 0;
-    if (tokenLimit > 0) {
-      percentage = Math.min(100, Math.round((tokensUsed / tokenLimit) * 100));
+    if (tokenLimit === -1) {
+      percentage = 0; // Unlimited
+    } else if (totalAvailable > 0) {
+      percentage = Math.min(100, Math.round((tokensUsed / totalAvailable) * 100));
     }
 
     return {
       tokensUsed,
-      tokenLimit,
+      tokenLimit: totalAvailable, // Show total available
+      purchasedTokens,
       percentage,
-      remaining: tokenLimit === -1 ? 'Unlimited' : Math.max(0, tokenLimit - tokensUsed),
+      remaining: tokenLimit === -1 ? 'Unlimited' : remaining,
       subscriptionTier: user.subscriptionTier || 'free',
       hasOwnKeys,
       unlimited: tokenLimit === -1,

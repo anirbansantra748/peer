@@ -46,7 +46,20 @@ const userSchema = new mongoose.Schema({
   },
   tokenLimit: {
     type: Number,
-    default: 1000, // Free tier: 1000 tokens
+    default: 1000, // Free tier: 1000 tokens/month
+  },
+  // Monthly token reset date (for free tier)
+  tokenResetDate: {
+    type: Date,
+    default: function() {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth() + 1, 1); // First day of next month
+    },
+  },
+  // Purchased token credits (Pro tier - doesn't expire)
+  purchasedTokens: {
+    type: Number,
+    default: 0,
   },
   // User's own API keys (encrypted)
   apiKeys: {
