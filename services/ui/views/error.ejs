@@ -1,46 +1,551 @@
 <% layout('layout') %>
 
-<div class="container" style="max-width: 800px; margin: 60px auto; padding: 40px 20px; text-align: center;">
-  <div style="font-size: 120px; margin-bottom: 20px;">
-    <%= status === 404 ? '🔍' : '⚠️' %>
-  </div>
+<% if (status === 404) { %>
+<!-- Premium 404 Page with Animation -->
+<div class="error-404-container">
+  <!-- Floating particles background -->
+  <div class="particles" id="particles"></div>
   
-  <h1 style="font-size: 36px; margin-bottom: 16px; color: var(--text-primary);">
-    <%= status === 404 ? 'Page Not Found' : 'Oops! Something went wrong' %>
-  </h1>
-  
-  <p style="font-size: 18px; color: var(--text-secondary); margin-bottom: 32px;">
-    <%= message || 'An unexpected error occurred' %>
-  </p>
-  
-  <% if (process.env.NODE_ENV === 'development' && error) { %>
-    <div style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 24px; margin-bottom: 32px; text-align: left;">
-      <h3 style="margin-bottom: 12px; color: var(--text-primary);">Error Details (Development Only)</h3>
-      <pre style="color: var(--danger-light); overflow-x: auto; font-size: 14px; white-space: pre-wrap; word-break: break-word;"><%= error.stack || error.message %></pre>
+  <!-- Animated 404 -->
+  <div class="error-404-content">
+    <div class="glitch-wrapper">
+      <div class="glitch" data-text="404">404</div>
     </div>
-  <% } %>
-  
-  <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-    <a href="/" class="btn-primary" style="display: inline-block; padding: 12px 32px; background: var(--accent-primary); color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">
-      Go to Dashboard
-    </a>
-    <button onclick="window.history.back()" class="btn-secondary" style="padding: 12px 32px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: 8px; font-weight: 500; cursor: pointer;">
-      Go Back
-    </button>
+    
+    <!-- Animated robot character -->
+    <div class="robot">
+      <div class="robot-head">
+        <div class="robot-eyes">
+          <div class="eye left"></div>
+          <div class="eye right"></div>
+        </div>
+        <div class="antenna"></div>
+      </div>
+      <div class="robot-body">
+        <div class="panel"></div>
+      </div>
+    </div>
+    
+    <h1 class="error-title">Page Not Found</h1>
+    <p class="error-subtitle">The page you're looking for has wandered off into the digital void...</p>
+    
+    <!-- Code lines animation -->
+    <div class="code-lines">
+      <div class="code-line"><span class="code-keyword">if</span> (<span class="code-variable">page</span> === <span class="code-string">"found"</span>) {</div>
+      <div class="code-line">  <span class="code-function">redirect</span>(<span class="code-string">"/dashboard"</span>);</div>
+      <div class="code-line">} <span class="code-keyword">else</span> {</div>
+      <div class="code-line">  <span class="code-comment">// You are here 👇</span></div>
+      <div class="code-line">  <span class="code-function">show404</span>();</div>
+      <div class="code-line">}</div>
+    </div>
+    
+    <div class="error-actions">
+      <a href="/" class="btn-404 btn-primary-404">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 2L3 7V17H8V12H12V17H17V7L10 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Go Home
+      </a>
+      <button onclick="window.history.back()" class="btn-404 btn-secondary-404">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 4L2 10L8 16M2 10H18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Go Back
+      </button>
+    </div>
   </div>
 </div>
 
 <style>
-  .btn-primary:hover {
-    background: var(--accent-hover);
-    transform: translateY(-2px);
-    transition: all 0.2s;
+  .error-404-container {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, #0a0e1a 100%);
   }
   
-  .btn-secondary:hover {
+  /* Floating particles */
+  .particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+  }
+  
+  .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: float 20s infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 0.3; }
+    90% { opacity: 0.3; }
+    100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+  }
+  
+  /* Main content */
+  .error-404-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 40px 20px;
+    max-width: 800px;
+  }
+  
+  /* Glitch effect 404 */
+  .glitch-wrapper {
+    margin-bottom: 40px;
+  }
+  
+  .glitch {
+    font-size: 140px;
+    font-weight: 900;
+    color: var(--accent-primary);
+    position: relative;
+    animation: glitch-skew 1s infinite;
+    text-shadow: 
+      2px 2px 0 rgba(255, 0, 0, 0.7),
+      -2px -2px 0 rgba(0, 255, 255, 0.7);
+    line-height: 1;
+    letter-spacing: -0.05em;
+  }
+  
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .glitch::before {
+    animation: glitch-anim 2s infinite;
+    clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+    color: rgba(255, 0, 0, 0.8);
+    text-shadow: none;
+  }
+  
+  .glitch::after {
+    animation: glitch-anim 3s infinite reverse;
+    clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+    color: rgba(0, 255, 255, 0.8);
+    text-shadow: none;
+  }
+  
+  @keyframes glitch-anim {
+    0% { transform: translate(0); }
+    20% { transform: translate(-3px, 3px); }
+    40% { transform: translate(-3px, -3px); }
+    60% { transform: translate(3px, 3px); }
+    80% { transform: translate(3px, -3px); }
+    100% { transform: translate(0); }
+  }
+  
+  @keyframes glitch-skew {
+    0% { transform: skew(0deg); }
+    10% { transform: skew(-2deg); }
+    20% { transform: skew(0deg); }
+    30% { transform: skew(2deg); }
+    40% { transform: skew(0deg); }
+    100% { transform: skew(0deg); }
+  }
+  
+  /* Animated Robot */
+  .robot {
+    display: inline-block;
+    margin: 30px auto;
+    animation: robot-bounce 2s ease-in-out infinite;
+  }
+  
+  .robot-head {
+    position: relative;
+    width: 80px;
+    height: 60px;
+    background: linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%);
+    border-radius: 10px;
+    margin: 0 auto 5px;
+    box-shadow: 0 5px 20px rgba(88, 166, 255, 0.3);
+  }
+  
+  .antenna {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 15px;
+    background: var(--accent-primary);
+  }
+  
+  .antenna::after {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    animation: antenna-blink 1s infinite;
+  }
+  
+  @keyframes antenna-blink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.3; }
+  }
+  
+  .robot-eyes {
+    display: flex;
+    justify-content: space-around;
+    padding: 18px 15px 0;
+  }
+  
+  .eye {
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    position: relative;
+    animation: eye-blink 3s infinite;
+  }
+  
+  .eye::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: #0a0e1a;
+    border-radius: 50%;
+    animation: eye-look 4s infinite;
+  }
+  
+  @keyframes eye-blink {
+    0%, 96%, 100% { transform: scaleY(1); }
+    98% { transform: scaleY(0.1); }
+  }
+  
+  @keyframes eye-look {
+    0%, 100% { transform: translate(-50%, -50%); }
+    25% { transform: translate(-70%, -50%); }
+    50% { transform: translate(-50%, -50%); }
+    75% { transform: translate(-30%, -50%); }
+  }
+  
+  .robot-body {
+    width: 90px;
+    height: 70px;
+    background: linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%);
+    border-radius: 10px 10px 15px 15px;
+    margin: 0 auto;
+    box-shadow: 0 5px 20px rgba(88, 166, 255, 0.3);
+    position: relative;
+  }
+  
+  .panel {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .panel::before,
+  .panel::after {
+    content: '';
+    position: absolute;
+    width: 30%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 2px;
+  }
+  
+  .panel::before {
+    top: 8px;
+    left: 10%;
+  }
+  
+  .panel::after {
+    top: 16px;
+    left: 10%;
+    width: 60%;
+  }
+  
+  @keyframes robot-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  /* Text */
+  .error-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 30px 0 16px;
+    animation: fade-in 1s ease-out;
+  }
+  
+  .error-subtitle {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+    animation: fade-in 1.2s ease-out;
+  }
+  
+  /* Code lines */
+  .code-lines {
+    background: rgba(22, 27, 34, 0.8);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 40px auto;
+    max-width: 500px;
+    text-align: left;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.8;
+    animation: fade-in 1.4s ease-out;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  
+  .code-line {
+    opacity: 0;
+    animation: code-line-appear 0.5s ease-out forwards;
+  }
+  
+  .code-line:nth-child(1) { animation-delay: 0.2s; }
+  .code-line:nth-child(2) { animation-delay: 0.4s; }
+  .code-line:nth-child(3) { animation-delay: 0.6s; }
+  .code-line:nth-child(4) { animation-delay: 0.8s; }
+  .code-line:nth-child(5) { animation-delay: 1s; }
+  .code-line:nth-child(6) { animation-delay: 1.2s; }
+  
+  @keyframes code-line-appear {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  .code-keyword { color: #ff7b72; }
+  .code-variable { color: #79c0ff; }
+  .code-string { color: #a5d6ff; }
+  .code-function { color: #d2a8ff; }
+  .code-comment { color: #8b949e; }
+  
+  /* Buttons */
+  .error-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 40px;
+    animation: fade-in 1.6s ease-out;
+  }
+  
+  .btn-404 {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    text-decoration: none;
+  }
+  
+  .btn-primary-404 {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, #0969da 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(88, 166, 255, 0.4);
+  }
+  
+  .btn-primary-404:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 30px rgba(88, 166, 255, 0.6);
+  }
+  
+  .btn-secondary-404 {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 2px solid var(--border-primary);
+  }
+  
+  .btn-secondary-404:hover {
     background: var(--bg-primary);
     border-color: var(--accent-primary);
-    transform: translateY(-2px);
-    transition: all 0.2s;
+    transform: translateY(-3px);
+  }
+  
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .glitch {
+      font-size: 100px;
+    }
+    
+    .error-title {
+      font-size: 28px;
+    }
+    
+    .error-subtitle {
+      font-size: 16px;
+    }
+    
+    .code-lines {
+      font-size: 12px;
+      padding: 16px;
+    }
   }
 </style>
+
+<script>
+  // Create floating particles
+  (function() {
+    const particlesContainer = document.getElementById('particles');
+    const particleCount = 50;
+    
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.animationDelay = Math.random() * 20 + 's';
+      particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+      particlesContainer.appendChild(particle);
+    }
+  })();
+</script>
+
+<% } else { %>
+<!-- Generic Error Page -->
+<div class="error-generic-container">
+  <div class="error-generic-content">
+    <div class="error-icon">⚠️</div>
+    <h1 class="error-generic-title">Oops! Something went wrong</h1>
+    <p class="error-generic-subtitle"><%= message || 'An unexpected error occurred' %></p>
+    
+    <% if (process.env.NODE_ENV === 'development' && error) { %>
+    <div class="error-details">
+      <h3>Error Details (Development Only)</h3>
+      <pre><%= error.stack || error.message %></pre>
+    </div>
+    <% } %>
+    
+    <div class="error-actions">
+      <a href="/" class="btn-404 btn-primary-404">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 2L3 7V17H8V12H12V17H17V7L10 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Go Home
+      </a>
+      <button onclick="window.history.back()" class="btn-404 btn-secondary-404">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 4L2 10L8 16M2 10H18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Go Back
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .error-generic-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+  }
+  
+  .error-generic-content {
+    text-align: center;
+    padding: 40px 20px;
+    max-width: 800px;
+  }
+  
+  .error-icon {
+    font-size: 100px;
+    margin-bottom: 24px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  
+  .error-generic-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+  
+  .error-generic-subtitle {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+  }
+  
+  .error-details {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 32px auto;
+    text-align: left;
+    max-width: 700px;
+  }
+  
+  .error-details h3 {
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    font-size: 16px;
+  }
+  
+  .error-details pre {
+    color: var(--danger-light);
+    overflow-x: auto;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+  }
+</style>
+<% } %>
