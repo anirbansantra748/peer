@@ -7,7 +7,7 @@ const { Octokit } = require('@octokit/rest');
 class GitHubAppService {
   constructor() {
     this.appId = process.env.GITHUB_APP_ID;
-    this.privateKey = process.env.GITHUB_PRIVATE_KEY;
+    this.privateKey = process.env.GITHUB_APP_PRIVATE_KEY || process.env.GITHUB_PRIVATE_KEY;
     this.clientId = process.env.GITHUB_APP_CLIENT_ID;
     this.clientSecret = process.env.GITHUB_APP_CLIENT_SECRET;
     
