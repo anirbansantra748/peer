@@ -183,10 +183,15 @@ app.get('/', requireAuth, async (req, res) => {
     // Get stats for user's installations only
     const totalRuns = await PRRun.countDocuments(userFilter);
     const completedRuns = await PRRun.countDocuments({ ...userFilter, status: 'completed' });
-    // Count total repositories across all user installations
-    const totalConnectedRepos = userInstallations.reduce((sum, inst) => {
-      return sum + (inst.repositories ? inst.repositories.length : 0);
-    }, 0);
+    
+    // Count UNIQUE repositories across all user installations (deduplicate by repo ID)
+    const uniqueRepoIds = new Set();
+    userInstallations.forEach(inst => {
+      (inst.repositories || []).forEach(repo => {
+        uniqueRepoIds.add(repo.id);
+      });
+    });
+    const totalConnectedRepos = uniqueRepoIds.size;
     
     // Calculate total issues found and fixed for user's data
     const statsAgg = await PRRun.aggregate([
@@ -629,6 +634,35 @@ app.post('/installations/:id/settings', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('[ui] Error saving installation settings:', error);
     res.status(500).send('Failed to save settings');
+  }
+});
+
+app.post('/installations/:id/delete', requireAuth, async (req, res) => {
+  try {
+    const installation = await Installation.findById(req.params.id);
+    if (!installation) {
+      return res.status(404).json({ ok: false, error: 'Installation not found' });
+    }
+    
+    // Verify user owns this installation
+    if (installation.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ ok: false, error: 'Not authorized' });
+    }
+    
+    // Soft delete - mark as deleted
+    installation.status = 'deleted';
+    installation.deletedAt = new Date();
+    await installation.save();
+    
+    logger.info('ui', 'Installation deleted', { 
+      installationId: installation._id,
+      userId: req.user._id 
+    });
+    
+    res.json({ ok: true });
+  } catch (error) {
+    logger.error('ui', 'Failed to delete installation', { error: String(error) });
+    res.status(500).json({ ok: false, error: 'Failed to delete installation' });
   }
 });
 
