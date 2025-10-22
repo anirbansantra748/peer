@@ -548,11 +548,27 @@ app.get('/audits', requireAuth, async (req, res) => {
 // Installation routes
 app.get('/installations', requireAuth, async (req, res) => {
   try {
+    // Auto-link any unlinked installations for this GitHub username
+    const User = require('../../shared/models/User');
+    const unlinkedInstallations = await Installation.find({
+      accountLogin: req.user.username,
+      userId: { $exists: false }
+    });
+    
+    if (unlinkedInstallations.length > 0) {
+      logger.info('ui', `Auto-linking ${unlinkedInstallations.length} installations to user ${req.user.username}`);
+      for (const installation of unlinkedInstallations) {
+        installation.userId = req.user._id;
+        await installation.save();
+      }
+    }
+    
     // Get ONLY this user's installations
     const installations = await Installation.find({ 
       userId: req.user._id,
       status: 'active' 
     }).sort({ installedAt: -1 });
+    
     res.render('installations', { 
       title: 'GitHub App Installations', 
       installations 
