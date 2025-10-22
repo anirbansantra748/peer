@@ -1,10 +1,23 @@
 require('dotenv').config();
+const express = require('express');
 const mongoose = require('mongoose');
 const { Worker, connection } = require('../../shared/queue');
 const logger = require('../../shared/utils/prettyLogger');
 const PatchRequest = require('../../shared/models/PatchRequest');
 const { buildPreview, applyPatch } = require('../../shared/autofix/engine');
 process.env.LLM_STRATEGY='full';
+
+// Create HTTP server for health checks (required for Render web service)
+const app = express();
+const PORT = process.env.PORT || 3003;
+
+app.get('/health', (req, res) => {
+  res.json({ ok: true, service: 'autofix', status: 'running' });
+});
+
+app.listen(PORT, () => {
+  logger.info('autofix', `Health check server listening on port ${PORT}`);
+});
 
 
 // Connect to MongoDB

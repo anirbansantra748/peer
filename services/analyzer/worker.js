@@ -1,4 +1,5 @@
 require('dotenv').config();
+const express = require('express');
 const mongoose = require('mongoose');
 const { Worker, connection } = require('../../shared/queue');
 const PRRun = require('../../shared/models/PRRun');
@@ -6,6 +7,18 @@ const Installation = require('../../shared/models/Installation');
 const logger = require('../../shared/utils/prettyLogger');
 const { analyzeRepoDeep } = require('../../shared/analyzers');
 const { orchestrate } = require('../../shared/orchestrator');
+
+// Create HTTP server for health checks (required for Render web service)
+const app = express();
+const PORT = process.env.PORT || 3002;
+
+app.get('/health', (req, res) => {
+  res.json({ ok: true, service: 'analyzer', status: 'running' });
+});
+
+app.listen(PORT, () => {
+  logger.info('analyzer', `Health check server listening on port ${PORT}`);
+});
 
 // Connect to MongoDB
 mongoose
