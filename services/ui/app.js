@@ -17,6 +17,10 @@ const logger = require('../../shared/utils/prettyLogger');
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 
 const app = express();
+
+// Trust proxy - required for secure cookies on Render
+app.set('trust proxy', 1);
+
 app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
