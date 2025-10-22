@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation - Peer Code Review</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #1c2128;
+      --border-color: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --accent-blue: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-purple: #bc8cff;
+      --accent-orange: #f0883e;
+      --code-bg: #161b22;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+    }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      background: rgba(13, 17, 23, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 0;
+      z-index: 100;
+      box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .header-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .logo-icon {
+      font-size: 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--accent-blue);
+    }
+
+    /* Main Layout */
+    .main-layout {
+      display: flex;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      padding: 32px 24px;
+      border-right: 1px solid var(--border-color);
+      position: sticky;
+      top: 73px;
+      height: calc(100vh - 73px);
+      overflow-y: auto;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    .sidebar-section {
+      margin-bottom: 32px;
+    }
+
+    .sidebar-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .sidebar-links {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-link {
+      padding: 8px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      transition: all 0.2s;
+      display: block;
+    }
+
+    .sidebar-link:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .sidebar-link.active {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    /* Content */
+    .content {
+      flex: 1;
+      padding: 48px 64px;
+      max-width: 900px;
+    }
+
+    .content h1 {
+      font-size: 42px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .content h2 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-top: 64px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .content h3 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-top: 40px;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    .content h4 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .lead-text {
+      font-size: 20px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .content p {
+      margin-bottom: 20px;
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+
+    .content ul, .content ol {
+      margin-bottom: 24px;
+      padding-left: 24px;
+    }
+
+    .content li {
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+
+    .content strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Feature Cards */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin: 32px 0;
+    }
+
+    .feature-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent-blue);
+      box-shadow: 0 8px 24px rgba(88, 166, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .feature-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Step Cards */
+    .steps-container {
+      margin: 32px 0;
+    }
+
+    .step-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--accent-blue);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .step-number {
+      position: absolute;
+      top: -12px;
+      left: 20px;
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
+    }
+
+    .step-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      margin-top: 8px;
+      color: var(--text-primary);
+    }
+
+    .step-content {
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* Code Blocks */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 24px 0;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .code-block code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      color: #e6edf3;
+      line-height: 1.6;
+    }
+
+    .code-label {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    /* Info Boxes */
+    .info-box {
+      background: rgba(88, 166, 255, 0.1);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      border-left: 4px solid var(--accent-blue);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 24px 0;
+    }
+
+    .info-box.success {
+      background: rgba(63, 185, 80, 0.1);
+      border-color: rgba(63, 185, 80, 0.3);
+      border-left-color: var(--accent-green);
+    }
+
+    .info-box.warning {
+      background: rgba(240, 136, 62, 0.1);
+      border-color: rgba(240, 136, 62, 0.3);
+      border-left-color: var(--accent-orange);
+    }
+
+    .info-box-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-primary);
+    }
+
+    .info-box-content {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Pricing Table */
+    .pricing-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin: 40px 0;
+    }
+
+    .pricing-card {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--accent-blue);
+      box-shadow: 0 8px 32px rgba(88, 166, 255, 0.2);
+      transform: scale(1.02);
+    }
+
+    .pricing-tier {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent-blue);
+      margin-bottom: 12px;
+    }
+
+    .pricing-price {
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .pricing-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .pricing-features {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 32px;
+      text-align: left;
+    }
+
+    .pricing-features li {
+      padding: 8px 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .pricing-features li:before {
+      content: "✓";
+      color: var(--accent-green);
+      font-weight: bold;
+      margin-right: 12px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #4493e8;
+      box-shadow: 0 4px 16px rgba(88, 166, 255, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border-color);
+    }
+
+    /* Table of Contents (Right Sidebar) */
+    .toc {
+      width: 240px;
+      padding: 48px 24px;
+      position: sticky;
+      top: 73px;
+      height: calc(100vh - 73px);
+      overflow-y: auto;
+    }
+
+    .toc-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .toc-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toc-link {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      padding: 4px 0;
+    }
+
+    .toc-link:hover {
+      color: var(--accent-blue);
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .toc { display: none; }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .content { padding: 32px 24px; }
+      .header-container { padding: 0 16px; }
+    }
+
+    /* Scroll Behavior */
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-container">
+      <a href="/" class="logo">
+        <span class="logo-icon">🔍</span>
+        <span>Peer Code Review</span>
+      </a>
+      <nav class="nav-links">
+        <a href="/docs">Docs</a>
+        <a href="/">Dashboard</a>
+        <a href="/installations">Installations</a>
+        <a href="https://github.com/apps/peer-code-review-v2" target="_blank">GitHub App</a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="main-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Getting Started</div>
+        <div class="sidebar-links">
+          <a href="#introduction" class="sidebar-link active">Introduction</a>
+          <a href="#quick-start" class="sidebar-link">Quick Start</a>
+          <a href="#installation" class="sidebar-link">Installation</a>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Core Concepts</div>
+        <div class="sidebar-links">
+          <a href="#how-it-works" class="sidebar-link">How It Works</a>
+          <a href="#modes" class="sidebar-link">Processing Modes</a>
+          <a href="#severity-levels" class="sidebar-link">Severity Levels</a>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Configuration</div>
+        <div class="sidebar-links">
+          <a href="#setup-guide" class="sidebar-link">Setup Guide</a>
+          <a href="#configuration" class="sidebar-link">Configuration Options</a>
+          <a href="#api-keys" class="sidebar-link">API Keys</a>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Pricing & Billing</div>
+        <div class="sidebar-links">
+          <a href="#pricing" class="sidebar-link">Pricing Plans</a>
+          <a href="#token-system" class="sidebar-link">Token System</a>
+          <a href="#payment-flow" class="sidebar-link">Payment Flow</a>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Advanced</div>
+        <div class="sidebar-links">
+          <a href="#auto-merge" class="sidebar-link">Auto-Merge Setup</a>
+          <a href="#best-practices" class="sidebar-link">Best Practices</a>
+          <a href="#troubleshooting" class="sidebar-link">Troubleshooting</a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+      <!-- Introduction -->
+      <section id="introduction">
+        <h1>📚 Documentation</h1>
+        <p class="lead-text">
+          Welcome to Peer Code Review! An AI-powered GitHub App that automatically reviews your pull requests, 
+          finds security issues, code quality problems, and can even fix them automatically.
+        </p>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <div class="feature-title">Automated Analysis</div>
+            <div class="feature-desc">Instantly analyzes every PR for security vulnerabilities, bugs, and code quality issues.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🛠️</div>
+            <div class="feature-title">Auto-Fix</div>
+            <div class="feature-desc">Automatically generates fixes and commits them to your PR, saving you time.</div>
+          </div>
+          <div class="feature-card">
+            <div class="icon">🚀</div>
+            <div class="feature-title">Smart Merging</div>
+            <div class="feature-desc">Can auto-merge PRs after successful fixes and tests, streamlining your workflow.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Start -->
+      <section id="quick-start">
+        <h2>⚡ Quick Start</h2>
+        <p>Get started with Peer Code Review in less than 5 minutes:</p>
+
+        <div class="steps-container">
+          <div class="step-card">
+            <div class="step-number">1</div>
+            <div class="step-title">Sign Up with GitHub</div>
+            <div class="step-content">
+              Visit <a href="https://peer-code-review.com" style="color: var(--accent-blue);">peer-code-review.com</a> 
+              and click "Login with GitHub". Authorize the app to access your repositories.
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">2</div>
+            <div class="step-title">Install the GitHub App</div>
+            <div class="step-content">
+              Go to the <a href="/installations" style="color: var(--accent-blue);">Installations page</a> and click 
+              "Install GitHub App". Choose which repositories you want to enable Peer on.
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">3</div>
+            <div class="step-title">Configure Settings</div>
+            <div class="step-content">
+              Select your preferred processing mode (Analyze, Auto-Commit, or Auto-Merge) and severity levels 
+              (Critical, High, Medium, Low) in the installation settings.
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">4</div>
+            <div class="step-title">Create a Pull Request</div>
+            <div class="step-content">
+              Create or update a PR in your repository. Peer will automatically analyze it and post results as comments. 
+              If auto-fix is enabled, fixes will be committed automatically.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Installation -->
+      <section id="installation">
+        <h2>📦 Installation</h2>
+        
+        <h3>Prerequisites</h3>
+        <ul>
+          <li>A GitHub account</li>
+          <li>Admin access to the repositories you want to enable Peer on</li>
+          <li>A modern web browser</li>
+        </ul>
+
+        <h3>Installing the GitHub App</h3>
+        <p>There are two ways to install the Peer GitHub App:</p>
+
+        <h4>Method 1: Through Dashboard</h4>
+        <ol>
+          <li>Login to <a href="/" style="color: var(--accent-blue);">dashboard</a></li>
+          <li>Navigate to <strong>Installations</strong> page</li>
+          <li>Click <strong>"Install GitHub App"</strong></li>
+          <li>Select repositories (all or specific ones)</li>
+          <li>Click <strong>"Install"</strong></li>
+        </ol>
+
+        <h4>Method 2: Directly from GitHub</h4>
+        <ol>
+          <li>Visit <a href="https://github.com/apps/peer-code-review-v2" target="_blank" style="color: var(--accent-blue);">GitHub App page</a></li>
+          <li>Click <strong>"Install"</strong></li>
+          <li>Choose your organization/account</li>
+          <li>Select repositories</li>
+          <li>Complete installation</li>
+        </ol>
+
+        <div class="info-box success">
+          <div class="info-box-title">✅ Installation Complete</div>
+          <div class="info-box-content">
+            After installation, the app will automatically link to your Peer account. You can manage settings from the dashboard.
+          </div>
+        </div>
+      </section>
+
+      <!-- How It Works -->
+      <section id="how-it-works">
+        <h2>🔧 How It Works</h2>
+        
+        <h3>The Review Process</h3>
+        <p>When you create or update a pull request, Peer follows this workflow:</p>
+
+        <ol>
+          <li><strong>PR Detection:</strong> GitHub webhook notifies Peer about the PR</li>
+          <li><strong>File Analysis:</strong> Peer fetches changed files and analyzes them using AI</li>
+          <li><strong>Issue Detection:</strong> Identifies security vulnerabilities, bugs, code smells, and quality issues</li>
+          <li><strong>Severity Classification:</strong> Each issue is categorized (Critical, High, Medium, Low)</li>
+          <li><strong>Fix Generation:</strong> For auto-fix modes, generates appropriate fixes</li>
+          <li><strong>Action Execution:</strong> Based on your mode, comments, commits, or merges the changes</li>
+        </ol>
+
+        <div class="info-box">
+          <div class="info-box-title">💡 Pro Tip</div>
+          <div class="info-box-content">
+            Start with "Analyze Only" mode to understand how Peer works before enabling auto-fix features.
+          </div>
+        </div>
+      </section>
+
+      <!-- Processing Modes -->
+      <section id="modes">
+        <h2>🎯 Processing Modes</h2>
+        <p>Peer offers four distinct processing modes to match your workflow:</p>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <div class="feature-title">Analyze Only</div>
+            <div class="feature-desc">
+              <strong>Default mode.</strong> Finds issues and posts them as PR comments. You manually decide what to fix.
+              Perfect for learning and controlled environments.
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">💾</div>
+            <div class="feature-title">Auto-Commit</div>
+            <div class="feature-desc">
+              Automatically generates fixes and commits them to your PR. You still need to review and merge manually.
+              Great for trusted repositories.
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">✅</div>
+            <div class="feature-title">Auto-Merge</div>
+            <div class="feature-desc">
+              Fixes issues, commits, AND merges the PR automatically if conditions are met (tests pass, reviews approved).
+              Maximum automation.
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">👀</div>
+            <div class="feature-title">Manual Review</div>
+            <div class="feature-desc">
+              Shows findings in the UI. You manually select which issues to fix from the dashboard.
+              Full control over every decision.
+            </div>
+          </div>
+        </div>
+
+        <div class="info-box warning">
+          <div class="info-box-title">⚠️ Important</div>
+          <div class="info-box-content">
+            Auto-Merge mode requires additional setup including branch protection rules and CI/CD tests. See the Auto-Merge section below.
+          </div>
+        </div>
+      </section>
+
+      <!-- Severity Levels -->
+      <section id="severity-levels">
+        <h2>🎚️ Severity Levels</h2>
+        <p>Issues are classified into four severity levels. You can configure which levels trigger auto-fixes:</p>
+
+        <div class="step-card" style="border-left-color: #da3633;">
+          <div class="step-number" style="background: #da3633;">🔴</div>
+          <div class="step-title">Critical</div>
+          <div class="step-content">
+            Security vulnerabilities, SQL injection, XSS, authentication bypasses, data leaks. 
+            <strong>Must be fixed immediately.</strong>
+          </div>
+        </div>
+
+        <div class="step-card" style="border-left-color: #f85149;">
+          <div class="step-number" style="background: #f85149;">🟠</div>
+          <div class="step-title">High</div>
+          <div class="step-content">
+            Major bugs, memory leaks, race conditions, significant performance issues. 
+            <strong>Should be fixed before merge.</strong>
+          </div>
+        </div>
+
+        <div class="step-card" style="border-left-color: #d29922;">
+          <div class="step-number" style="background: #d29922;">🟡</div>
+          <div class="step-title">Medium</div>
+          <div class="step-content">
+            Code smells, minor bugs, deprecated APIs, maintainability issues. 
+            <strong>Fix when convenient.</strong>
+          </div>
+        </div>
+
+        <div class="step-card" style="border-left-color: #768390;">
+          <div class="step-number" style="background: #768390;">⚪</div>
+          <div class="step-title">Low</div>
+          <div class="step-content">
+            Style issues, missing comments, minor optimizations. 
+            <strong>Optional improvements.</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- Setup Guide -->
+      <section id="setup-guide">
+        <h2>⚙️ Complete Setup Guide</h2>
+        
+        <h3>Step 1: Account Creation</h3>
+        <div class="code-block">
+          <div class="code-label">Action Required</div>
+          <code>
+1. Visit https://peer-code-review.com
+2. Click "Login with GitHub"
+3. Authorize the OAuth app
+4. You'll be redirected to your dashboard
+          </code>
+        </div>
+
+        <h3>Step 2: Install GitHub App</h3>
+        <p>Follow the installation process described in the <a href="#installation" style="color: var(--accent-blue);">Installation section</a>.</p>
+
+        <h3>Step 3: Configure Installation</h3>
+        <p>From your dashboard:</p>
+        <ol>
+          <li>Click <strong>"Installations"</strong> in the navigation</li>
+          <li>Find your installation and click <strong>"Configure"</strong></li>
+          <li>Select your <strong>Processing Mode</strong></li>
+          <li>Choose <strong>Severity Levels</strong> to auto-fix</li>
+          <li>Set <strong>Max Files Per Run</strong> (1-50, default: 10)</li>
+          <li>Configure <strong>Auto-Merge settings</strong> if needed</li>
+          <li>Click <strong>"Save Configuration"</strong></li>
+        </ol>
+
+        <h3>Step 4: Test It Out</h3>
+        <p>Create a test PR in your repository:</p>
+        <div class="code-block">
+          <div class="code-label">Git Commands</div>
+          <code>
+git checkout -b test-peer-review
+echo "const x = 10; eval(x);" > test.js
+git add test.js
+git commit -m "Test security issue"
+git push origin test-peer-review
+# Create PR on GitHub
+          </code>
+        </div>
+
+        <p>Peer will automatically detect the <code>eval()</code> security issue and take action based on your mode!</p>
+      </section>
+
+      <!-- Configuration Options -->
+      <section id="configuration">
+        <h2>🎛️ Configuration Options</h2>
+        
+        <h3>Processing Mode</h3>
+        <p>Choose one of four modes as explained in the <a href="#modes" style="color: var(--accent-blue);">Processing Modes section</a>.</p>
+
+        <h3>Severity Levels</h3>
+        <p>Select which severity levels should trigger auto-fixes:</p>
+        <ul>
+          <li><strong>Recommended:</strong> Critical + High</li>
+          <li><strong>Balanced:</strong> Critical + High + Medium</li>
+          <li><strong>Aggressive:</strong> All levels</li>
+        </ul>
+
+        <h3>Max Files Per Run</h3>
+        <p>Limit the number of files analyzed in each PR to control token usage:</p>
+        <ul>
+          <li><strong>Small PRs:</strong> 5-10 files</li>
+          <li><strong>Medium PRs:</strong> 10-20 files</li>
+          <li><strong>Large PRs:</strong> 20-50 files</li>
+        </ul>
+
+        <h3>Auto-Merge Settings</h3>
+        <p>If using Auto-Merge mode:</p>
+        <ul>
+          <li><strong>Require Tests:</strong> Only merge if CI/CD tests pass</li>
+          <li><strong>Require Reviews:</strong> Set minimum number of approvals (0-5)</li>
+        </ul>
+
+        <div class="info-box">
+          <div class="info-box-title">💡 Best Practice</div>
+          <div class="info-box-content">
+            Start conservative (Analyze mode, Critical+High only) and gradually increase automation as you gain confidence.
+          </div>
+        </div>
+      </section>
+
+      <!-- API Keys -->
+      <section id="api-keys">
+        <h2>🔑 API Keys (Optional)</h2>
+        <p>By default, Peer uses platform tokens. You can add your own API keys for unlimited usage:</p>
+
+        <h3>Supported Providers</h3>
+        <ul>
+          <li><strong>Groq:</strong> Fast inference, generous free tier</li>
+          <li><strong>Google Gemini:</strong> High-quality analysis</li>
+          <li><strong>OpenRouter:</strong> Access to multiple models</li>
+        </ul>
+
+        <h3>Adding Your Keys</h3>
+        <ol>
+          <li>Go to <strong>Settings → API Keys</strong></li>
+          <li>Enter your API keys for desired providers</li>
+          <li>Click <strong>"Save API Keys"</strong></li>
+          <li>Your keys are encrypted and stored securely</li>
+        </ol>
+
+        <div class="info-box success">
+          <div class="info-box-title">✅ Unlimited Usage</div>
+          <div class="info-box-content">
+            With your own API keys, you get unlimited token usage! No monthly limits or additional costs.
+          </div>
+        </div>
+      </section>
+
+      <!-- Pricing -->
+      <section id="pricing">
+        <h2>💰 Pricing Plans</h2>
+        <p>Choose the plan that fits your needs:</p>
+
+        <div class="pricing-container">
+          <div class="pricing-card">
+            <div class="pricing-tier">Free Tier</div>
+            <div class="pricing-price">₹0</div>
+            <div class="pricing-desc">Perfect for testing</div>
+            <ul class="pricing-features">
+              <li>1,000 tokens/month</li>
+              <li>All features included</li>
+              <li>Community support</li>
+              <li>Up to 5 repositories</li>
+            </ul>
+            <a href="/" class="btn btn-secondary">Get Started</a>
+          </div>
+
+          <div class="pricing-card featured">
+            <div class="pricing-tier">Pro Plan</div>
+            <div class="pricing-price">₹800</div>
+            <div class="pricing-desc">Per purchase • Never expires</div>
+            <ul class="pricing-features">
+              <li>10,000 tokens per purchase</li>
+              <li>Buy anytime, tokens stack</li>
+              <li>No expiration date</li>
+              <li>Priority support</li>
+              <li>Unlimited repositories</li>
+              <li>Advanced analytics</li>
+            </ul>
+            <a href="/settings/subscription" class="btn btn-primary">Buy Tokens</a>
+          </div>
+
+          <div class="pricing-card">
+            <div class="pricing-tier">Unlimited</div>
+            <div class="pricing-price">Free</div>
+            <div class="pricing-desc">With your API keys</div>
+            <ul class="pricing-features">
+              <li>Unlimited tokens</li>
+              <li>Use your own AI keys</li>
+              <li>No monthly fees</li>
+              <li>All Pro features</li>
+              <li>Full control</li>
+            </ul>
+            <a href="/settings/api-keys" class="btn btn-secondary">Add API Keys</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Token System -->
+      <section id="token-system">
+        <h2>🪙 Token System</h2>
+        
+        <h3>What are Tokens?</h3>
+        <p>Tokens represent AI inference usage. Each code analysis consumes tokens based on code size and complexity.</p>
+
+        <h3>Token Consumption</h3>
+        <ul>
+          <li><strong>Small file (&lt;100 lines):</strong> ~50-200 tokens</li>
+          <li><strong>Medium file (100-500 lines):</strong> ~200-800 tokens</li>
+          <li><strong>Large file (&gt;500 lines):</strong> ~800-2000 tokens</li>
+        </ul>
+
+        <h3>Token Sources</h3>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🏢</div>
+            <div class="feature-title">Platform Tokens</div>
+            <div class="feature-desc">Provided by Peer. Free tier: 1,000/month. Pro: Buy as needed.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔑</div>
+            <div class="feature-title">Your API Keys</div>
+            <div class="feature-desc">Use your own keys for unlimited usage at your API provider's cost.</div>
+          </div>
+        </div>
+
+        <h3>Monitoring Usage</h3>
+        <p>Track your token consumption from the dashboard:</p>
+        <ul>
+          <li>Current month usage</li>
+          <li>Remaining balance</li>
+          <li>Usage history</li>
+          <li>Per-repository breakdown</li>
+        </ul>
+      </section>
+
+      <!-- Payment Flow -->
+      <section id="payment-flow">
+        <h2>💳 Payment Flow</h2>
+        
+        <h3>Buying Tokens</h3>
+        <div class="steps-container">
+          <div class="step-card">
+            <div class="step-number">1</div>
+            <div class="step-title">Go to Subscription Page</div>
+            <div class="step-content">
+              Navigate to <strong>Settings → Subscription</strong> or click "Buy Tokens" from the dashboard.
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">2</div>
+            <div class="step-title">Select Plan</div>
+            <div class="step-content">
+              Click <strong>"Buy ₹800 for 10,000 Tokens"</strong>. This is a one-time purchase with no expiration.
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">3</div>
+            <div class="step-title">Complete Payment</div>
+            <div class="step-content">
+              Pay securely via Razorpay (UPI, Cards, Net Banking, Wallets supported).
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">4</div>
+            <div class="step-title">Tokens Added Instantly</div>
+            <div class="step-content">
+              Tokens are added to your account immediately after successful payment.
+            </div>
+          </div>
+        </div>
+
+        <div class="info-box success">
+          <div class="info-box-title">✅ Buy Multiple Times</div>
+          <div class="info-box-content">
+            You can buy tokens as many times as you want. They stack and never expire!
+          </div>
+        </div>
+
+        <h3>Payment Methods</h3>
+        <p>We support all major payment methods via Razorpay:</p>
+        <ul>
+          <li>UPI (Google Pay, PhonePe, Paytm, etc.)</li>
+          <li>Credit/Debit Cards (Visa, Mastercard, RuPay, Amex)</li>
+          <li>Net Banking (All major banks)</li>
+          <li>Wallets (Paytm, Mobikwik, etc.)</li>
+        </ul>
+
+        <h3>Transaction History</h3>
+        <p>View all your purchases at <strong>Settings → Transactions</strong>:</p>
+        <ul>
+          <li>Payment date and amount</li>
+          <li>Tokens purchased</li>
+          <li>Transaction ID</li>
+          <li>Payment status</li>
+          <li>Download receipts</li>
+        </ul>
+      </section>
+
+      <!-- Auto-Merge Setup -->
+      <section id="auto-merge">
+        <h2>🚀 Auto-Merge Setup</h2>
+        <p>Auto-Merge is powerful but requires proper configuration:</p>
+
+        <h3>Prerequisites</h3>
+        <ol>
+          <li><strong>Branch Protection:</strong> Enable branch protection on your main/master branch</li>
+          <li><strong>CI/CD:</strong> Set up automated tests (GitHub Actions, CircleCI, etc.)</li>
+          <li><strong>Code Reviews:</strong> Configure required reviewers if needed</li>
+        </ol>
+
+        <h3>GitHub Branch Protection Setup</h3>
+        <div class="code-block">
+          <div class="code-label">Settings</div>
+          <code>
+1. Go to Repository Settings → Branches
+2. Add rule for main/master branch
+3. Enable: "Require status checks to pass"
+4. Enable: "Require pull request reviews before merging"
+5. Set minimum reviews (optional)
+6. Save changes
+          </code>
+        </div>
+
+        <h3>Peer Auto-Merge Configuration</h3>
+        <p>In your installation settings:</p>
+        <ul>
+          <li>Set mode to <strong>"Auto-Merge"</strong></li>
+          <li>Enable <strong>"Require Tests"</strong> to wait for CI/CD</li>
+          <li>Set <strong>"Required Reviews"</strong> count (0-5)</li>
+        </ul>
+
+        <h3>How Auto-Merge Works</h3>
+        <ol>
+          <li>Peer analyzes the PR and commits fixes</li>
+          <li>Waits for CI/CD tests to pass (if required)</li>
+          <li>Waits for required reviews (if configured)</li>
+          <li>Automatically merges when all conditions are met</li>
+          <li>Deletes the branch (if configured in GitHub)</li>
+        </ol>
+
+        <div class="info-box warning">
+          <div class="info-box-title">⚠️ Use with Caution</div>
+          <div class="info-box-content">
+            Auto-Merge is best for repositories with comprehensive test coverage. Always ensure proper CI/CD is in place.
+          </div>
+        </div>
+      </section>
+
+      <!-- Best Practices -->
+      <section id="best-practices">
+        <h2>✨ Best Practices</h2>
+        
+        <h3>1. Start Conservative</h3>
+        <ul>
+          <li>Begin with <strong>"Analyze Only"</strong> mode</li>
+          <li>Only auto-fix <strong>Critical + High</strong> severity issues</li>
+          <li>Monitor results for a week before increasing automation</li>
+        </ul>
+
+        <h3>2. Use Appropriate Modes Per Repository</h3>
+        <ul>
+          <li><strong>Production apps:</strong> Analyze Only or Manual Review</li>
+          <li><strong>Development branches:</strong> Auto-Commit</li>
+          <li><strong>Internal tools with tests:</strong> Auto-Merge</li>
+        </ul>
+
+        <h3>3. Set Reasonable File Limits</h3>
+        <ul>
+          <li>Don't analyze more than 20 files per PR to control costs</li>
+          <li>Break large PRs into smaller, focused ones</li>
+          <li>Use <code>.peerignore</code> to exclude generated files</li>
+        </ul>
+
+        <h3>4. Monitor Token Usage</h3>
+        <ul>
+          <li>Check dashboard weekly</li>
+          <li>Adjust severity levels if usage is high</li>
+          <li>Consider adding your own API keys for large teams</li>
+        </ul>
+
+        <h3>5. Maintain Good Test Coverage</h3>
+        <ul>
+          <li>Auto-fixes are most effective with comprehensive tests</li>
+          <li>Ensure CI/CD runs on every PR</li>
+          <li>Never use Auto-Merge without tests</li>
+        </ul>
+
+        <h3>6. Review AI Suggestions</h3>
+        <ul>
+          <li>AI is powerful but not perfect</li>
+          <li>Always review auto-committed fixes</li>
+          <li>Provide feedback for improvements</li>
+        </ul>
+      </section>
+
+      <!-- Troubleshooting -->
+      <section id="troubleshooting">
+        <h2>🔧 Troubleshooting</h2>
+        
+        <h3>Peer Not Analyzing My PRs</h3>
+        <p><strong>Possible causes:</strong></p>
+        <ul>
+          <li>GitHub App not installed on repository → <a href="/installations" style="color: var(--accent-blue);">Check installations</a></li>
+          <li>Installation suspended → Contact support</li>
+          <li>No changed files → Peer only analyzes code changes</li>
+          <li>Out of tokens → <a href="/settings/subscription" style="color: var(--accent-blue);">Buy more tokens</a></li>
+        </ul>
+
+        <h3>Auto-Fixes Not Being Committed</h3>
+        <p><strong>Check:</strong></p>
+        <ul>
+          <li>Mode is set to "Auto-Commit" or "Auto-Merge"</li>
+          <li>Peer has write permissions on repository</li>
+          <li>Branch is not protected (or Peer is allowed to push)</li>
+          <li>No conflicting changes</li>
+        </ul>
+
+        <h3>Auto-Merge Not Working</h3>
+        <p><strong>Verify:</strong></p>
+        <ul>
+          <li>All CI/CD checks have passed</li>
+          <li>Required reviews are approved</li>
+          <li>No merge conflicts exist</li>
+          <li>Branch protection allows Peer to merge</li>
+        </ul>
+
+        <h3>High Token Consumption</h3>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+          <li>Reduce "Max Files Per Run" in settings</li>
+          <li>Only enable auto-fix for Critical + High severity</li>
+          <li>Create smaller, focused PRs</li>
+          <li>Use your own API keys for unlimited usage</li>
+        </ul>
+
+        <h3>False Positives</h3>
+        <p><strong>If Peer flags valid code:</strong></p>
+        <ul>
+          <li>Add explanatory comments in code (AI learns from them)</li>
+          <li>Use <code>// peer-ignore</code> to skip specific lines</li>
+          <li>Report false positives via <a href="/support" style="color: var(--accent-blue);">support</a></li>
+        </ul>
+
+        <h3>Payment Issues</h3>
+        <p><strong>If payment fails:</strong></p>
+        <ul>
+          <li>Check your payment method balance/limit</li>
+          <li>Try a different payment method</li>
+          <li>Clear browser cache and retry</li>
+          <li>Contact <a href="/support" style="color: var(--accent-blue);">support</a> with transaction ID</li>
+        </ul>
+
+        <div class="info-box">
+          <div class="info-box-title">💬 Need Help?</div>
+          <div class="info-box-content">
+            Still having issues? Contact us at <strong>support@peer-code-review.com</strong> or visit our 
+            <a href="/support" style="color: var(--accent-blue);">support page</a>.
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <div style="margin-top: 80px; padding-top: 40px; border-top: 1px solid var(--border-color); text-align: center;">
+        <p style="color: var(--text-muted); font-size: 14px;">
+          Made with ❤️ by the Peer team • 
+          <a href="/privacy" style="color: var(--accent-blue);">Privacy</a> • 
+          <a href="/terms" style="color: var(--accent-blue);">Terms</a> • 
+          <a href="/support" style="color: var(--accent-blue);">Support</a>
+        </p>
+      </div>
+    </main>
+
+    <!-- Table of Contents (Right Sidebar) -->
+    <aside class="toc">
+      <div class="toc-title">On This Page</div>
+      <div class="toc-links">
+        <a href="#introduction" class="toc-link">Introduction</a>
+        <a href="#quick-start" class="toc-link">Quick Start</a>
+        <a href="#installation" class="toc-link">Installation</a>
+        <a href="#how-it-works" class="toc-link">How It Works</a>
+        <a href="#modes" class="toc-link">Processing Modes</a>
+        <a href="#severity-levels" class="toc-link">Severity Levels</a>
+        <a href="#setup-guide" class="toc-link">Setup Guide</a>
+        <a href="#configuration" class="toc-link">Configuration</a>
+        <a href="#api-keys" class="toc-link">API Keys</a>
+        <a href="#pricing" class="toc-link">Pricing</a>
+        <a href="#token-system" class="toc-link">Token System</a>
+        <a href="#payment-flow" class="toc-link">Payment Flow</a>
+        <a href="#auto-merge" class="toc-link">Auto-Merge</a>
+        <a href="#best-practices" class="toc-link">Best Practices</a>
+        <a href="#troubleshooting" class="toc-link">Troubleshooting</a>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // Active sidebar link highlighting
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+    const sections = document.querySelectorAll('section[id]');
+
+    function updateActiveLink() {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (scrollY >= sectionTop - 100) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      sidebarLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${current}`) {
+          link.classList.add('active');
+        }
+      });
+    }
+
+    window.addEventListener('scroll', updateActiveLink);
+    updateActiveLink();
+  </script>
+</body>
+</html>

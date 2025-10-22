@@ -1,0 +1,135 @@
+services:
+  # API Service (Backend)
+  - type: web
+    name: peer-api
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: npm install
+    startCommand: node services/api/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: MONGO_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: UI_BASE
+        value: https://peer-ui.onrender.com
+    healthCheckPath: /health
+
+  # UI Service (Frontend)
+  - type: web
+    name: peer-ui
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: npm install
+    startCommand: node services/ui/app.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: UI_PORT
+        value: 3000
+      - key: MONGO_URI
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: API_BASE
+        value: https://peer-api.onrender.com
+      - key: GITHUB_CALLBACK_URL
+        value: https://peer-ui.onrender.com/auth/github/callback
+    healthCheckPath: /health
+
+  # Analyzer Worker
+  - type: worker
+    name: peer-analyzer
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: npm install
+    startCommand: node services/analyzer/worker.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+
+  # Autofix Worker
+  - type: worker
+    name: peer-autofix
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: npm install
+    startCommand: node services/autofix/worker.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+
+databases:
+  # MongoDB (You'll need to use MongoDB Atlas - Free tier)
+  # Redis (You'll need to use Upstash Redis - Free tier)
+  # Instructions in deployment guide below

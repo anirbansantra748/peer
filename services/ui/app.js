@@ -877,6 +877,11 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Documentation page
+app.get('/docs', (req, res) => {
+  res.render('docs', { title: 'Documentation', user: req.user || null });
+});
+
 // Support page
 app.get('/support', requireAuth, (req, res) => {
   res.render('support', { title: 'Support & Help', user: req.user });
