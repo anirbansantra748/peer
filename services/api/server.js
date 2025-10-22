@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const rateLimit = require('express-rate-limit');
 const { analyzeQueue, autofixQueue } = require('../../shared/queue');
 const PRRun = require('../../shared/models/PRRun');
 const Installation = require('../../shared/models/Installation');
@@ -9,12 +10,21 @@ const llmCache = require('../../shared/cache/llmCache');
 
 const app = express();
 
+// Rate limiter for webhooks
+const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Allow 100 webhook calls per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Razorpay webhook must use raw body for signature verification; register BEFORE json parser
-app.post('/webhook/razorpay', express.raw({ type: '*/*' }), async (req, res) => {
+app.post('/webhook/razorpay', webhookLimiter, express.raw({ type: '*/*' }), async (req, res) => {
   try {
     const signature = req.header('x-razorpay-signature') || req.header('X-Razorpay-Signature');
     const body = req.body instanceof Buffer ? req.body.toString('utf8') : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
     const { verifyWebhookSignature, processSuccessfulPayment } = require('../../shared/services/razorpayService');
+    const PaymentTransaction = require('./models/PaymentTransaction');
 
     if (!signature) return res.status(400).send('Missing signature');
     const valid = verifyWebhookSignature(body, signature);
@@ -22,17 +32,70 @@ app.post('/webhook/razorpay', express.raw({ type: '*/*' }), async (req, res) => 
 
     const event = JSON.parse(body);
     const eventType = event.event;
+    const eventId = event.payload?.payment?.entity?.id || event.payload?.order?.entity?.id;
+    const orderId = event.payload?.payment?.entity?.order_id || event.payload?.order?.entity?.id;
+
+    // Idempotency check: Skip if we've already processed this event
+    if (eventId && orderId) {
+      const existing = await PaymentTransaction.findOne({ orderId, eventId });
+      if (existing) {
+        logger.info('api', 'Duplicate webhook event, skipping', { eventType, eventId, orderId });
+        return res.json({ ok: true, status: 'duplicate' });
+      }
+    }
 
     if (eventType === 'payment.captured' || eventType === 'payment.authorized') {
       const payment = event.payload?.payment?.entity;
       if (payment) {
-        await processSuccessfulPayment(payment);
+        try {
+          await processSuccessfulPayment(payment);
+          
+          // Log webhook event
+          await PaymentTransaction.create({
+            userId: payment.notes?.userId,
+            orderId: payment.order_id,
+            paymentId: payment.id,
+            amount: payment.amount / 100,
+            currency: payment.currency,
+            status: eventType === 'payment.captured' ? 'captured' : 'authorized',
+            method: payment.method,
+            eventId: payment.id,
+            eventType: eventType,
+            razorpaySignature: signature,
+            metadata: event.payload,
+          });
+        } catch (processError) {
+          // Log failed webhook processing
+          try {
+            await PaymentTransaction.create({
+              userId: payment.notes?.userId,
+              orderId: payment.order_id,
+              paymentId: payment.id,
+              amount: payment.amount / 100,
+              currency: payment.currency,
+              status: 'failed',
+              method: payment.method,
+              eventId: payment.id,
+              eventType: eventType,
+              errorCode: 'WEBHOOK_PROCESSING_ERROR',
+              errorDescription: processError.message,
+              metadata: event.payload,
+            });
+          } catch (logError) {
+            logger.error('api', 'Failed to log webhook error', { error: logError.message });
+          }
+          
+          // Return 500 to trigger Razorpay retry
+          logger.error('api', 'Razorpay webhook processing failed', { error: processError.message, eventType, orderId });
+          return res.status(500).json({ ok: false, error: 'Processing failed' });
+        }
       }
     }
 
     res.json({ ok: true });
   } catch (error) {
     logger.error('api', 'Razorpay webhook error', { error: String(error) });
+    // Return 500 to let Razorpay retry
     res.status(500).json({ ok: false });
   }
 });
@@ -62,8 +125,63 @@ mongoose
   });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ ok: true });
+app.get('/health', async (req, res) => {
+  try {
+    // Check MongoDB connectivity
+    const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const isHealthy = mongoose.connection.readyState === 1;
+    
+    const health = {
+      ok: isHealthy,
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      mongodb: mongoStatus,
+      environment: process.env.NODE_ENV || 'development',
+    };
+    
+    const statusCode = isHealthy ? 200 : 503;
+    res.status(statusCode).json(health);
+  } catch (error) {
+    res.status(503).json({ 
+      ok: false, 
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Detailed healthz endpoint
+app.get('/healthz', async (req, res) => {
+  try {
+    const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const isHealthy = mongoose.connection.readyState === 1;
+    
+    const health = {
+      ok: isHealthy,
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      mongodb: mongoStatus,
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.APP_VERSION || '1.0.0',
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
+      },
+    };
+    
+    const statusCode = isHealthy ? 200 : 503;
+    res.status(statusCode).json(health);
+  } catch (error) {
+    res.status(503).json({ 
+      ok: false, 
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // LLM usage statistics endpoint
@@ -328,6 +446,36 @@ app.post('/webhook/github', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// Setup monthly token reset cron job
+const cron = require('node-cron');
+const resetMonthlyTokens = require('../../scripts/resetMonthlyTokens');
+
+// Run at midnight on the 1st of every month
+cron.schedule('0 0 1 * *', async () => {
+  logger.info('cron', 'Starting scheduled monthly token reset');
+  try {
+    await resetMonthlyTokens();
+  } catch (error) {
+    logger.error('cron', 'Scheduled token reset failed', { error: String(error) });
+  }
+}, {
+  timezone: 'Asia/Kolkata' // Indian timezone
+});
+
+// Also run daily at midnight to catch any users who passed reset date
+cron.schedule('0 0 * * *', async () => {
+  logger.info('cron', 'Running daily token reset check');
+  try {
+    await resetMonthlyTokens();
+  } catch (error) {
+    logger.error('cron', 'Daily token reset check failed', { error: String(error) });
+  }
+}, {
+  timezone: 'Asia/Kolkata'
+});
+
+logger.info('cron', 'Token reset cron jobs scheduled');
 
 const PORT = process.env.API_PORT || 3001;
 // --- Autofix API ---

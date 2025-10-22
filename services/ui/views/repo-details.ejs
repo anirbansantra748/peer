@@ -65,32 +65,45 @@
       .issue-item {
         background: #161b22;
         border: 1px solid #30363d;
-        border-radius: 6px;
-        padding: 16px;
-        margin-bottom: 12px;
-        transition: border-color 0.2s;
+        border-radius: 8px;
+        padding: 20px 24px;
+        margin-bottom: 16px;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
       }
-      .issue-item:hover { border-color: #58a6ff; }
-      .issue-item.fixed { border-left: 4px solid #3fb950; }
+      .issue-item:hover { 
+        border-color: #58a6ff; 
+        transform: translateX(4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+      .issue-item.fixed { 
+        border-left: 4px solid #3fb950;
+        background: linear-gradient(90deg, rgba(35, 134, 54, 0.05) 0%, #161b22 40px);
+      }
       
       .issue-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+        gap: 16px;
       }
       .issue-title {
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 500;
         color: #c9d1d9;
         flex: 1;
+        line-height: 1.5;
       }
       .severity-badge {
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 600;
-        margin-left: 8px;
+        padding: 5px 12px;
+        border-radius: 16px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        white-space: nowrap;
       }
       .severity-critical { background: #a40e26; color: #ffdce0; }
       .severity-high { background: #9a6700; color: #f0e6b9; }
@@ -98,30 +111,42 @@
       .severity-low { background: #6e7681; color: #c9d1d9; }
       
       .issue-meta {
-        font-size: 12px;
+        font-size: 13px;
         color: #8b949e;
-        margin-top: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #21262d;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+      }
+      .issue-meta-item {
         display: flex;
-        gap: 16px;
-        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
       }
       .issue-meta code {
         background: #21262d;
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-family: ui-monospace, monospace;
+        color: #58a6ff;
       }
       
       .fix-badge {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 600;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 16px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
         background: #1a7f37;
         color: #aff5b4;
+        box-shadow: 0 0 0 1px rgba(26, 127, 55, 0.5);
       }
     </style>
   </head>
@@ -191,22 +216,39 @@
               <div class="issue-header">
                 <div class="issue-title">
                   <%= issue.message %>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
                   <span class="severity-badge severity-<%= issue.severity %>">
-                    <%= issue.severity.toUpperCase() %>
+                    <%= issue.severity %>
                   </span>
                   <% if (issue.fixed) { %>
-                    <span class="fix-badge">✅ Fixed</span>
+                    <span class="fix-badge">✓ Fixed</span>
                   <% } %>
                 </div>
               </div>
               
               <div class="issue-meta">
-                <span>📄 <code><%= issue.file %></code></span>
-                <span>📍 Line <%= issue.line %></span>
-                <span>🔧 <%= issue.rule %></span>
-                <span>🔍 <%= issue.analyzer %></span>
+                <div class="issue-meta-item">
+                  <span>📄</span>
+                  <code><%= issue.file %></code>
+                </div>
+                <div class="issue-meta-item">
+                  <span>📍</span>
+                  <span>Line <%= issue.line %></span>
+                </div>
+                <div class="issue-meta-item">
+                  <span>🔧</span>
+                  <span><%= issue.rule %></span>
+                </div>
+                <div class="issue-meta-item">
+                  <span>🔍</span>
+                  <span><%= issue.analyzer %></span>
+                </div>
                 <% if (issue.prNumber) { %>
-                  <span>🔗 PR #<%= issue.prNumber %></span>
+                  <div class="issue-meta-item">
+                    <span>🔗</span>
+                    <span>PR #<%= issue.prNumber %></span>
+                  </div>
                 <% } %>
               </div>
               

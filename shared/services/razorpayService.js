@@ -1,6 +1,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const logger = require('../utils/prettyLogger');
+const PaymentTransaction = require('../../services/api/models/PaymentTransaction');
 
 // Initialize Razorpay instance
 logger.info('razorpay', 'Initializing Razorpay SDK', {
@@ -47,6 +48,23 @@ async function createProOrder(user, amount = 800) {
       userId: user._id,
       amount,
     });
+
+    // Log transaction creation
+    try {
+      await PaymentTransaction.create({
+        userId: user._id,
+        orderId: order.id,
+        amount: amount,
+        currency: order.currency,
+        status: 'created',
+        description: `Pro tier purchase - ${options.notes.tokens} tokens`,
+        notes: options.notes,
+        metadata: { receipt: order.receipt },
+      });
+    } catch (logError) {
+      logger.error('razorpay', 'Failed to log transaction creation', { error: logError.message });
+      // Don't fail order creation if logging fails
+    }
 
     return order;
   } catch (error) {
@@ -163,7 +181,26 @@ async function processSuccessfulPayment(payment) {
       totalPurchasedTokens: user.purchasedTokens,
     });
 
-    // Send success notification
+    // Log successful payment transaction
+    try {
+      await PaymentTransaction.create({
+        userId: user._id,
+        orderId: payment.order_id,
+        paymentId: payment.id,
+        amount: payment.amount / 100, // Convert paise to INR
+        currency: payment.currency,
+        status: 'captured',
+        method: payment.method,
+        description: `Pro tier purchase - ${tokens} tokens`,
+        notes: payment.notes,
+        metadata: payment,
+      });
+    } catch (logError) {
+      logger.error('razorpay', 'Failed to log successful payment', { error: logError.message });
+      // Don't fail payment processing if logging fails
+    }
+
+    // Send success notification to user
     await notifyUserError({
       userId: user._id,
       type: 'payment_success',
@@ -172,6 +209,55 @@ async function processSuccessfulPayment(payment) {
       link: '/',
       sendEmail: true,
     });
+
+    // Send admin notification email
+    try {
+      const { sendEmail } = require('../services/emailService');
+      const adminEmail = process.env.ADMIN_EMAIL || 'anirbansantra748@gmail.com';
+      
+      await sendEmail({
+        to: adminEmail,
+        subject: `💰 New Payment Received - ₹${payment.amount / 100}`,
+        text: `
+New payment received!
+
+Amount: ₹${payment.amount / 100}
+Tokens: ${tokens.toLocaleString()}
+User: ${user.username} (${user.email})
+Payment ID: ${payment.id}
+Order ID: ${payment.order_id}
+
+Time: ${new Date().toLocaleString()}
+
+⚠️ Remember to recharge your API keys to keep services running!
+        `,
+        html: `
+          <h2 style="color: #238636;">💰 New Payment Received!</h2>
+          <p><strong>Amount:</strong> ₹${payment.amount / 100}</p>
+          <p><strong>Tokens Added:</strong> ${tokens.toLocaleString()}</p>
+          <hr>
+          <h3>Customer Details:</h3>
+          <p><strong>Username:</strong> ${user.username}</p>
+          <p><strong>Email:</strong> ${user.email || 'N/A'}</p>
+          <p><strong>User ID:</strong> ${user._id}</p>
+          <hr>
+          <h3>Transaction Details:</h3>
+          <p><strong>Payment ID:</strong> ${payment.id}</p>
+          <p><strong>Order ID:</strong> ${payment.order_id}</p>
+          <p><strong>Method:</strong> ${payment.method}</p>
+          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          <hr>
+          <p style="background: #fff3cd; padding: 12px; border-left: 4px solid #ffc107;">
+            <strong>⚠️ Action Required:</strong> Remember to recharge your API keys to keep services running!
+          </p>
+        `
+      });
+      
+      logger.info('razorpay', 'Admin notification sent', { adminEmail });
+    } catch (emailError) {
+      logger.error('razorpay', 'Failed to send admin email', { error: emailError.message });
+      // Don't fail the payment if email fails
+    }
 
     return user;
   } catch (error) {

@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const axios = require('axios');
+const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const mongoose = require('mongoose');
@@ -291,7 +292,8 @@ app.get('/', requireAuth, async (req, res) => {
         totalConnectedRepos,
         totalIssues: stats.totalIssues,
         fixedIssues: stats.fixedIssues
-      }
+      },
+      installations: userInstallations // Add installations data
     });
   } catch (error) {
     console.error('[ui] Dashboard error:', error);
@@ -859,6 +861,36 @@ app.delete('/settings/api-keys/:provider', requireAuth, async (req, res) => {
   }
 });
 
+// Rate limiters
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: 'Too many payment attempts. Please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Support page
+app.get('/support', requireAuth, (req, res) => {
+  res.render('support', { title: 'Support & Help', user: req.user });
+});
+
+// Legal pages
+app.get('/terms', (req, res) => {
+  res.render('terms', { title: 'Terms of Service', user: req.user || null });
+});
+
+app.get('/privacy', (req, res) => {
+  res.render('privacy', { title: 'Privacy Policy', user: req.user || null });
+});
+
 // Subscription Management
 app.get('/settings/subscription', requireAuth, (req, res) => {
   res.render('subscription', { 
@@ -869,8 +901,32 @@ app.get('/settings/subscription', requireAuth, (req, res) => {
   });
 });
 
+// Transaction History
+app.get('/settings/transactions', requireAuth, async (req, res) => {
+  try {
+    const PaymentTransaction = require('../../services/api/models/PaymentTransaction');
+    const transactions = await PaymentTransaction.find({ userId: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    
+    res.render('transactions', {
+      title: 'Transaction History',
+      user: req.user,
+      transactions
+    });
+  } catch (error) {
+    logger.error('ui', 'Failed to fetch transactions', { error: String(error) });
+    res.render('transactions', {
+      title: 'Transaction History',
+      user: req.user,
+      transactions: []
+    });
+  }
+});
+
 // Razorpay: create order for Pro purchase
-app.post('/settings/subscription/razorpay/order', requireAuth, async (req, res) => {
+app.post('/settings/subscription/razorpay/order', requireAuth, paymentLimiter, async (req, res) => {
   try {
     const { createProOrder } = require('../../shared/services/razorpayService');
     const order = await createProOrder(req.user, 800); // Production price
@@ -888,7 +944,7 @@ app.post('/settings/subscription/razorpay/order', requireAuth, async (req, res) 
 });
 
 // Razorpay: verify payment signature and upgrade user immediately
-app.post('/settings/subscription/razorpay/verify', requireAuth, async (req, res) => {
+app.post('/settings/subscription/razorpay/verify', requireAuth, paymentLimiter, async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
     const { verifyPaymentSignature, fetchPayment, processSuccessfulPayment } = require('../../shared/services/razorpayService');
@@ -933,7 +989,7 @@ app.post('/settings/subscription/downgrade', requireAuth, async (req, res) => {
 });
 
 // User Token Usage API
-app.get('/api/user/usage', requireAuth, async (req, res) => {
+app.get('/api/user/usage', requireAuth, apiLimiter, async (req, res) => {
   try {
     const { getUserTokenStats } = require('../../shared/utils/userTokens');
     const stats = await getUserTokenStats(req.user._id);
@@ -995,6 +1051,64 @@ app.post('/api/notifications/read-all', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('[ui] Failed to mark notifications as read:', error);
     res.status(500).json({ error: 'Failed to mark notifications as read' });
+  }
+});
+
+// Health check endpoints (before error handlers)
+app.get('/health', async (req, res) => {
+  try {
+    const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const isHealthy = mongoose.connection.readyState === 1;
+    
+    const health = {
+      ok: isHealthy,
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      mongodb: mongoStatus,
+      environment: process.env.NODE_ENV || 'development',
+    };
+    
+    const statusCode = isHealthy ? 200 : 503;
+    res.status(statusCode).json(health);
+  } catch (error) {
+    res.status(503).json({ 
+      ok: false, 
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+app.get('/healthz', async (req, res) => {
+  try {
+    const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const isHealthy = mongoose.connection.readyState === 1;
+    
+    const health = {
+      ok: isHealthy,
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      mongodb: mongoStatus,
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.APP_VERSION || '1.0.0',
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
+      },
+    };
+    
+    const statusCode = isHealthy ? 200 : 503;
+    res.status(statusCode).json(health);
+  } catch (error) {
+    res.status(503).json({ 
+      ok: false, 
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
   }
 });
 

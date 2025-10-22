@@ -117,6 +117,12 @@
       align-items: center;
       gap: 12px;
     }
+    .installation-title img {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      border: 2px solid #30363d;
+    }
     .installation-title h2 {
       font-size: 20px;
       font-weight: 600;
@@ -249,7 +255,9 @@
       <h1>GitHub App Installations</h1>
       <% if (user) { %>
       <div class="user-info">
-        <img src="<%= user.avatarUrl %>" alt="<%= user.username %>">
+        <img src="<%= user.avatar || 'https://github.com/' + user.username + '.png?size=80' %>" 
+             alt="<%= user.username %>"
+             onerror="this.src='https://github.com/identicons/' + '<%= user.githubId %>' + '.png'">
         <span><%= user.username %></span>
         <a href="/auth/logout" class="btn btn-secondary">Logout</a>
       </div>
@@ -275,11 +283,18 @@
         <div class="installation-card">
           <div class="installation-header">
             <div class="installation-title">
-              <h2><%= installation.accountLogin %></h2>
-              <span class="badge <%= installation.status %>"><%= installation.status.toUpperCase() %></span>
-              <span class="badge <%= installation.repositorySelection %>">
-                <%= installation.repositorySelection === 'all' ? 'All Repos' : `${installation.repositories.length} Repos` %>
-              </span>
+              <img src="<%= installation.accountAvatarUrl || `https://avatars.githubusercontent.com/u/${installation.accountId}?v=4` %>" 
+                   alt="<%= installation.accountLogin %>" 
+                   onerror="this.src='https://github.com/identicons/<%= installation.accountId %>.png'">
+              <div>
+                <h2><%= installation.accountLogin %></h2>
+                <div style="display: flex; gap: 8px; margin-top: 6px;">
+                  <span class="badge <%= installation.status %>"><%= installation.status.toUpperCase() %></span>
+                  <span class="badge <%= installation.repositorySelection %>">
+                    <%= installation.repositorySelection === 'all' ? 'All Repos' : `${installation.repositories.length} Repos` %>
+                  </span>
+                </div>
+              </div>
             </div>
             <a href="/installations/<%= installation._id %>/settings" class="btn btn-secondary">Configure</a>
           </div>

@@ -26,12 +26,12 @@
       }
       
       body.light-theme {
-        /* Light theme */
-        --bg-primary: #ffffff;
-        --bg-secondary: #f6f8fa;
-        --bg-tertiary: #ffffff;
-        --border-primary: #d0d7de;
-        --border-secondary: #d8dee4;
+        /* Light theme - Production grade soft colors */
+        --bg-primary: #fafbfc;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #f6f8fa;
+        --border-primary: #e1e4e8;
+        --border-secondary: #d0d7de;
         --text-primary: #24292f;
         --text-secondary: #57606a;
         --text-tertiary: #6e7781;
@@ -55,18 +55,24 @@
       
       /* Premium Navbar Styles */
       .navbar {
-        background: linear-gradient(135deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
+        background: var(--bg-secondary);
         backdrop-filter: blur(20px);
-        border-bottom: 1px solid rgba(88, 166, 255, 0.15);
+        border-bottom: 1px solid var(--border-primary);
         padding: 16px 0;
         position: sticky;
         top: 0;
         z-index: 1000;
         transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      
+      body:not(.light-theme) .navbar {
+        background: linear-gradient(135deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
+        border-bottom: 1px solid rgba(88, 166, 255, 0.15);
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
       }
       
-      .navbar::before {
+      body:not(.light-theme) .navbar::before {
         content: '';
         position: absolute;
         bottom: 0;
@@ -303,14 +309,19 @@
       
       /* Premium Footer */
       .footer {
-        background: linear-gradient(135deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
+        background: var(--bg-secondary);
         backdrop-filter: blur(20px);
-        border-top: 1px solid rgba(88, 166, 255, 0.15);
+        border-top: 1px solid var(--border-primary);
         margin-top: 80px;
         position: relative;
       }
       
-      .footer::before {
+      body:not(.light-theme) .footer {
+        background: linear-gradient(135deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
+        border-top: 1px solid rgba(88, 166, 255, 0.15);
+      }
+      
+      body:not(.light-theme) .footer::before {
         content: '';
         position: absolute;
         top: 0;
@@ -490,6 +501,7 @@
               <a href="/notification-preferences">🔔 Notifications</a>
               <a href="/settings/api-keys">🔑 API Keys</a>
               <a href="/settings/subscription">💎 Subscription</a>
+              <a href="/settings/transactions">💳 Transactions</a>
             </div>
           </div>
           
@@ -604,10 +616,10 @@
           <!-- Company Section -->
           <div class="footer-section">
             <div class="footer-section-title">Company</div>
-            <a href="#" class="footer-link">→ About Us</a>
-            <a href="#" class="footer-link">→ Privacy Policy</a>
-            <a href="#" class="footer-link">→ Terms of Service</a>
-            <a href="#" class="footer-link">→ Contact</a>
+            <a href="/support" class="footer-link">→ Support & Help</a>
+            <a href="/privacy" class="footer-link">→ Privacy Policy</a>
+            <a href="/terms" class="footer-link">→ Terms of Service</a>
+            <a href="mailto:anirbansantra748@gmail.com" class="footer-link">→ Contact</a>
           </div>
         </div>
         

@@ -1,0 +1,208 @@
+<% layout('layout') %>
+
+<div class="legal-container">
+  <div class="legal-content">
+    <h1 class="legal-title">Terms of Service</h1>
+    <p class="legal-updated">Last Updated: <%= new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) %></p>
+    
+    <section class="legal-section">
+      <h2>1. Acceptance of Terms</h2>
+      <p>By accessing and using Peer Code Review ("the Service"), you accept and agree to be bound by the terms and conditions of this agreement. If you do not agree to these terms, please do not use the Service.</p>
+    </section>
+    
+    <section class="legal-section">
+      <h2>2. Description of Service</h2>
+      <p>Peer provides automated code review and analysis services using AI-powered tools. The Service integrates with GitHub to analyze pull requests and provide feedback on code quality, security vulnerabilities, and best practices.</p>
+    </section>
+    
+    <section class="legal-section">
+      <h2>3. User Accounts</h2>
+      <p>To use the Service, you must:</p>
+      <ul>
+        <li>Have a valid GitHub account</li>
+        <li>Provide accurate and complete registration information</li>
+        <li>Maintain the security of your account credentials</li>
+        <li>Accept responsibility for all activities under your account</li>
+      </ul>
+    </section>
+    
+    <section class="legal-section">
+      <h2>4. Acceptable Use</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Use the Service for any unlawful purpose</li>
+        <li>Attempt to gain unauthorized access to the Service or its systems</li>
+        <li>Abuse, harass, or threaten others through the Service</li>
+        <li>Transmit viruses, malware, or any malicious code</li>
+        <li>Reverse engineer or attempt to extract the source code of the Service</li>
+        <li>Use the Service to compete with us or create a similar product</li>
+      </ul>
+    </section>
+    
+    <section class="legal-section">
+      <h2>5. Subscriptions and Payments</h2>
+      <p>The Service offers both free and paid subscription tiers. Paid subscriptions include:</p>
+      <ul>
+        <li>Token-based usage for AI analysis</li>
+        <li>Monthly token allocations based on subscription tier</li>
+        <li>One-time purchases of additional tokens</li>
+      </ul>
+      <p>All payments are processed securely through Razorpay. By making a payment, you agree to Razorpay's terms and conditions. All sales are final unless otherwise stated in our Refund Policy.</p>
+    </section>
+    
+    <section class="legal-section">
+      <h2>6. Data and Privacy</h2>
+      <p>We collect and process your data as described in our <a href="/privacy">Privacy Policy</a>. By using the Service, you consent to such collection and processing. Your code is analyzed temporarily and not stored permanently unless explicitly configured.</p>
+    </section>
+    
+    <section class="legal-section">
+      <h2>7. Intellectual Property</h2>
+      <p>The Service and its original content, features, and functionality are owned by Peer and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.</p>
+      <p>You retain all rights to your code submitted through the Service. We only use your code to provide analysis services and do not claim ownership of your intellectual property.</p>
+    </section>
+    
+    <section class="legal-section">
+      <h2>8. Service Availability</h2>
+      <p>We strive to provide reliable service but do not guarantee uninterrupted access. The Service may be temporarily unavailable for:</p>
+      <ul>
+        <li>Scheduled maintenance</li>
+        <li>Emergency repairs</li>
+        <li>Circumstances beyond our control</li>
+      </ul>
+    </section>
+    
+    <section class="legal-section">
+      <h2>9. Limitation of Liability</h2>
+      <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, PEER SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES.</p>
+    </section>
+    
+    <section class="legal-section">
+      <h2>10. Disclaimer of Warranties</h2>
+      <p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. WE DO NOT WARRANT THAT THE SERVICE WILL BE ERROR-FREE OR THAT ALL ERRORS WILL BE CORRECTED.</p>
+    </section>
+    
+    <section class="legal-section">
+      <h2>11. Termination</h2>
+      <p>We may terminate or suspend your account and access to the Service immediately, without prior notice, for conduct that we believe:</p>
+      <ul>
+        <li>Violates these Terms of Service</li>
+        <li>Is harmful to other users of the Service</li>
+        <li>Is harmful to our business operations</li>
+        <li>Violates applicable laws or regulations</li>
+      </ul>
+    </section>
+    
+    <section class="legal-section">
+      <h2>12. Changes to Terms</h2>
+      <p>We reserve the right to modify these terms at any time. We will notify users of material changes via email or through the Service. Continued use of the Service after changes constitutes acceptance of the modified terms.</p>
+    </section>
+    
+    <section class="legal-section">
+      <h2>13. Governing Law</h2>
+      <p>These Terms shall be governed by and construed in accordance with the laws of India, without regard to its conflict of law provisions.</p>
+    </section>
+    
+    <section class="legal-section">
+      <h2>14. Contact Us</h2>
+      <p>If you have any questions about these Terms of Service, please contact us:</p>
+      <ul>
+        <li>Email: <a href="mailto:anirbansantra748@gmail.com">anirbansantra748@gmail.com</a></li>
+        <li>Support: <a href="/support">Support Page</a></li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<style>
+  .legal-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 24px;
+  }
+  
+  .legal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    padding: 48px;
+  }
+  
+  .legal-title {
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+  
+  .legal-updated {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--border-primary);
+  }
+  
+  .legal-section {
+    margin-bottom: 40px;
+  }
+  
+  .legal-section h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+  
+  .legal-section p {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 12px;
+    font-size: 16px;
+  }
+  
+  .legal-section ul {
+    list-style: disc;
+    margin-left: 24px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+  }
+  
+  .legal-section li {
+    margin-bottom: 8px;
+    font-size: 16px;
+  }
+  
+  .legal-section a {
+    color: var(--accent-primary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+  
+  .legal-section a:hover {
+    border-bottom-color: var(--accent-primary);
+  }
+  
+  @media (max-width: 768px) {
+    .legal-container {
+      padding: 40px 16px;
+    }
+    
+    .legal-content {
+      padding: 32px 24px;
+    }
+    
+    .legal-title {
+      font-size: 32px;
+    }
+    
+    .legal-section h2 {
+      font-size: 20px;
+    }
+    
+    .legal-section p,
+    .legal-section li {
+      font-size: 15px;
+    }
+  }
+</style>

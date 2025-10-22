@@ -349,11 +349,10 @@
 
 <!-- Premium Page Header -->
 <div style="margin-bottom: 48px; position: relative;">
-  <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+  <div style="display: flex; align-items: center; gap: 16px;">
     <div style="width: 4px; height: 48px; background: linear-gradient(180deg, #58a6ff 0%, #1f6feb 100%); border-radius: 4px; box-shadow: 0 0 20px rgba(88, 166, 255, 0.5);"></div>
     <h1 style="font-size: 36px; font-weight: 900; background: linear-gradient(135deg, #58a6ff 0%, #79c0ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.03em; margin: 0;">Dashboard</h1>
   </div>
-  <p style="color: #8b949e; font-size: 15px; margin-left: 20px; line-height: 1.6;">Monitor your code review activities and AI-powered fixes in real-time</p>
 </div>
 
 <!-- Token Usage Widget -->
@@ -447,6 +446,90 @@
     </div>
   </a>
 </div>
+
+<!-- Installation Configuration Status -->
+<% if (installations && installations.length > 0) { %>
+<div class="section" style="margin-bottom: 40px;">
+  <div style="margin-bottom: 24px;">
+    <div class="section-title">⚙️ Installation Settings</div>
+  </div>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+    <% installations.forEach(inst => { 
+      const modeLabels = {
+        'analyze': { icon: '🔍', text: 'Analyze Only', color: '#6e7681', desc: 'Only analyzes and comments' },
+        'commit': { icon: '💾', text: 'Auto-Commit Fixes', color: '#1f6feb', desc: 'Creates commits with fixes' },
+        'merge': { icon: '✅', text: 'Auto-Merge', color: '#238636', desc: 'Auto-merges after fixing' },
+        'review': { icon: '👀', text: 'Manual Review', color: '#9a6700', desc: 'Requires manual selection' }
+      };
+      const mode = inst.config?.mode || 'analyze';
+      const modeInfo = modeLabels[mode];
+    %>
+      <div style="background: linear-gradient(135deg, rgba(22, 27, 34, 0.9) 0%, rgba(13, 17, 23, 0.95) 100%); border: 1px solid var(--border-primary); border-radius: 16px; padding: 24px; transition: all 0.3s; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;" onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='rgba(88, 166, 255, 0.4)'; this.style.boxShadow='0 8px 32px rgba(88, 166, 255, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='var(--border-primary)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.2)'">
+        <!-- Gradient overlay -->
+        <div style="position: absolute; top: -50%; right: -20%; width: 300px; height: 300px; background: radial-gradient(circle, <%= modeInfo.color %>08 0%, transparent 70%); pointer-events: none;"></div>
+        
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; position: relative; z-index: 1;">
+          <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0;">
+            <img src="<%= inst.accountAvatarUrl || `https://avatars.githubusercontent.com/u/${inst.accountId}?v=4` %>" 
+                 alt="<%= inst.accountLogin %>" 
+                 onerror="this.src='https://github.com/identicons/<%= inst.accountId %>.png'" 
+                 style="width: 56px; height: 56px; border-radius: 12px; border: 2px solid var(--border-primary); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 700; font-size: 18px; color: var(--text-primary); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><%= inst.accountLogin %></div>
+              <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                <span><%= inst.accountType %></span>
+                <span style="width: 4px; height: 4px; background: var(--text-secondary); border-radius: 50%;"></span>
+                <span><%= inst.repositories?.length || 0 %> repositories</span>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+            <span style="padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; <%= inst.status === 'active' ? 'background: rgba(35, 134, 54, 0.2); color: #3fb950; border: 1px solid rgba(35, 134, 54, 0.4);' : 'background: rgba(218, 54, 51, 0.2); color: #ff7b72; border: 1px solid rgba(218, 54, 51, 0.4);' %> text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">
+              <%= inst.status === 'active' ? '✔ Active' : '⚠️ Inactive' %>
+            </span>
+            <a href="/installations/<%= inst._id %>/settings" style="background: rgba(33, 38, 45, 0.8); border: 1px solid rgba(240, 246, 252, 0.1); color: #c9d1d9; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.2s; white-space: nowrap;" onmouseover="this.style.background='rgba(48, 54, 61, 1)'; this.style.borderColor='rgba(88, 166, 255, 0.3)';" onmouseout="this.style.background='rgba(33, 38, 45, 0.8)'; this.style.borderColor='rgba(240, 246, 252, 0.1)';">
+              ⚙️ Configure
+            </a>
+          </div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, <%= modeInfo.color %>20 0%, <%= modeInfo.color %>10 100%); border-left: 4px solid <%= modeInfo.color %>; padding: 16px; border-radius: 10px; margin-bottom: 16px; position: relative; z-index: 1;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"><%= modeInfo.icon %></span>
+            <span style="font-weight: 700; color: var(--text-primary); font-size: 16px;"><%= modeInfo.text %></span>
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;"><%= modeInfo.desc %></div>
+        </div>
+        
+        <div style="position: relative; z-index: 1;">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Auto-fix Severities</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
+            <% (inst.config?.severities || ['critical', 'high']).forEach(sev => { 
+              const severityColors = {
+                critical: '#da3633',
+                high: '#f85149',
+                medium: '#d29922',
+                low: '#768390'
+              };
+            %>
+              <span style="background: <%= severityColors[sev] %>; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; box-shadow: 0 2px 6px <%= severityColors[sev] %>40;"><%= sev %></span>
+            <% }) %>
+          </div>
+          
+          <% if (inst.config?.autoMerge?.enabled) { %>
+            <div style="background: linear-gradient(135deg, rgba(35, 134, 54, 0.15) 0%, rgba(35, 134, 54, 0.08) 100%); border: 1px solid rgba(35, 134, 54, 0.4); padding: 12px; border-radius: 8px; font-size: 12px; color: #3fb950; font-weight: 600;">
+              ✅ Auto-merge enabled
+              <% if (inst.config.autoMerge.requireTests) { %> • Tests required<% } %>
+              <% if (inst.config.autoMerge.requireReviews > 0) { %> • <%= inst.config.autoMerge.requireReviews %> reviews<% } %>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</div>
+<% } %>
 
 <!-- Repository Stats Table -->
 <% if (repoStats && repoStats.length > 0) { %>

@@ -152,6 +152,11 @@
       cursor: not-allowed;
     }
     
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
     .faq {
       background: #161b22;
       border: 1px solid #30363d;
@@ -234,24 +239,21 @@
             <span class="current-badge">CURRENT</span>
           <% } %>
         </div>
-<div class="plan-price">
+        <div class="plan-price">
           ₹<%= proPriceInr %>
-          <small>/month</small>
+          <small>/purchase</small>
         </div>
-        <div class="plan-desc">For professional developers</div>
+        <div class="plan-desc">Buy tokens anytime - they never expire!</div>
         <ul class="plan-features">
-          <li>10,000 AI tokens</li>
+          <li>10,000 AI tokens (never expire)</li>
           <li>Unlimited repositories</li>
           <li>Advanced code analysis</li>
           <li>Priority support</li>
           <li>Auto-merge capabilities</li>
           <li>Custom rules</li>
+          <li><strong>Buy as many times as you want!</strong></li>
         </ul>
-        <% if (user.subscriptionTier === 'pro') { %>
-          <button class="btn btn-secondary" disabled>Current Plan</button>
-        <% } else { %>
-          <button id="rzp-pro-btn" class="btn btn-primary" type="button">Upgrade to Pro</button>
-        <% } %>
+        <button id="rzp-pro-btn" class="btn btn-primary" type="button">Buy 10,000 Tokens</button>
       </div>
 
       <!-- Enterprise Plan -->
@@ -305,9 +307,9 @@
       </div>
 
       <div class="faq-item">
-        <div class="faq-question">Can I cancel anytime?</div>
+        <div class="faq-question">Can I buy tokens multiple times?</div>
         <div class="faq-answer">
-          Yes, you can cancel your subscription at any time. You'll keep access until the end of your billing period.
+          Yes! You can purchase ₹800 for 10,000 tokens as many times as you want. Tokens never expire and stack with your existing balance.
         </div>
       </div>
 
@@ -317,7 +319,23 @@
           We use industry-standard encryption and never store your payment details directly.
         </div>
       </div>
-</div>
+      
+      <div class="faq-item">
+        <div class="faq-question">What is your refund policy?</div>
+        <div class="faq-answer">
+          We offer full refunds within 7 days of purchase if you've used less than 10% of your purchased tokens. 
+          Contact us at <a href="mailto:anirbansantra748@gmail.com" style="color: #58a6ff;">anirbansantra748@gmail.com</a> 
+          with your transaction details. Refunds are processed within 5-7 business days.
+        </div>
+      </div>
+    </div>
+    
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; margin-top: 32px; text-align: center;">
+      <p style="color: #8b949e; font-size: 14px; margin-bottom: 12px;">
+        By purchasing, you agree to our <a href="/support" style="color: #58a6ff;">Terms of Service</a> and <a href="/support" style="color: #58a6ff;">Privacy Policy</a>. 
+        Need help? Visit our <a href="/support" style="color: #58a6ff;">Support Page</a>.
+      </p>
+    </div>
   </div>
 
   <script>
@@ -331,9 +349,14 @@
         return;
       }
       btn.addEventListener('click', async () => {
+        if (btn.disabled) return; // Prevent double-click
+        
         try {
           btn.disabled = true;
-          btn.textContent = 'Processing...';
+          btn.style.opacity = '0.6';
+          btn.style.cursor = 'not-allowed';
+          btn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⌛</span> Processing...';
+          
           const resp = await fetch('/settings/subscription/razorpay/order', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
           const data = await resp.json();
           if (!data.ok) throw new Error(data.error || 'Failed to create order');

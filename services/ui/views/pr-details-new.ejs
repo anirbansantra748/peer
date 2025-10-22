@@ -209,6 +209,68 @@
     text-align: center;
     color: #6e7681;
   }
+  
+  /* Completion Progress Bar */
+  .completion-bar {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .completion-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #8b949e;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .progress-container {
+    height: 12px;
+    background: rgba(33, 38, 45, 0.6);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #238636 0%, #2ea043 100%);
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 12px rgba(35, 134, 54, 0.5);
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 2s infinite;
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .progress-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #8b949e;
+  }
+  .progress-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .progress-stat-value {
+    font-weight: 600;
+    color: #c9d1d9;
+  }
 </style>
 
 <!-- Page Header -->
@@ -264,6 +326,30 @@
     <div class="meta-item">
       <div class="meta-label">Created</div>
       <div class="meta-value" style="font-size: 13px;"><%= new Date(run.createdAt).toLocaleString() %></div>
+    </div>
+  </div>
+</div>
+
+<!-- Completion Progress Bar -->
+<div class="completion-bar">
+  <div class="completion-label">
+    🎯 Completion Progress
+  </div>
+  <div class="progress-container">
+    <div class="progress-fill" style="width: <%= fixRate %>%; background: linear-gradient(90deg, <%= fixRate >= 90 ? '#238636' : fixRate >= 75 ? '#2ea043' : fixRate >= 50 ? '#f0883e' : '#da3633' %> 0%, <%= fixRate >= 90 ? '#2ea043' : fixRate >= 75 ? '#3fb950' : fixRate >= 50 ? '#fb8500' : '#ff7b72' %> 100%);"></div>
+  </div>
+  <div class="progress-stats">
+    <div class="progress-stat-item">
+      <span>✅ Fixed:</span>
+      <span class="progress-stat-value" style="color: #3fb950;"><%= fixedCount %> / <%= findings.length %></span>
+    </div>
+    <div class="progress-stat-item">
+      <span>📊 Completion Rate:</span>
+      <span class="progress-stat-value" style="color: <%= fixRate >= 75 ? '#3fb950' : fixRate >= 50 ? '#f0883e' : '#da3633' %>"><%= fixRate %>%</span>
+    </div>
+    <div class="progress-stat-item">
+      <span>⏳ Remaining:</span>
+      <span class="progress-stat-value" style="color: #f0883e;"><%= unfixedCount %></span>
     </div>
   </div>
 </div>

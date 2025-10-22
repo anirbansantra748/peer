@@ -1,0 +1,111 @@
+<% layout('layout') %>
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 40px 20px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+    <div>
+      <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">💳 Payment History</h1>
+      <p style="color: var(--text-secondary); font-size: 16px;">View all your token purchase transactions</p>
+    </div>
+    <a href="/settings/subscription" style="background: var(--accent-primary); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+      Buy More Tokens
+    </a>
+  </div>
+
+  <!-- Stats Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 40px;">
+    <div style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; padding: 24px;">
+      <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">Total Purchased</div>
+      <div style="font-size: 32px; font-weight: 700; color: var(--accent-primary);"><%= user.purchasedTokens || 0 %> tokens</div>
+    </div>
+    
+    <div style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; padding: 24px;">
+      <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">Tokens Used</div>
+      <div style="font-size: 32px; font-weight: 700; color: var(--danger);"><%= user.tokensUsed || 0 %> tokens</div>
+    </div>
+    
+    <div style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; padding: 24px;">
+      <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">Remaining Balance</div>
+      <div style="font-size: 32px; font-weight: 700; color: var(--success);"><%= (user.purchasedTokens || 0) - (user.tokensUsed || 0) %> tokens</div>
+    </div>
+  </div>
+
+  <!-- Transactions Table -->
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; overflow: hidden;">
+    <div style="padding: 24px; border-bottom: 1px solid var(--border-primary);">
+      <h2 style="font-size: 20px; font-weight: 600;">Transaction History</h2>
+    </div>
+    
+    <% if (transactions && transactions.length > 0) { %>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: var(--bg-tertiary); border-bottom: 1px solid var(--border-primary);">
+              <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 14px;">Date</th>
+              <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 14px;">Transaction ID</th>
+              <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 14px;">Amount</th>
+              <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 14px;">Tokens</th>
+              <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 14px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% transactions.forEach(tx => { %>
+              <tr style="border-bottom: 1px solid var(--border-primary);">
+                <td style="padding: 16px; color: var(--text-primary);">
+                  <%= new Date(tx.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %>
+                  <br>
+                  <span style="color: var(--text-secondary); font-size: 12px;">
+                    <%= new Date(tx.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) %>
+                  </span>
+                </td>
+                <td style="padding: 16px; font-family: monospace; font-size: 13px; color: var(--text-primary);">
+                  <%= tx.paymentId || tx.orderId %>
+                </td>
+                <td style="padding: 16px; font-weight: 600; color: var(--text-primary);">
+                  ₹<%= tx.amount %>
+                </td>
+                <td style="padding: 16px; color: var(--accent-primary); font-weight: 600;">
+                  10,000
+                </td>
+                <td style="padding: 16px;">
+                  <% if (tx.status === 'captured') { %>
+                    <span style="display: inline-block; padding: 4px 12px; background: rgba(35, 134, 54, 0.2); color: var(--success); border-radius: 12px; font-size: 12px; font-weight: 600;">
+                      ✓ Completed
+                    </span>
+                  <% } else if (tx.status === 'created') { %>
+                    <span style="display: inline-block; padding: 4px 12px; background: rgba(240, 136, 62, 0.2); color: var(--warning); border-radius: 12px; font-size: 12px; font-weight: 600;">
+                      ⏳ Pending
+                    </span>
+                  <% } else { %>
+                    <span style="display: inline-block; padding: 4px 12px; background: rgba(218, 54, 51, 0.2); color: var(--danger); border-radius: 12px; font-size: 12px; font-weight: 600;">
+                      ✗ Failed
+                    </span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <div style="padding: 80px 24px; text-align: center;">
+        <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.5;">💳</div>
+        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">No Transactions Yet</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 24px;">You haven't made any purchases yet</p>
+        <a href="/settings/subscription" style="display: inline-block; background: var(--accent-primary); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+          Purchase Tokens
+        </a>
+      </div>
+    <% } %>
+  </div>
+  
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; padding: 24px; margin-top: 24px;">
+    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">📌 Important Notes</h3>
+    <ul style="color: var(--text-secondary); font-size: 14px; line-height: 1.8; padding-left: 20px;">
+      <li>All payments are processed securely through Razorpay</li>
+      <li>Tokens never expire and can be used anytime</li>
+      <li>You can purchase tokens as many times as you want</li>
+      <li>Refunds are available within 7 days if tokens are unused</li>
+      <li>For payment issues, contact <a href="mailto:anirbansantra748@gmail.com" style="color: var(--accent-primary);">anirbansantra748@gmail.com</a></li>
+    </ul>
+  </div>
+</div>
