@@ -111,11 +111,11 @@ async function buildPreview(patchRequestId) {
   const User = require('../models/User');
   const userContext = patch.userId ? await User.findById(patch.userId) : null;
   
-  // Check token limit before starting (estimate ~2000 tokens per file)
+  // Check token limit before starting (estimate ~500 tokens per request)
   if (userContext) {
     const { checkUserTokenLimit } = require('../utils/userTokens');
     const { notifyTokenLimitExceeded } = require('../utils/errorNotification');
-    const estimatedTokens = 2000; // Conservative estimate
+    const estimatedTokens = 500; // Estimate ~500 tokens per autofix request
     const check = await checkUserTokenLimit(userContext, estimatedTokens);
     if (!check.allowed && !check.useUserKeys) {
       patch.status = 'failed';
