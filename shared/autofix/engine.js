@@ -79,14 +79,30 @@ function applyLineTransform(file, lines, lineNumber, finding) {
   return { ok: true, newLines: workingLines, hunk: { line: lineNumber || 1, original, inserted, rule: finding.rule, reason: changed.reason } };
 }
 
-async function cloneRepoAtSha(repo, sha) {
+async function cloneRepoAtSha(repo, sha, installationId = null) {
   const tempDir = path.join(os.tmpdir(), `peer-autofix-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await fsp.mkdir(tempDir, { recursive: true });
-  const url = safeRepoUrl(repo);
+  
+  // Try to get GitHub App installation token for authenticated git operations
+  let authUrl = safeRepoUrl(repo);
+  if (installationId) {
+    try {
+      const { getInstallationOctokit } = require('../services/githubApp');
+      const octokit = await getInstallationOctokit(installationId);
+      const { data: tokenData } = await octokit.apps.createInstallationAccessToken({
+        installation_id: installationId
+      });
+      authUrl = `https://x-access-token:${tokenData.token}@github.com/${repo}.git`;
+      logger.info('autofix', 'Using GitHub App token for git operations', { repo });
+    } catch (e) {
+      logger.warn('autofix', 'Failed to get GitHub App token, falling back', { repo, error: String(e) });
+    }
+  }
+  
   const git = simpleGit();
   try {
     // Shallow, no-checkout clone then fetch only the target commit
-    await git.clone(url, tempDir, ['--no-checkout']);
+    await git.clone(authUrl, tempDir, ['--no-checkout']);
     const git2 = simpleGit({ baseDir: tempDir });
     await git2.fetch('origin', sha, { '--depth': 1 });
     await git2.checkout(sha);
@@ -94,7 +110,7 @@ async function cloneRepoAtSha(repo, sha) {
   } catch (e) {
     // Fallback to full clone + checkout
     const git3 = simpleGit();
-    await git3.clone(url, tempDir);
+    await git3.clone(authUrl, tempDir);
     const git4 = simpleGit({ baseDir: tempDir });
     await git4.checkout(sha);
     return { tempDir, git: git4 };
@@ -155,7 +171,7 @@ async function buildPreview(patchRequestId) {
   patch.preview = { unifiedDiff: '', files: [], filesExpected: 0 };
   await patch.save();
 
-  const { tempDir } = await cloneRepoAtSha(patch.repo, patch.sha);
+  const { tempDir } = await cloneRepoAtSha(patch.repo, patch.sha, prRun.installationId);
   let selected = prRun.findings.filter(f => patch.selectedFindingIds.includes(String(f._id)));
 
   // Severity prioritization
@@ -385,7 +401,7 @@ async function applyPatch(patchRequestId) {
   patch.status = 'applying';
   await patch.save();
 
-  const { tempDir, git } = await cloneRepoAtSha(patch.repo, patch.sha);
+  const { tempDir, git } = await cloneRepoAtSha(patch.repo, patch.sha, prRun.installationId);
   const branchName = `peer/autofix/${patch.runId}-${Date.now()}`;
   await git.checkoutLocalBranch(branchName);
 
