@@ -87,8 +87,8 @@ async function cloneRepoAtSha(repo, sha, installationId = null) {
   let authUrl = safeRepoUrl(repo);
   if (installationId) {
     try {
-      const { getInstallationOctokit } = require('../services/githubApp');
-      const octokit = await getInstallationOctokit(installationId);
+      const githubAppService = require('../services/githubApp');
+      const octokit = await githubAppService.getInstallationOctokit(installationId);
       const { data: tokenData } = await octokit.apps.createInstallationAccessToken({
         installation_id: installationId
       });
@@ -559,10 +559,10 @@ async function applyPatch(patchRequestId) {
           const [owner, repo] = patch.repo.split('/');
           
           // Detect base branch from repository default
-          const { getInstallationOctokit } = require('../services/githubApp');
+          const githubAppService = require('../services/githubApp');
           let baseBranch = 'main'; // default fallback
           try {
-            const octokit = await getInstallationOctokit(installation.installationId);
+            const octokit = await githubAppService.getInstallationOctokit(installation.installationId);
             const { data: repoData } = await octokit.repos.get({ owner, repo });
             baseBranch = repoData.default_branch || 'main';
             logger.info('autofix', 'Detected default branch', { repo: patch.repo, baseBranch });
