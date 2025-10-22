@@ -25,9 +25,9 @@ function configurePassport() {
   passport.use(
     new GitHubStrategy(
       {
-        clientID: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET,
-        callbackURL: process.env.GITHUB_CALLBACK_URL || 'http://localhost:3000/auth/github/callback',
+        clientID: process.env.GITHUB_APP_CLIENT_ID || process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_APP_CLIENT_SECRET || process.env.GITHUB_CLIENT_SECRET,
+        callbackURL: `${process.env.BASE_URL}/auth/github/callback`,
         scope: ['user:email'], // Request email access
       },
       async (accessToken, refreshToken, profile, done) => {
