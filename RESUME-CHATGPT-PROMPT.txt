@@ -1,0 +1,106 @@
+===========================================
+CHATGPT PROMPT FOR RESUME BULLET GENERATION
+===========================================
+
+Copy and paste this into ChatGPT to generate resume content:
+
+---
+
+I built a project called "Peer - AI-Powered Code Review Platform". Please help me create professional resume bullet points (3-5 bullets) for this project. Here are the key details:
+
+## PROJECT OVERVIEW
+- An enterprise-grade automated code review platform for GitHub pull requests
+- Microservices architecture (API, Analyzer Worker, Autofix Worker, UI, DepScan Worker)
+- Real-time webhook integration with GitHub App
+- AI-powered auto-fix generation using multiple LLM providers (OpenAI, Groq, Gemini)
+- Deployed on Render.com as 4 independent services
+
+## TECHNICAL STACK
+- Backend: Node.js 22.x, Express.js 5.x
+- Database: MongoDB (Mongoose ODM)
+- Queue/Cache: Redis, BullMQ (job queue with workers)
+- Authentication: Passport.js, GitHub OAuth, GitHub App (installation tokens)
+- AI/LLM: OpenAI GPT-4, Groq (Mixtral/Llama), Google Gemini with token tracking
+- Static Analysis: ESLint, Semgrep, Bandit, PMD, Checkov, Hadolint
+- Payment: Razorpay integration
+- DevOps: Docker, GitHub Actions, Render hosting with health checks
+
+## KEY FEATURES BUILT
+1. Real-time PR analysis via GitHub webhooks
+2. Multi-language static analysis (JavaScript, Python, Java, Dockerfile, YAML)
+3. AI-powered auto-fix with two strategies:
+   - Minimal: Line-by-line patches with checksum verification
+   - Full: Complete file rewrites with syntax validation
+4. GitHub App integration:
+   - Installation token management
+   - Automatic branch creation and PR submission
+   - Configurable auto-merge workflows (comment/commit/merge modes)
+5. User management:
+   - GitHub OAuth authentication
+   - Subscription tiers (Free/Pro/Enterprise)
+   - Token budgeting (1K/10K/unlimited tokens per month)
+   - BYOK (Bring Your Own Key) support
+   - Razorpay payment integration
+6. Dashboard with analytics and metrics
+7. Email notifications for analysis completion, approval needed, token limits
+
+## SYSTEM FLOW
+1. GitHub PR webhook → API server
+2. API creates PRRun record, enqueues analysis job in Redis/BullMQ
+3. Analyzer worker clones repo, runs parallel static analyzers, aggregates findings
+4. Findings stored in MongoDB with severity categorization
+5. Autofix worker generates AI fixes, validates syntax, creates git branch
+6. Autofix pushes branch via GitHub App token, opens PR with fixes
+7. Optional auto-merge based on installation config
+8. UI dashboard updated with real-time metrics
+
+## PERFORMANCE & SCALABILITY
+- Average PR analysis time: 15-45 seconds
+- Auto-fix generation: 5-20 seconds per file
+- Webhook response: < 500ms
+- Redis caching for LLM responses (24h TTL)
+- Concurrent job processing with BullMQ
+- MongoDB indexes for optimized queries
+- Health checks on all services for Render uptime
+
+## SECURITY IMPLEMENTED
+- GitHub webhook signature verification
+- AES-256 encryption for API keys in database
+- GitHub App installation tokens (scoped, auto-expiring)
+- Rate limiting on API endpoints
+- Session-based auth with secure cookies
+- Input validation and sanitization
+- No secrets in logs
+
+## NOTABLE TECHNICAL CHALLENGES SOLVED
+1. Token budgeting system with per-user limits and unlimited enterprise tier
+2. GitHub App authentication for git operations (push/branch/PR creation)
+3. Fixed singleton service import bug causing GitHub API failures
+4. Auto-linking GitHub installations to users by username
+5. Repository count deduplication across multiple installations
+6. Worker liveness via HTTP health servers for Render deployment
+7. Checksum-based conflict detection in auto-fix patches
+
+## IMPACT/RESULTS
+- Reduces manual code review time by automating static analysis and fixes
+- Processes PRs end-to-end in under 1 minute for typical changes
+- Scalable architecture supporting multiple concurrent jobs
+- Secure multi-tenant system with per-user token tracking
+- Production-ready deployment with monitoring and observability
+
+---
+
+Please generate:
+1. 3-5 professional resume bullet points (focusing on technical achievements, impact, and technologies)
+2. A 2-3 sentence project description for my resume
+3. A concise "Technologies Used" list for the project
+
+Format for an experienced software engineer role, emphasizing:
+- System design and architecture
+- Performance optimization
+- AI/LLM integration
+- GitHub API/App expertise
+- Microservices and distributed systems
+- DevOps and deployment
+
+Make it quantifiable where possible and use strong action verbs.
