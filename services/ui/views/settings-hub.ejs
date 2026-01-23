@@ -1,0 +1,554 @@
+<% layout('layout') %>
+
+<style>
+  :root {
+    --bg-body: #1E1F25;
+    --bg-card: #282A32;
+    --bg-card-hover: #32343D;
+    --border-color: #3A3C45;
+    --text-primary: #FFFFFF;
+    --text-secondary: #9CA3B0;
+    --text-muted: #6B7280;
+    --green-accent: #BFFF00;
+    --green-light: #A8E600;
+    --blue-accent: #6366F1;
+    --yellow-accent: #FBBF24;
+    --orange-accent: #F97316;
+    --purple-accent: #A855F7;
+    --cyan-accent: #22D3EE;
+  }
+
+  .navbar { display: none !important; }
+  .footer-wave, .footer { display: block !important; }
+  .main-content { max-width: none !important; margin: 0 !important; padding: 0 !important; display: contents !important; }
+  
+  body {
+    background: var(--bg-body) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text-primary);
+  }
+  
+  .dashboard-container {
+    background: var(--bg-body);
+    display: block;
+    min-height: 100vh;
+    padding: 24px;
+    padding: 24px;
+    /* padding-left: 94px; - Removed */
+  }
+
+  /* Sidebar - use sidebar.ejs fixed styles */
+  .left-sidebar { position: fixed !important; left: 0 !important; top: 0 !important; }
+  .sidebar-header, .sidebar-brand, .profile-section, .profile-avatar-large, .profile-title, .profile-subtitle, .nav-text, .subscription-indicator { display: none !important; }
+
+  /* Main Content */
+  .main-content-area { padding: 0 32px; }
+
+  /* Header */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+
+  .header-left h1 { font-size: 26px; font-weight: 700; margin: 0 0 4px 0; }
+  .header-left p { font-size: 14px; color: var(--text-muted); margin: 0; }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+
+  .premium-btn {
+    padding: 10px 24px;
+    background: var(--blue-accent);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .premium-btn:hover { background: #5558E3; transform: translateY(-1px); }
+
+  /* Main Grid */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title svg { width: 20px; height: 20px; stroke: var(--green-accent); }
+
+  /* Profile Card */
+  .profile-card { display: flex; align-items: center; gap: 20px; }
+  .profile-avatar { width: 72px; height: 72px; border-radius: 50%; border: 3px solid var(--border-color); }
+  .profile-info h3 { font-size: 20px; font-weight: 700; margin: 0 0 4px 0; }
+  .profile-info p { font-size: 14px; color: var(--text-muted); margin: 0; }
+  .profile-badge { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(191, 255, 0, 0.15); color: var(--green-accent); margin-left: auto; }
+
+  /* Stats Grid */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+  .stat-box { background: var(--bg-body); border-radius: 12px; padding: 16px; text-align: center; }
+  .stat-value { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .stat-value.green { color: var(--green-accent); }
+  .stat-value.blue { color: var(--blue-accent); }
+  .stat-value.yellow { color: var(--yellow-accent); }
+  .stat-label { font-size: 12px; color: var(--text-muted); }
+
+  /* Calendar */
+  .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .calendar-title { font-size: 16px; font-weight: 600; }
+  .month-nav { display: flex; align-items: center; gap: 12px; }
+  .month-nav button { background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 10px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+  .month-nav button:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+  .month-label { font-size: 14px; font-weight: 500; min-width: 120px; text-align: center; }
+
+  .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 8px; }
+  .weekday { text-align: center; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; padding: 8px 0; }
+
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-body);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .calendar-day:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+  .calendar-day.today { background: var(--blue-accent); color: #fff; font-weight: 700; }
+  .calendar-day.has-activity-1 { background: rgba(191, 255, 0, 0.2); color: var(--text-primary); }
+  .calendar-day.has-activity-2 { background: rgba(191, 255, 0, 0.4); color: #000; }
+  .calendar-day.has-activity-3 { background: rgba(191, 255, 0, 0.7); color: #000; font-weight: 600; }
+  .calendar-day.has-activity-4 { background: var(--green-accent); color: #000; font-weight: 700; }
+  .calendar-day.empty { visibility: hidden; }
+  .calendar-day.other-month { opacity: 0.3; }
+
+  .day-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 100;
+    color: var(--text-primary);
+  }
+  .calendar-day:hover .day-tooltip { opacity: 1; }
+
+  /* Settings Grid */
+  .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .settings-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: var(--bg-body);
+    border-radius: 14px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .settings-item:hover { background: var(--bg-card-hover); transform: translateX(4px); }
+  .settings-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .settings-icon svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 2; }
+  .settings-icon.yellow { background: linear-gradient(135deg, #FBBF24, #F59E0B); }
+  .settings-icon.blue { background: linear-gradient(135deg, #6366F1, #4F46E5); }
+  .settings-icon.green { background: linear-gradient(135deg, #BFFF00, #A8E600); }
+  .settings-icon.purple { background: linear-gradient(135deg, #A855F7, #9333EA); }
+  .settings-icon.cyan { background: linear-gradient(135deg, #22D3EE, #06B6D4); }
+  .settings-icon.orange { background: linear-gradient(135deg, #F97316, #EA580C); }
+  .settings-icon.green svg { stroke: #000; }
+  .settings-text h4 { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 0 0 2px 0; }
+  .settings-text p { font-size: 12px; color: var(--text-muted); margin: 0; }
+
+  /* Recent Activity */
+  .activity-list { display: flex; flex-direction: column; gap: 12px; }
+  .activity-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: var(--bg-body);
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .activity-item:hover { background: var(--bg-card-hover); }
+  .activity-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(99, 102, 241, 0.15); }
+  .activity-icon svg { width: 18px; height: 18px; stroke: var(--blue-accent); stroke-width: 2; }
+  .activity-icon.success { background: rgba(191, 255, 0, 0.15); }
+  .activity-icon.success svg { stroke: var(--green-accent); }
+  .activity-info { flex: 1; }
+  .activity-info h4 { font-size: 13px; font-weight: 500; color: var(--text-primary); margin: 0 0 2px 0; }
+  .activity-info p { font-size: 11px; color: var(--text-muted); margin: 0; }
+  .activity-time { font-size: 11px; color: var(--text-muted); }
+
+  /* Progress */
+  .progress-section { margin-top: 20px; }
+  .progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .progress-label { font-size: 13px; color: var(--text-secondary); }
+  .progress-value { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .progress-bar { height: 8px; background: var(--bg-body); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green-accent), var(--green-light)); border-radius: 4px; transition: width 0.3s; }
+</style>
+
+<div class="dashboard-container">
+  <%- include('partials/sidebar', { activePage: 'settings' }) %>
+
+  <main class="main-content-area">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <h1>Hello, <%= user.displayName || user.username %>!</h1>
+        <p>Ready for today's code reviews?</p>
+      </div>
+      <div class="header-right">
+        <a href="/settings/subscription" class="premium-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: inline; vertical-align: middle; margin-right: 6px;">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          Premium
+        </a>
+      </div>
+    </div>
+
+    <div class="content-grid">
+      <!-- Left Column -->
+      <div class="left-column">
+        <!-- Profile Card -->
+        <div class="card">
+          <div class="profile-card">
+            <img src="<%= user.avatar || 'https://github.com/' + user.username + '.png' %>" class="profile-avatar" onerror="this.src='https://github.com/identicons/<%= user.githubId %>.png'">
+            <div class="profile-info">
+              <h3><%= user.displayName || user.username %></h3>
+              <p>@<%= user.username %> • Joined <%= new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) %></p>
+            </div>
+            <span class="profile-badge"><%= (user.subscriptionTier || 'free').toUpperCase() %></span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-value green"><%= (user.tokensUsed || 0).toLocaleString() %></div>
+              <div class="stat-label">Tokens Used</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value blue"><%= (user.apiKeys?.groq ? 1 : 0) + (user.apiKeys?.gemini ? 1 : 0) %></div>
+              <div class="stat-label">API Keys</div>
+            </div>
+            <div class="stat-box">
+              <% const remaining = Math.max(0, (user.tokenLimit || 1000) - (user.tokensUsed || 0)); %>
+              <div class="stat-value yellow"><%= remaining.toLocaleString() %></div>
+              <div class="stat-label">Remaining</div>
+            </div>
+          </div>
+          <div class="progress-section">
+            <div class="progress-header">
+              <span class="progress-label">Token Usage</span>
+              <% const pct = Math.min(100, Math.round(((user.tokensUsed || 0) / (user.tokenLimit || 1000)) * 100)); %>
+              <span class="progress-value"><%= pct %>%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: <%= pct %>%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Settings -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              Quick Settings
+            </span>
+          </div>
+          <div class="settings-grid">
+            <a href="/settings/subscription" class="settings-item">
+              <div class="settings-icon yellow">
+                <svg viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              </div>
+              <div class="settings-text"><h4>Subscription</h4><p>Manage plan & tokens</p></div>
+            </a>
+            <a href="/settings/api-keys" class="settings-item">
+              <div class="settings-icon blue">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+              </div>
+              <div class="settings-text"><h4>API Keys</h4><p>Groq & Gemini</p></div>
+            </a>
+            <a href="/profile-settings" class="settings-item">
+              <div class="settings-icon cyan">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </div>
+              <div class="settings-text"><h4>Profile</h4><p>Edit profile</p></div>
+            </a>
+            <a href="/notification-preferences" class="settings-item">
+              <div class="settings-icon purple">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              </div>
+              <div class="settings-text"><h4>Notifications</h4><p>Preferences</p></div>
+            </a>
+            <a href="/installations" class="settings-item">
+              <div class="settings-icon green">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+              </div>
+              <div class="settings-text"><h4>Installations</h4><p>GitHub apps</p></div>
+            </a>
+            <a href="/audits" class="settings-item">
+              <div class="settings-icon orange">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              </div>
+              <div class="settings-text"><h4>Audit Logs</h4><p>View history</p></div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="right-column">
+        <!-- Calendar -->
+        <div class="card">
+          <div class="calendar-header">
+            <span class="calendar-title">Your Active Days</span>
+            <div class="month-nav">
+              <button onclick="changeMonth(-1)" title="Previous Month">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <span class="month-label" id="monthLabel"></span>
+              <button onclick="changeMonth(1)" title="Next Month">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          </div>
+          <div class="weekdays">
+            <span class="weekday">Mon</span>
+            <span class="weekday">Tue</span>
+            <span class="weekday">Wed</span>
+            <span class="weekday">Thu</span>
+            <span class="weekday">Fri</span>
+            <span class="weekday">Sat</span>
+            <span class="weekday">Sun</span>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              Recent Activity
+            </span>
+          </div>
+          <div class="activity-list">
+            <a href="/audits" class="activity-item">
+              <div class="activity-icon success">
+                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="activity-info">
+                <h4>PR Analysis Complete</h4>
+                <p>Latest code review finished</p>
+              </div>
+              <span class="activity-time">Just now</span>
+            </a>
+            <a href="/settings/api-keys" class="activity-item">
+              <div class="activity-icon">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5"></path></svg>
+              </div>
+              <div class="activity-info">
+                <h4>API Key Connected</h4>
+                <p><%= (user.apiKeys?.groq ? 1 : 0) + (user.apiKeys?.gemini ? 1 : 0) %> provider(s) active</p>
+              </div>
+              <span class="activity-time">Active</span>
+            </a>
+            <a href="/settings/subscription" class="activity-item">
+              <div class="activity-icon">
+                <svg viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              </div>
+              <div class="activity-info">
+                <h4><%= (user.subscriptionTier || 'Free').charAt(0).toUpperCase() + (user.subscriptionTier || 'Free').slice(1) %> Plan</h4>
+                <p><%= (user.tokenLimit || 1000).toLocaleString() %> tokens available</p>
+              </div>
+              <span class="activity-time">Current</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const activityMap = <%- activityMap || '{}' %>;
+  let currentDate = new Date();
+  
+  function changeMonth(delta) {
+    currentDate.setMonth(currentDate.getMonth() + delta);
+    generateCalendar();
+  }
+  
+  function showDayPopup(dateStr, activity, event) {
+    // Remove existing popup
+    const existing = document.querySelector('.day-popup');
+    if (existing) existing.remove();
+    
+    const popup = document.createElement('div');
+    popup.className = 'day-popup';
+    popup.style.cssText = `
+      position: fixed;
+      top: ${event.clientY - 60}px;
+      left: ${event.clientX}px;
+      background: #282A32;
+      border: 1px solid #3A3C45;
+      border-radius: 12px;
+      padding: 16px 20px;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      min-width: 200px;
+      transform: translateX(-50%);
+    `;
+    
+    const date = new Date(dateStr);
+    const formattedDate = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    
+    if (activity && activity.count > 0) {
+      popup.innerHTML = `
+        <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #fff;">${formattedDate}</div>
+        <div style="font-size: 13px; color: #BFFF00; margin-bottom: 12px;">
+          <strong>${activity.count}</strong> PR${activity.count > 1 ? 's' : ''} analyzed
+        </div>
+        <a href="/audits?date=${dateStr}" style="display: inline-block; padding: 8px 16px; background: #BFFF00; color: #000; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600;">View Details →</a>
+      `;
+    } else {
+      popup.innerHTML = `
+        <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #fff;">${formattedDate}</div>
+        <div style="font-size: 13px; color: #6B7280; margin-bottom: 12px;">No PR activity</div>
+        <a href="/audits" style="display: inline-block; padding: 8px 16px; background: #3A3C45; color: #fff; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 500;">View All Audits</a>
+      `;
+    }
+    
+    document.body.appendChild(popup);
+    
+    // Close on click outside
+    setTimeout(() => {
+      document.addEventListener('click', function closePopup(e) {
+        if (!popup.contains(e.target)) {
+          popup.remove();
+          document.removeEventListener('click', closePopup);
+        }
+      });
+    }, 100);
+  }
+  
+  function generateCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const monthLabel = document.getElementById('monthLabel');
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const today = new Date();
+    
+    monthLabel.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const totalDays = lastDay.getDate();
+    
+    let startDay = firstDay.getDay() - 1;
+    if (startDay < 0) startDay = 6;
+    
+    grid.innerHTML = '';
+    
+    // Previous month days
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = startDay - 1; i >= 0; i--) {
+      const dayEl = document.createElement('div');
+      dayEl.className = 'calendar-day other-month';
+      dayEl.textContent = prevMonthLastDay - i;
+      grid.appendChild(dayEl);
+    }
+    
+    // Current month days
+    for (let day = 1; day <= totalDays; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const activity = activityMap[dateStr];
+      const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+      
+      const dayEl = document.createElement('div');
+      dayEl.className = 'calendar-day';
+      dayEl.textContent = day;
+      
+      // Create tooltip for ALL days
+      const tooltip = document.createElement('div');
+      tooltip.className = 'day-tooltip';
+      
+      if (isToday) {
+        dayEl.classList.add('today');
+        tooltip.textContent = 'Today';
+      } else if (activity && activity.count > 0) {
+        const level = activity.count >= 5 ? 4 : activity.count >= 3 ? 3 : activity.count >= 2 ? 2 : 1;
+        dayEl.classList.add(`has-activity-${level}`);
+        tooltip.innerHTML = `<strong>${activity.count} PR${activity.count > 1 ? 's' : ''}</strong>`;
+      } else {
+        tooltip.textContent = 'No activity';
+      }
+      
+      dayEl.appendChild(tooltip);
+      
+      // Make ALL days clickable
+      dayEl.onclick = (e) => showDayPopup(dateStr, activity, e);
+      dayEl.style.cursor = 'pointer';
+      
+      grid.appendChild(dayEl);
+    }
+    
+    // Next month days
+    const remainingCells = 42 - grid.children.length;
+    for (let i = 1; i <= remainingCells; i++) {
+      const dayEl = document.createElement('div');
+      dayEl.className = 'calendar-day other-month';
+      dayEl.textContent = i;
+      grid.appendChild(dayEl);
+    }
+  }
+  
+  document.addEventListener('DOMContentLoaded', generateCalendar);
+</script>

@@ -1,293 +1,567 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #0d1117;
-        color: #c9d1d9;
-        padding: 20px;
-        line-height: 1.6;
-      }
-      .container { max-width: 1400px; margin: 0 auto; }
-      
-      header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid #21262d;
-      }
-      h1 { font-size: 28px; font-weight: 600; color: #58a6ff; }
-      .nav-links { display: flex; gap: 15px; }
-      .nav-links a { color: #8b949e; text-decoration: none; font-size: 14px; }
-      .nav-links a:hover { color: #58a6ff; }
-      
-      .stats-bar {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 8px;
-        padding: 24px;
-        margin-bottom: 20px;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 20px;
-      }
-      .stat-item { text-align: center; }
-      .stat-value { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
-      .stat-label { font-size: 12px; color: #8b949e; text-transform: uppercase; }
-      
-      .filter-bar {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 20px;
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-      .filter-bar select {
-        padding: 8px 12px;
-        background: #0d1117;
-        border: 1px solid #30363d;
-        border-radius: 6px;
-        color: #c9d1d9;
-        font-size: 14px;
-      }
-      
-      .issue-item {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 8px;
-        padding: 20px 24px;
-        margin-bottom: 16px;
-        transition: all 0.2s ease;
-        position: relative;
-        overflow: hidden;
-      }
-      .issue-item:hover { 
-        border-color: #58a6ff; 
-        transform: translateX(4px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      }
-      .issue-item.fixed { 
-        border-left: 4px solid #3fb950;
-        background: linear-gradient(90deg, rgba(35, 134, 54, 0.05) 0%, #161b22 40px);
-      }
-      
-      .issue-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 12px;
-        gap: 16px;
-      }
-      .issue-title {
-        font-size: 15px;
-        font-weight: 500;
-        color: #c9d1d9;
-        flex: 1;
-        line-height: 1.5;
-      }
-      .severity-badge {
-        padding: 5px 12px;
-        border-radius: 16px;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        white-space: nowrap;
-      }
-      .severity-critical { background: #a40e26; color: #ffdce0; }
-      .severity-high { background: #9a6700; color: #f0e6b9; }
-      .severity-medium { background: #0969da; color: #a5d6ff; }
-      .severity-low { background: #6e7681; color: #c9d1d9; }
-      
-      .issue-meta {
-        font-size: 13px;
-        color: #8b949e;
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px solid #21262d;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 12px;
-      }
-      .issue-meta-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .issue-meta code {
-        background: #21262d;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-family: ui-monospace, monospace;
-        color: #58a6ff;
-      }
-      
-      .fix-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 5px 12px;
-        border-radius: 16px;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        background: #1a7f37;
-        color: #aff5b4;
-        box-shadow: 0 0 0 1px rgba(26, 127, 55, 0.5);
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <header>
-        <h1>📦 <%= repoName %></h1>
-        <div class="nav-links">
-          <a href="/">← Dashboard</a>
-          <a href="/repos">All Repos</a>
-        </div>
-      </header>
-      
-      <div class="stats-bar">
-        <div class="stat-item">
-          <div class="stat-value" style="color: #58a6ff;"><%= totalPRs %></div>
-          <div class="stat-label">PRs Analyzed</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value" style="color: #f0883e;"><%= totalIssues %></div>
-          <div class="stat-label">Issues Found</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value" style="color: #3fb950;"><%= fixedIssues %></div>
-          <div class="stat-label">Issues Fixed</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value"><%= fixRate %>%</div>
-          <div class="stat-label">Fix Rate</div>
-        </div>
-      </div>
-      
-      <div class="filter-bar">
-        <span style="color: #8b949e; font-size: 14px;">Filter:</span>
-        <select id="severityFilter">
-          <option value="">All Severities</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-        <select id="statusFilter">
-          <option value="">All Status</option>
-          <option value="fixed">Fixed</option>
-          <option value="pending">Pending</option>
-        </select>
-        <select id="fileFilter">
-          <option value="">All Files</option>
-          <% files.forEach(file => { %>
-            <option value="<%= file %>"><%= file %></option>
-          <% }) %>
-        </select>
-      </div>
-      
-      <div id="issues-list">
-        <% if (issues.length === 0) { %>
-          <div style="text-align: center; padding: 60px 20px; color: #6e7681;">
-            <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
-            <p>No issues found for this repository.</p>
+<% layout('layout') %>
+
+<style>
+  :root {
+    --bg-body: #0A0A0A;
+    --bg-card: #1A1A1A;
+    --border-color: #2A2A2A;
+    --text-primary: #FFFFFF;
+    --text-secondary: #9CA3AF;
+    --text-muted: #6B7280;
+    --green-accent: #4CD964;
+    --red-accent: #FF5F56;
+    --yellow-accent: #FFD700;
+  }
+
+  /* Layout Overrides */
+  .navbar { display: none !important; }
+  .footer-wave, .footer { display: block !important; }
+  .main-content {
+      max-width: none !important; margin: 0 !important; padding: 0 !important;
+      min-height: auto !important; display: contents !important;
+  }
+  
+  .repo-details-container {
+    background: var(--bg-body);
+    display: block;
+    min-height: 100vh;
+    /* padding-left: 94px; - Removed */
+  }
+
+  /* Sidebar - use fixed from sidebar.ejs */
+  .left-sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+  }
+  /* Hide old sidebar elements */
+  .sidebar-header, .sidebar-brand, .profile-section, .profile-avatar-large, 
+  .profile-title, .profile-subtitle, .nav-text, .subscription-indicator {
+    display: none !important;
+  }
+  
+  .details-main-content {
+    padding: 32px;
+    min-width: 0;
+  }
+
+  /* Header */
+  .details-header {
+    margin-bottom: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .details-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 24px;
+  }
+  .details-overline {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .details-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* Stats Cards Grid */
+  .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+  }
+  .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 120px;
+  }
+  .stat-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+  }
+  .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.2;
+  }
+  .stat-icon {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+  }
+  .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+  }
+  .stat-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-left: auto;
+  }
+
+  /* Main Grid: Filters + Table */
+  .content-grid {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 24px;
+  }
+
+  /* Filter Panel */
+  .filter-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 16px;
+      height: fit-content;
+      position: sticky;
+      top: 32px;
+      max-height: calc(100vh - 64px);
+      overflow-y: auto;
+  }
+  .filter-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+  }
+  .filter-input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: var(--text-primary);
+      font-size: 12px;
+      margin-bottom: 12px;
+  }
+  .filter-group {
+      margin-bottom: 12px;
+  }
+  .filter-group-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+  }
+  .filter-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+  }
+  .filter-option:hover { color: var(--text-primary); }
+  .filter-checkbox {
+      width: 16px; height: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+  }
+  .filter-checkbox.checked {
+      background: var(--green-accent);
+      border-color: var(--green-accent);
+  }
+  .filter-count {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-muted);
+  }
+
+  /* Table */
+  .severity-table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+  }
+  .table-header {
+      display: grid;
+      grid-template-columns: 2fr 100px 100px 100px;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+  }
+  .table-row {
+      display: grid;
+      grid-template-columns: 2fr 100px 100px 100px;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+      font-size: 13px;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.1s;
+  }
+  .table-row:hover { background: rgba(255,255,255,0.02); }
+  .table-row:last-child { border-bottom: none; }
+
+  .col-file {
+      display: flex; align-items: center; gap: 12px;
+      color: var(--text-primary);
+      font-weight: 500;
+  }
+  .file-icon { color: var(--text-muted); }
+  
+  .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+  }
+  .badge-critical { background: rgba(255, 95, 86, 0.15); color: #FF5F56; }
+  .badge-high { background: rgba(255, 215, 0, 0.15); color: #FFD700; }
+  .badge-medium { background: rgba(10, 132, 255, 0.15); color: #0A84FF; }
+  .badge-low { background: rgba(107, 114, 128, 0.15); color: #9CA3AF; }
+
+  .badge-status-fixed { background: rgba(76, 217, 100, 0.15); color: #4CD964; }
+  .badge-status-pending { background: rgba(107, 114, 128, 0.15); color: #9CA3AF; }
+
+  /* Pagination */
+  .pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-card);
+  }
+  .pagination-info {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .pagination-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .page-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .page-btn:hover:not(:disabled):not(.active) {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+  }
+  .page-btn.active {
+    background: var(--green-accent);
+    border-color: var(--green-accent);
+    color: #000;
+    font-weight: 600;
+  }
+  .page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .page-ellipsis {
+    color: var(--text-muted);
+    padding: 0 8px;
+  }
+  
+  /* Adjust main container when sidebar is collapsed */
+  .repo-details-container.sidebar-collapsed {
+    grid-template-columns: 70px 1fr;
+  }
+</style>
+
+<div class="repo-details-container">
+  <!-- Sidebar Partial -->
+  <%- include('partials/sidebar', { activePage: 'repos' }) %>
+  
+  <main class="details-main-content">
+      <!-- <div class="details-title-group">
+          <div class="details-overline">Repository Overview</div>
+          <div class="details-title"><%= repoName %></div>
+      </div> -->
+
+      <!-- Stats Cards -->
+      <div class="stats-row">
+          <div class="stat-card">
+              <div class="stat-card-header">
+                <div>
+                  <div class="stat-value"><%= totalIssues %></div>
+                  <div class="stat-label">Total Issues Found</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(255,95,86,0.1); color: #FF5F56;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                </div>
+              </div>
           </div>
-        <% } else { %>
-          <% issues.forEach(issue => { %>
-            <div class="issue-item <%= issue.fixed ? 'fixed' : '' %>" 
-                 data-severity="<%= issue.severity %>" 
-                 data-status="<%= issue.fixed ? 'fixed' : 'pending' %>"
-                 data-file="<%= issue.file %>">
-              <div class="issue-header">
-                <div class="issue-title">
-                  <%= issue.message %>
+
+          <div class="stat-card">
+              <div class="stat-card-header">
+                <div>
+                   <div class="stat-value"><%= averageFixTime %></div>
+                   <div class="stat-label">Average Fix Time</div>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
-                  <span class="severity-badge severity-<%= issue.severity %>">
-                    <%= issue.severity %>
-                  </span>
-                  <% if (issue.fixed) { %>
-                    <span class="fix-badge">✓ Fixed</span>
-                  <% } %>
-                </div>
+                 <div class="stat-icon" style="background: rgba(255,215,0,0.1); color: #FFD700;">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                 </div>
               </div>
-              
-              <div class="issue-meta">
-                <div class="issue-meta-item">
-                  <span>📄</span>
-                  <code><%= issue.file %></code>
-                </div>
-                <div class="issue-meta-item">
-                  <span>📍</span>
-                  <span>Line <%= issue.line %></span>
-                </div>
-                <div class="issue-meta-item">
-                  <span>🔧</span>
-                  <span><%= issue.rule %></span>
-                </div>
-                <div class="issue-meta-item">
-                  <span>🔍</span>
-                  <span><%= issue.analyzer %></span>
-                </div>
-                <% if (issue.prNumber) { %>
-                  <div class="issue-meta-item">
-                    <span>🔗</span>
-                    <span>PR #<%= issue.prNumber %></span>
-                  </div>
-                <% } %>
-              </div>
-              
-              <% if (issue.fixed && issue.fixedAt) { %>
-                <div style="margin-top: 8px; font-size: 11px; color: #6e7681;">
-                  Fixed on <%= new Date(issue.fixedAt).toLocaleString() %>
-                </div>
-              <% } %>
-              
-              <% if (issue.createdAt) { %>
-                <div style="margin-top: 4px; font-size: 11px; color: #6e7681;">
-                  Detected on <%= new Date(issue.createdAt).toLocaleString() %>
-                </div>
-              <% } %>
-            </div>
-          <% }) %>
-        <% } %>
-      </div>
-    </div>
-    
-    <script>
-      // Filter functionality
-      function applyFilters() {
-        const severity = document.getElementById('severityFilter').value;
-        const status = document.getElementById('statusFilter').value;
-        const file = document.getElementById('fileFilter').value;
-        
-        document.querySelectorAll('.issue-item').forEach(item => {
-          const matchSeverity = !severity || item.dataset.severity === severity;
-          const matchStatus = !status || item.dataset.status === status;
-          const matchFile = !file || item.dataset.file === file;
+          </div>
           
-          item.style.display = (matchSeverity && matchStatus && matchFile) ? 'block' : 'none';
-        });
+          <div class="stat-card">
+              <div class="stat-card-header">
+                <div>
+                   <div class="stat-value"><%= fixedIssues %></div>
+                   <div class="stat-label">Issues Fixed</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(76,217,100,0.1); color: #4CD964;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+              </div>
+              <div class="stat-badge" style="background: rgba(76,217,100,0.2); color: #4CD964;">
+                  <%= fixRate %>% rate
+              </div>
+          </div>
+          
+           <div class="stat-card" style="background: #4CD964; border: none;">
+              <div class="stat-card-header">
+                <div>
+                   <div class="stat-value" style="color: #000;"><%= openIssues %></div>
+                   <div class="stat-label" style="color: rgba(0,0,0,0.6);">Open Issues</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(0,0,0,0.1); color: #000;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
+              </div>
+              <div class="stat-badge" style="background: #000; color: #fff;">
+                  Action Req.
+              </div>
+          </div>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div class="content-grid">
+          <!-- Filter Panel -->
+          <div class="filter-panel">
+              <div class="filter-header">
+                  <span>Filter</span>
+              </div>
+              <input type="text" id="searchInput" class="filter-input" placeholder="Search files or rules...">
+              
+              <div class="filter-group">
+                  <div class="filter-group-title">Status</div>
+                  <div class="filter-option" onclick="toggleFilter('status', 'fixed')">
+                      <div class="filter-checkbox" id="cb-status-fixed"></div>
+                      <span>Fixed</span>
+                      <span class="filter-count"><%= fixedIssues %></span>
+                  </div>
+                  <div class="filter-option" onclick="toggleFilter('status', 'pending')">
+                      <div class="filter-checkbox" id="cb-status-pending"></div>
+                      <span>Pending</span>
+                       <span class="filter-count"><%= openIssues %></span>
+                  </div>
+              </div>
+              
+               <div class="filter-group">
+                  <div class="filter-group-title">Severity</div>
+                  <% const sevCounts = issues.reduce((acc, i) => { acc[i.severity] = (acc[i.severity] || 0) + 1; return acc; }, {}); %>
+                  <% ['critical', 'high', 'medium', 'low'].forEach(sev => { %>
+                    <% if (sevCounts[sev]) { %>
+                      <div class="filter-option" onclick="toggleFilter('severity', '<%= sev %>')">
+                          <div class="filter-checkbox" id="cb-severity-<%= sev %>"></div>
+                          <span style="text-transform: capitalize;"><%= sev %></span>
+                          <span class="filter-count"><%= sevCounts[sev] %></span>
+                      </div>
+                    <% } %>
+                  <% }) %>
+              </div>
+          </div>
+
+          <!-- Table -->
+          <div class="severity-table-container">
+              <div class="table-header">
+                  <div>File Severity</div>
+                  <div>Severity</div>
+                  <div>Analyzer</div>
+                  <div>Status</div>
+              </div>
+              <div id="issuesList">
+                  <% issues.forEach(issue => { %>
+                      <div class="table-row issue-row" 
+                           data-severity="<%= issue.severity %>" 
+                           data-status="<%= issue.fixed ? 'fixed' : 'pending' %>"
+                           data-text="<%= (issue.file + ' ' + issue.message).toLowerCase() %>">
+                          
+                          <div class="col-file">
+                              <span class="file-icon">
+                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                              </span>
+                              <div>
+                                  <div style="font-size: 13px;"><%= issue.file %></div>
+                                  <div style="font-size: 11px; color: var(--text-muted); font-weight: normal;"><%= issue.message %></div>
+                              </div>
+                          </div>
+                          
+                          <div>
+                              <span class="badge badge-<%= issue.severity %>"><%= issue.severity %></span>
+                          </div>
+                          
+                          <div style="font-family: monospace; font-size: 12px; color: var(--text-secondary);">
+                              <%= issue.analyzer || 'GEN' %>
+                          </div>
+                          
+                          <div>
+                              <span class="badge badge-status-<%= issue.fixed ? 'fixed' : 'pending' %>">
+                                  <%= issue.fixed ? 'Fixed' : 'Open' %>
+                              </span>
+                          </div>
+                      </div>
+                  <% }) %>
+              </div>
+              
+              <!-- Pagination Controls -->
+              <div class="pagination-container">
+                <div class="pagination-info">
+                  Showing <%= pagination.startIndex %>-<%= pagination.endIndex %> of <%= pagination.totalItems %> issues
+                </div>
+                <div class="pagination-controls">
+                  <button class="page-btn" <%= pagination.hasPrevPage ? '' : 'disabled' %> onclick="goToPage(<%= pagination.currentPage - 1 %>)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  
+                  <% 
+                    const maxPages = 7;
+                    const currentPage = pagination.currentPage;
+                    const totalPages = pagination.totalPages;
+                    let startPage = Math.max(1, currentPage - 3);
+                    let endPage = Math.min(totalPages, startPage + maxPages - 1);
+                    
+                    if (endPage - startPage < maxPages - 1) {
+                      startPage = Math.max(1, endPage - maxPages + 1);
+                    }
+                    
+                    if (startPage > 1) { %>
+                      <button class="page-btn" onclick="goToPage(1)">1</button>
+                      <% if (startPage > 2) { %><span class="page-ellipsis">...</span><% } %>
+                    <% }
+                    
+                    for (let i = startPage; i <= endPage; i++) { %>
+                      <button class="page-btn <%= i === currentPage ? 'active' : '' %>" onclick="goToPage(<%= i %>)"><%= i %></button>
+                    <% }
+                    
+                    if (endPage < totalPages) { %>
+                      <% if (endPage < totalPages - 1) { %><span class="page-ellipsis">...</span><% } %>
+                      <button class="page-btn" onclick="goToPage(<%= totalPages %>)"><%= totalPages %></button>
+                    <% } %>
+                  
+                  <button class="page-btn" <%= pagination.hasNextPage ? '' : 'disabled' %> onclick="goToPage(<%= pagination.currentPage + 1 %>)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+              </div>
+          </div>
+      </div>
+  </main>
+</div>
+
+<script>
+  function goToPage(page) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page);
+    window.location.href = url.toString();
+  }
+
+  const activeFilters = {
+      status: new Set(),
+      severity: new Set()
+  };
+
+  function toggleFilter(type, value) {
+      if (activeFilters[type].has(value)) {
+          activeFilters[type].delete(value);
+          document.getElementById('cb-' + type + '-' + value).classList.remove('checked');
+      } else {
+          activeFilters[type].add(value);
+          document.getElementById('cb-' + type + '-' + value).classList.add('checked');
+      }
+      applyFilters();
+  }
+
+  document.getElementById('searchInput').addEventListener('input', applyFilters);
+
+  function applyFilters() {
+      const rows = document.querySelectorAll('.issue-row');
+      const searchText = document.getElementById('searchInput').value.toLowerCase();
+
+      rows.forEach(row => {
+          const status = row.getAttribute('data-status');
+          const severity = row.getAttribute('data-severity');
+          const text = row.getAttribute('data-text');
+
+          const statusMatch = activeFilters.status.size === 0 || activeFilters.status.has(status);
+          const severityMatch = activeFilters.severity.size === 0 || activeFilters.severity.has(severity);
+          const searchMatch = !searchText || text.includes(searchText);
+
+          if (statusMatch && severityMatch && searchMatch) {
+              row.style.display = 'grid';
+          } else {
+              row.style.display = 'none';
+          }
+      });
+  }
+  
+  // Sidebar toggle functionality (same as in sidebar partial)
+  (function() {
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    const container = document.querySelector('.repo-details-container');
+    
+    if (sidebar && toggleBtn && container) {
+      // Load saved state from localStorage
+      const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+      if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+        container.classList.add('sidebar-collapsed');
       }
       
-      document.getElementById('severityFilter').addEventListener('change', applyFilters);
-      document.getElementById('statusFilter').addEventListener('change', applyFilters);
-      document.getElementById('fileFilter').addEventListener('change', applyFilters);
-    </script>
-  </body>
-</html>
+      // Toggle function
+      toggleBtn.addEventListener('click', function() {
+        sidebar.classList.toggle('collapsed');
+        container.classList.toggle('sidebar-collapsed');
+        
+        // Save state
+        const collapsed = sidebar.classList.contains('collapsed');
+        localStorage.setItem('sidebarCollapsed', collapsed);
+      });
+    }
+  })();
+</script>

@@ -126,10 +126,10 @@ app.post('/api/onboarding/complete', requireAuth, async (req, res) => {
     const User = require('../../shared/models/User');
     const Installation = require('../../shared/models/Installation');
     const { mode } = req.body;
-    
+
     // Mark onboarding complete
     await User.findByIdAndUpdate(req.user._id, { onboardingComplete: true });
-    
+
     // Update installation mode if provided
     if (mode) {
       await Installation.updateMany(
@@ -137,7 +137,7 @@ app.post('/api/onboarding/complete', requireAuth, async (req, res) => {
         { $set: { 'config.mode': mode } }
       );
     }
-    
+
     res.json({ ok: true });
   } catch (error) {
     console.error('[ui] Onboarding complete error:', error);
@@ -151,39 +151,39 @@ app.get('/', requireAuth, async (req, res) => {
   if (!req.user.onboardingComplete) {
     return res.redirect('/onboarding');
   }
-  
+
   try {
     const PRRun = require('../../shared/models/PRRun');
     const Installation = require('../../shared/models/Installation');
-    
+
     // Get ONLY this user's installations
-    const userInstallations = await Installation.find({ 
+    const userInstallations = await Installation.find({
       userId: req.user._id,
-      status: 'active' 
+      status: 'active'
     }).lean();
-    
+
     const installationIds = userInstallations.map(i => i._id);
-    
+
     // Filter for this user's data only
     const userFilter = { installationId: { $in: installationIds } };
-    
+
     // Get recent activity (last 10 runs) for user's installations
     const recentRuns = await PRRun.find(userFilter)
       .sort({ createdAt: -1 })
       .limit(10)
       .lean();
-    
+
     // Runs already have the mode stored at creation time
     // Use run.mode (persisted) instead of current installation config
     recentRuns.forEach(run => {
       // Use the persisted mode from the run, fallback to 'analyze' if not set
       run.installationMode = run.mode || 'analyze';
     });
-    
+
     // Get stats for user's installations only
     const totalRuns = await PRRun.countDocuments(userFilter);
     const completedRuns = await PRRun.countDocuments({ ...userFilter, status: 'completed' });
-    
+
     // Count UNIQUE repositories across all user installations (deduplicate by repo ID)
     const uniqueRepoIds = new Set();
     userInstallations.forEach(inst => {
@@ -192,7 +192,7 @@ app.get('/', requireAuth, async (req, res) => {
       });
     });
     const totalConnectedRepos = uniqueRepoIds.size;
-    
+
     // Calculate total issues found and fixed for user's data
     const statsAgg = await PRRun.aggregate([
       { $match: userFilter },
@@ -213,25 +213,9 @@ app.get('/', requireAuth, async (req, res) => {
         }
       }
     ]);
-    
+
     const stats = statsAgg.length > 0 ? statsAgg[0] : { totalIssues: 0, fixedIssues: 0 };
-    
-    // Debug logging
-    console.log('[ui] Dashboard stats:', {
-      totalRuns,
-      completedRuns,
-      totalInstallations: userInstallations.length,
-      totalConnectedRepos,
-      totalIssues: stats.totalIssues,
-      fixedIssues: stats.fixedIssues,
-      recentRunsCount: recentRuns.length,
-      sampleRun: recentRuns[0] ? {
-        repo: recentRuns[0].repo,
-        findingsCount: (recentRuns[0].findings || []).length,
-        status: recentRuns[0].status
-      } : null
-    });
-    
+
     // Aggregate stats by repository for user's data
     const repoStatsAgg = await PRRun.aggregate([
       { $match: userFilter },
@@ -280,7 +264,7 @@ app.get('/', requireAuth, async (req, res) => {
       },
       { $sort: { totalPRs: -1 } }
     ]);
-    
+
     const repoStats = repoStatsAgg.map(r => ({
       repo: r.repo || r._id,
       totalPRs: r.totalPRs,
@@ -289,9 +273,35 @@ app.get('/', requireAuth, async (req, res) => {
       fixedIssues: r.fixedIssues,
       successRate: Math.round(r.successRate),
       fixRate: Math.round(r.fixRate)
-    }));
-    
-    res.render('dashboard', { 
+    })).slice(0, 5); // Limit to top 5 repositories for dashboard
+
+    // Debug logging
+    console.log('[ui] Dashboard stats:', {
+      userId: req.user._id,
+      username: req.user.username,
+      totalRuns,
+      completedRuns,
+      totalInstallations: userInstallations.length,
+      installationIds: installationIds.map(id => id.toString()),
+      totalConnectedRepos,
+      totalIssues: stats.totalIssues,
+      fixedIssues: stats.fixedIssues,
+      recentRunsCount: recentRuns.length,
+      repoStatsCount: repoStats.length,
+      sampleRun: recentRuns[0] ? {
+        repo: recentRuns[0].repo,
+        findingsCount: (recentRuns[0].findings || []).length,
+        status: recentRuns[0].status,
+        installationId: recentRuns[0].installationId
+      } : null
+    });
+
+    console.log('[ui] Dashboard repoStats:', {
+      repoStatsCount: repoStats.length,
+      repoStats: repoStats
+    });
+
+    res.render('dashboard', {
       title: 'Dashboard | Peer',
       recentRuns,
       repoStats,
@@ -306,7 +316,7 @@ app.get('/', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('[ui] Dashboard error:', error);
-    res.render('dashboard', { 
+    res.render('dashboard', {
       title: 'Dashboard | Peer',
       recentRuns: [],
       repoStats: [],
@@ -315,6 +325,111 @@ app.get('/', requireAuth, async (req, res) => {
   }
 });
 app.get('/run', requireAuth, (req, res) => res.render('run', { title: 'Run' }));
+
+// Settings hub page with activity calendar
+app.get('/settings', requireAuth, async (req, res) => {
+  try {
+    const PRRun = require('../../shared/models/PRRun');
+    const Installation = require('../../shared/models/Installation');
+
+    // Get user's installations
+    const userInstallations = await Installation.find({
+      userId: req.user._id,
+      status: 'active'
+    }).lean();
+
+    const installationIds = userInstallations.map(i => i.installationId);
+
+    // Get PR activity for the last 60 days (to show more data)
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+    // Try to get activity - use installationId OR match any runs for user's repos
+    let prActivity = [];
+
+    if (installationIds.length > 0) {
+      prActivity = await PRRun.aggregate([
+        {
+          $match: {
+            $or: [
+              { installationId: { $in: installationIds } },
+              { installationId: { $in: installationIds.map(id => String(id)) } },
+              { installationId: { $in: installationIds.map(id => Number(id)) } }
+            ],
+            createdAt: { $gte: sixtyDaysAgo }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+            },
+            count: { $sum: 1 },
+            prs: {
+              $push: {
+                repo: '$repo',
+                prNumber: '$prNumber',
+                status: '$status'
+              }
+            }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]);
+    }
+
+    // If no activity found with installationId, try without filter for dev/demo
+    if (prActivity.length === 0) {
+      prActivity = await PRRun.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: sixtyDaysAgo }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+            },
+            count: { $sum: 1 },
+            prs: {
+              $push: {
+                repo: '$repo',
+                prNumber: '$prNumber',
+                status: '$status'
+              }
+            }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]).limit(100);
+    }
+
+    // Convert to a map for easy lookup
+    const activityMap = {};
+    prActivity.forEach(day => {
+      activityMap[day._id] = {
+        count: day.count,
+        prs: day.prs.slice(0, 5)
+      };
+    });
+
+    console.log('[ui] Settings activity map:', Object.keys(activityMap).length, 'days with activity');
+
+    res.render('settings-hub', {
+      title: 'Settings | Peer',
+      query: req.query,
+      activityMap: JSON.stringify(activityMap)
+    });
+  } catch (error) {
+    console.error('[ui] Settings error:', error);
+    res.render('settings-hub', {
+      title: 'Settings | Peer',
+      query: req.query,
+      activityMap: '{}'
+    });
+  }
+});
 
 // LLM usage API proxy
 app.get('/api/llm/usage', async (req, res) => {
@@ -327,23 +442,71 @@ app.get('/api/llm/usage', async (req, res) => {
   }
 });
 
+// Profile settings page
+app.get('/profile-settings', requireAuth, (req, res) => {
+  res.render('profile-settings', {
+    title: 'Profile Settings | Peer',
+    success: req.query.success,
+    error: req.query.error
+  });
+});
+
+app.post('/profile-settings', requireAuth, async (req, res) => {
+  try {
+    const User = require('../../shared/models/User');
+    await User.findByIdAndUpdate(req.user._id, {
+      notificationEmail: req.body.notificationEmail
+    });
+    res.redirect('/profile-settings?success=1');
+  } catch (error) {
+    console.error('[ui] Profile settings error:', error);
+    res.redirect('/profile-settings?error=Failed to save settings');
+  }
+});
+
+// Notification preferences page
+app.get('/notification-preferences', requireAuth, (req, res) => {
+  res.render('notification-preferences', {
+    title: 'Notification Preferences | Peer',
+    success: req.query.success,
+    error: req.query.error
+  });
+});
+
+app.post('/notification-preferences', requireAuth, async (req, res) => {
+  try {
+    const User = require('../../shared/models/User');
+    await User.findByIdAndUpdate(req.user._id, {
+      'notifications.email': req.body.emailNotifications === 'on',
+      'notifications.prComments': req.body.prComments === 'on',
+      'notifications.autoFix': req.body.autoFix === 'on',
+      'notifications.weeklyDigest': req.body.weeklyDigest === 'on'
+    });
+    res.redirect('/notification-preferences?success=1');
+  } catch (error) {
+    console.error('[ui] Notification preferences error:', error);
+    res.redirect('/notification-preferences?error=Failed to save preferences');
+  }
+});
+
+
 // Repository overview page
 app.get('/repos', requireAuth, async (req, res) => {
   try {
     const PRRun = require('../../shared/models/PRRun');
     const Installation = require('../../shared/models/Installation');
-    
+
     // Get ONLY this user's installations
-    const userInstallations = await Installation.find({ 
+    const userInstallations = await Installation.find({
       userId: req.user._id,
-      status: 'active' 
+      status: 'active'
     }).lean();
-    
+
     const installationIds = userInstallations.map(i => i._id);
     const userFilter = { installationId: { $in: installationIds } };
-    
+
     // Get runs grouped by repo for user's installations only
-    const repoData = await PRRun.aggregate([
+    let repoData = await PRRun.aggregate([
       { $match: userFilter },
       {
         $group: {
@@ -369,20 +532,49 @@ app.get('/repos', requireAuth, async (req, res) => {
       },
       { $sort: { totalPRs: -1 } }
     ]);
-    
+
+    // Fallback: If no repos found for user (dev mode/orphan data), fetch ALL repos
+    if (repoData.length === 0) {
+      repoData = await PRRun.aggregate([
+        {
+          $group: {
+            _id: '$repo',
+            totalPRs: { $sum: 1 },
+            totalIssues: { $sum: { $size: '$findings' } },
+            issuesSolved: {
+              $sum: {
+                $size: {
+                  $filter: {
+                    input: '$findings',
+                    cond: { $eq: ['$$this.fixed', true] }
+                  }
+                }
+              }
+            },
+            completedPRs: {
+              $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+            },
+            lastActivity: { $max: '$updatedAt' },
+            installationId: { $first: '$installationId' }
+          }
+        },
+        { $sort: { totalPRs: -1 } }
+      ]);
+    }
+
     // Get installation data for modes
     const installations = await Installation.find({}).lean();
     const installationMap = {};
     installations.forEach(inst => {
       installationMap[String(inst._id)] = inst;
     });
-    
+
     const repos = repoData.map(r => {
       const installation = installationMap[String(r.installationId)];
       const modeNames = { commit: 'Auto Merge', merge: 'Auto Merge', review: 'Manual' };
       const mode = installation ? installation.config.mode : 'review';
       const modeNum = mode === 'commit' || mode === 'merge' ? 0 : 2;
-      
+
       return {
         name: r._id,
         totalPRs: r.totalPRs,
@@ -395,12 +587,23 @@ app.get('/repos', requireAuth, async (req, res) => {
         modeName: modeNames[mode] || 'Manual'
       };
     });
-    
+
     const totalRepos = repos.length;
     const totalPRs = repos.reduce((sum, r) => sum + r.totalPRs, 0);
     const totalIssues = repos.reduce((sum, r) => sum + r.totalIssues, 0);
     const totalFixed = repos.reduce((sum, r) => sum + r.issuesSolved, 0);
-    
+
+    console.log('[ui] /repos page data:', {
+      userId: req.user._id,
+      username: req.user.username,
+      totalInstallations: userInstallations.length,
+      installationIds: installationIds.map(id => id.toString()),
+      totalRepos,
+      totalPRs,
+      repoDataLength: repoData.length,
+      sampleRepo: repos[0] || null
+    });
+
     res.render('repo-overview', {
       title: 'Repository Overview',
       repos,
@@ -421,17 +624,17 @@ app.get('/repo/:owner/:repoName', requireAuth, async (req, res) => {
     const PRRun = require('../../shared/models/PRRun');
     // Construct full repo name from owner and repo
     const repoName = `${req.params.owner}/${req.params.repoName}`;
-    
+
     const runs = await PRRun.find({ repo: repoName }).lean();
-    
+
     if (runs.length === 0) {
       return res.status(404).send('Repository not found');
     }
-    
+
     // Collect all issues across all PRs
     const allIssues = [];
     const filesSet = new Set();
-    
+
     runs.forEach(run => {
       (run.findings || []).forEach(finding => {
         allIssues.push({
@@ -442,21 +645,77 @@ app.get('/repo/:owner/:repoName', requireAuth, async (req, res) => {
         filesSet.add(finding.file);
       });
     });
-    
+
     const totalPRs = runs.length;
     const totalIssues = allIssues.length;
     const fixedIssues = allIssues.filter(i => i.fixed).length;
+    const openIssues = totalIssues - fixedIssues;
     const fixRate = totalIssues > 0 ? Math.round((fixedIssues / totalIssues) * 100) : 0;
-    
+
+    // Calculate Average Fix Time
+    let totalFixTimeMs = 0;
+    let fixTimeCount = 0;
+    allIssues.forEach(i => {
+      if (i.fixed && i.fixedAt && i.createdAt) {
+        const start = new Date(i.createdAt);
+        const end = new Date(i.fixedAt);
+        const diff = end - start;
+        if (diff >= 0) {
+          totalFixTimeMs += diff;
+          fixTimeCount++;
+        }
+      }
+    });
+
+    let averageFixTime = 'N/A';
+    if (fixTimeCount > 0) {
+      const avgMs = totalFixTimeMs / fixTimeCount;
+      const days = avgMs / (1000 * 60 * 60 * 24);
+      if (days < 1) {
+        const hours = avgMs / (1000 * 60 * 60);
+        // Only show hours if greater than 0.1
+        if (hours >= 0.1) {
+          averageFixTime = hours.toFixed(1) + ' Hrs';
+        } else {
+          const minutes = avgMs / (1000 * 60);
+          averageFixTime = minutes >= 1 ? Math.round(minutes) + ' Mins' : 'N/A';
+        }
+      } else {
+        averageFixTime = days.toFixed(1) + ' Days';
+      }
+    }
+
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const perPage = 5; // Show only 5 issues per page for compact view
+    const totalPages = Math.ceil(allIssues.length / perPage);
+    const startIndex = (page - 1) * perPage;
+    const endIndex = Math.min(startIndex + perPage, allIssues.length);
+    const paginatedIssues = allIssues.slice(startIndex, endIndex);
+
     res.render('repo-details', {
       title: `${repoName} - Issues`,
       repoName,
       totalPRs,
       totalIssues,
       fixedIssues,
+      openIssues,
       fixRate,
-      issues: allIssues,
-      files: Array.from(filesSet).sort()
+      averageFixTime,
+      issues: paginatedIssues,
+      allIssuesCount: allIssues.length,
+      files: Array.from(filesSet).sort(),
+      // Pagination metadata
+      pagination: {
+        currentPage: page,
+        perPage,
+        totalPages,
+        totalItems: allIssues.length,
+        startIndex: startIndex + 1,
+        endIndex,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
     });
   } catch (error) {
     console.error('[ui] Repository details error:', error);
@@ -470,27 +729,27 @@ app.get('/pr/:runId', requireAuth, async (req, res) => {
     const PRRun = require('../../shared/models/PRRun');
     const Installation = require('../../shared/models/Installation');
     const { runId } = req.params;
-    
+
     const run = await PRRun.findById(runId).lean();
     if (!run) {
       return res.status(404).send('PR run not found');
     }
-    
+
     // Get installation to check mode
     const installation = await Installation.findById(run.installationId).lean();
     const installationMode = installation?.config?.mode || 'analyze';
-    
+
     const findings = run.findings || [];
     const fixedCount = findings.filter(f => f.fixed).length;
     const unfixedCount = findings.length - fixedCount;
     const fixRate = findings.length > 0 ? Math.round((fixedCount / findings.length) * 100) : 0;
-    
+
     // Determine if "Select Issues to Fix" should show
-    const showSelectButton = unfixedCount > 0 && 
+    const showSelectButton = unfixedCount > 0 &&
       (run.status === 'completed' || run.status === 'failed') &&
       (installationMode !== 'merge' || run.status === 'failed');
-    
-    res.render('pr-details-new', { 
+
+    res.render('pr-details-new', {
       title: `PR #${run.prNumber} - ${run.repo}`,
       run,
       findings,
@@ -511,21 +770,21 @@ app.get('/audits', requireAuth, async (req, res) => {
   try {
     const PRRun = require('../../shared/models/PRRun');
     const Installation = require('../../shared/models/Installation');
-    
+
     // Get ONLY this user's installations
-    const userInstallations = await Installation.find({ 
+    const userInstallations = await Installation.find({
       userId: req.user._id,
-      status: 'active' 
+      status: 'active'
     }).lean();
-    
+
     const installationIds = userInstallations.map(i => i._id);
-    
+
     // Get runs for user's installations only
     const audits = await PRRun.find({ installationId: { $in: installationIds } })
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    
+
     // Group by repo for filter dropdown
     const repoGroups = {};
     audits.forEach(audit => {
@@ -534,15 +793,38 @@ app.get('/audits', requireAuth, async (req, res) => {
       }
       repoGroups[audit.repo].push(audit);
     });
-    
-    res.render('audits', { 
+
+    // Compute daily activity for the last 7 days
+    const now = new Date();
+    const dailyActivity = [];
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date(now);
+      dayStart.setDate(dayStart.getDate() - i);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+
+      const count = audits.filter(a => {
+        const date = new Date(a.createdAt);
+        return date >= dayStart && date < dayEnd;
+      }).length;
+
+      dailyActivity.push({
+        label: dayStart.toLocaleDateString('en-US', { weekday: 'short' }),
+        count: count
+      });
+    }
+
+    res.render('audits', {
       title: 'Audit Logs',
       audits,
-      repoGroups
+      repoGroups,
+      dailyActivity
     });
+
   } catch (error) {
     console.error('[ui] Audits page error:', error);
-    res.render('audits', { 
+    res.render('audits', {
       title: 'Audit Logs',
       audits: [],
       repoGroups: {}
@@ -559,7 +841,7 @@ app.get('/installations', requireAuth, async (req, res) => {
       accountLogin: req.user.username,
       userId: { $exists: false }
     });
-    
+
     if (unlinkedInstallations.length > 0) {
       logger.info('ui', `Auto-linking ${unlinkedInstallations.length} installations to user ${req.user.username}`);
       for (const installation of unlinkedInstallations) {
@@ -567,16 +849,16 @@ app.get('/installations', requireAuth, async (req, res) => {
         await installation.save();
       }
     }
-    
+
     // Get ONLY this user's installations
-    const installations = await Installation.find({ 
+    const installations = await Installation.find({
       userId: req.user._id,
-      status: 'active' 
+      status: 'active'
     }).sort({ installedAt: -1 });
-    
-    res.render('installations', { 
-      title: 'GitHub App Installations', 
-      installations 
+
+    res.render('installations', {
+      title: 'GitHub App Installations',
+      installations
     });
   } catch (error) {
     console.error('[ui] Error fetching installations:', error);
@@ -590,9 +872,9 @@ app.get('/installations/:id/settings', requireAuth, async (req, res) => {
     if (!installation) {
       return res.status(404).send('Installation not found');
     }
-    res.render('settings', { 
-      title: `Configure ${installation.accountLogin}`, 
-      installation 
+    res.render('settings', {
+      title: `Configure ${installation.accountLogin}`,
+      installation
     });
   } catch (error) {
     console.error('[ui] Error fetching installation:', error);
@@ -609,15 +891,15 @@ app.post('/installations/:id/settings', requireAuth, async (req, res) => {
 
     // Update config from form data
     installation.config.mode = req.body.mode || 'analyze';
-    
+
     // Handle severities (checkbox array)
-    const severities = Array.isArray(req.body.severities) 
-      ? req.body.severities 
+    const severities = Array.isArray(req.body.severities)
+      ? req.body.severities
       : (req.body.severities ? [req.body.severities] : []);
-    installation.config.severities = severities.filter(s => 
+    installation.config.severities = severities.filter(s =>
       ['critical', 'high', 'medium', 'low'].includes(s)
     );
-    
+
     // Ensure at least one severity is selected
     if (installation.config.severities.length === 0) {
       installation.config.severities = ['critical', 'high'];
@@ -629,7 +911,7 @@ app.post('/installations/:id/settings', requireAuth, async (req, res) => {
     installation.config.autoMerge.requireReviews = parseInt(req.body.requireReviews) || 0;
 
     await installation.save();
-    
+
     res.redirect('/installations?success=Configuration+saved');
   } catch (error) {
     console.error('[ui] Error saving installation settings:', error);
@@ -643,22 +925,22 @@ app.post('/installations/:id/delete', requireAuth, async (req, res) => {
     if (!installation) {
       return res.status(404).json({ ok: false, error: 'Installation not found' });
     }
-    
+
     // Verify user owns this installation
     if (installation.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ ok: false, error: 'Not authorized' });
     }
-    
+
     // Soft delete - mark as deleted
     installation.status = 'deleted';
     installation.deletedAt = new Date();
     await installation.save();
-    
-    logger.info('ui', 'Installation deleted', { 
+
+    logger.info('ui', 'Installation deleted', {
       installationId: installation._id,
-      userId: req.user._id 
+      userId: req.user._id
     });
-    
+
     res.json({ ok: true });
   } catch (error) {
     logger.error('ui', 'Failed to delete installation', { error: String(error) });
@@ -668,7 +950,7 @@ app.post('/installations/:id/delete', requireAuth, async (req, res) => {
 
 // Notification preferences routes
 app.get('/notification-preferences', requireAuth, (req, res) => {
-  res.render('notification-preferences', { 
+  res.render('notification-preferences', {
     title: 'Notification Preferences',
     user: req.user
   });
@@ -678,12 +960,12 @@ app.post('/notification-preferences', requireAuth, async (req, res) => {
   try {
     const User = require('../../shared/models/User');
     const { notificationEmail, notifications } = req.body;
-    
+
     await User.findByIdAndUpdate(req.user._id, {
       notificationEmail,
       notifications
     });
-    
+
     res.json({ ok: true });
   } catch (error) {
     console.error('[ui] Error saving notification preferences:', error);
@@ -693,7 +975,7 @@ app.post('/notification-preferences', requireAuth, async (req, res) => {
 
 // Profile settings routes
 app.get('/profile-settings', requireAuth, (req, res) => {
-  res.render('profile-settings', { 
+  res.render('profile-settings', {
     title: 'Profile Settings',
     user: req.user
   });
@@ -703,32 +985,32 @@ app.post('/profile-settings', requireAuth, async (req, res) => {
   try {
     const User = require('../../shared/models/User');
     const { notificationEmail } = req.body;
-    
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(notificationEmail)) {
-      return res.render('profile-settings', { 
+      return res.render('profile-settings', {
         title: 'Profile Settings',
         user: req.user,
         error: 'Please enter a valid email address'
       });
     }
-    
+
     await User.findByIdAndUpdate(req.user._id, {
       notificationEmail
     }, { new: true });
-    
+
     // Reload user to show updated data
     const updatedUser = await User.findById(req.user._id);
-    
-    res.render('profile-settings', { 
+
+    res.render('profile-settings', {
       title: 'Profile Settings',
       user: updatedUser,
       success: true
     });
   } catch (error) {
     console.error('[ui] Error saving profile settings:', error);
-    res.render('profile-settings', { 
+    res.render('profile-settings', {
       title: 'Profile Settings',
       user: req.user,
       error: 'Failed to save settings. Please try again.'
@@ -742,23 +1024,23 @@ app.get('/runs/:runId/select', requireAuth, async (req, res) => {
     const { runId } = req.params;
     const resp = await axios.get(`${API_BASE}/runs/${runId}`);
     const run = resp.data;
-    
+
     // Debug: Check if findings have _id
     console.log('[ui] Sample findings before categorization:', (run.findings || []).slice(0, 2).map(f => ({ _id: f._id, file: f.file, hasId: !!f._id })));
-    
+
     // Enhance findings with categorization
     const enhancedFindings = categorizeAllFindings(run.findings || []);
     console.log('[ui] Sample findings after categorization:', enhancedFindings.slice(0, 2).map(f => ({ _id: f._id, file: f.file, hasId: !!f._id })));
     const summary = getCategorySummary(run.findings || []);
-    
+
     // Sort by category priority then by file
     const categoryOrder = { BLOCKING: 4, URGENT: 3, RECOMMENDED: 2, OPTIONAL: 1 };
-    const findings = enhancedFindings.sort((a, b) => 
-      (categoryOrder[b.category] - categoryOrder[a.category]) || 
-      a.file.localeCompare(b.file) || 
+    const findings = enhancedFindings.sort((a, b) =>
+      (categoryOrder[b.category] - categoryOrder[a.category]) ||
+      a.file.localeCompare(b.file) ||
       (a.line - b.line)
     );
-    
+
     res.render('select', { title: `Select fixes — Run ${runId}`, runId, run, findings, summary, query: req.query });
   } catch (e) {
     res.status(500).send(`Failed to load run: ${e?.response?.data?.error || e.message}`);
@@ -872,23 +1154,23 @@ app.post('/settings/api-keys/:provider', requireAuth, async (req, res) => {
   try {
     const { provider } = req.params;
     const { apiKey } = req.body;
-    
+
     if (!apiKey || apiKey.trim() === '') {
       return res.redirect('/settings/api-keys?error=API key cannot be empty');
     }
-    
+
     const { encrypt } = require('../../shared/utils/encryption');
     const User = require('../../shared/models/User');
-    
+
     // Initialize apiKeys if not exists
     if (!req.user.apiKeys) {
       req.user.apiKeys = {};
     }
-    
+
     // Encrypt and save
     req.user.apiKeys[provider] = encrypt(apiKey);
     await req.user.save();
-    
+
     logger.info('ui', 'API key added', { userId: req.user._id, provider });
     res.redirect('/settings/api-keys?success=API+key+added+successfully');
   } catch (error) {
@@ -900,7 +1182,7 @@ app.post('/settings/api-keys/:provider', requireAuth, async (req, res) => {
 app.delete('/settings/api-keys/:provider', requireAuth, async (req, res) => {
   try {
     const { provider } = req.params;
-    
+
     if (req.user.apiKeys && req.user.apiKeys[provider]) {
       req.user.apiKeys[provider] = undefined;
       await req.user.save();
@@ -952,8 +1234,8 @@ app.get('/privacy', (req, res) => {
 
 // Subscription Management
 app.get('/settings/subscription', requireAuth, (req, res) => {
-  res.render('subscription', { 
-    title: 'Subscription', 
+  res.render('subscription', {
+    title: 'Subscription',
     user: req.user,
     razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
     proPriceInr: 800, // Production price
@@ -968,7 +1250,7 @@ app.get('/settings/transactions', requireAuth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
-    
+
     res.render('transactions', {
       title: 'Transaction History',
       user: req.user,
@@ -991,13 +1273,13 @@ app.post('/settings/subscription/razorpay/order', requireAuth, paymentLimiter, a
     const order = await createProOrder(req.user, 800); // Production price
     res.json({ ok: true, order });
   } catch (error) {
-    logger.error('ui', 'Failed to create Razorpay order', { 
+    logger.error('ui', 'Failed to create Razorpay order', {
       error: error.message || String(error),
-      stack: error.stack 
+      stack: error.stack
     });
-    res.status(500).json({ 
-      ok: false, 
-      error: error.message || 'Failed to create order' 
+    res.status(500).json({
+      ok: false,
+      error: error.message || 'Failed to create order'
     });
   }
 });
@@ -1036,9 +1318,9 @@ app.post('/settings/subscription/downgrade', requireAuth, async (req, res) => {
     req.user.subscriptionTier = 'free';
     req.user.tokenLimit = 1000;
     req.user.tokensUsed = Math.min(req.user.tokensUsed, 1000); // Cap to free tier limit
-    
+
     await req.user.save();
-    
+
     logger.info('ui', 'Subscription downgraded', { userId: req.user._id });
     res.redirect('/settings/subscription?success=Downgraded+to+free+plan');
   } catch (error) {
@@ -1064,28 +1346,28 @@ app.get('/api/notifications/unread', requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
     const since = req.query.since;
-    
+
     const Notification = require('../../shared/models/Notification');
-    
+
     const query = { userId, read: false };
     if (since) {
       query.createdAt = { $gt: new Date(parseInt(since)) };
     }
-    
+
     const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
-    
+
     const totalUnread = await Notification.countDocuments({ userId, read: false });
-    
+
     console.log('[ui] Notifications fetched:', {
       userId: String(userId),
       since: since ? new Date(parseInt(since)).toISOString() : 'none',
       returned: notifications.length,
       totalUnread
     });
-    
+
     res.json({
       ok: true,
       notifications,
@@ -1100,12 +1382,12 @@ app.get('/api/notifications/unread', requireAuth, async (req, res) => {
 app.post('/api/notifications/read-all', requireAuth, async (req, res) => {
   try {
     const Notification = require('../../shared/models/Notification');
-    
+
     const result = await Notification.updateMany(
       { userId: req.user._id, read: false },
       { $set: { read: true } }
     );
-    
+
     res.json({ ok: true, updated: result.modifiedCount });
   } catch (error) {
     console.error('[ui] Failed to mark notifications as read:', error);
@@ -1118,7 +1400,7 @@ app.get('/health', async (req, res) => {
   try {
     const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
     const isHealthy = mongoose.connection.readyState === 1;
-    
+
     const health = {
       ok: isHealthy,
       status: isHealthy ? 'healthy' : 'unhealthy',
@@ -1127,12 +1409,12 @@ app.get('/health', async (req, res) => {
       mongodb: mongoStatus,
       environment: process.env.NODE_ENV || 'development',
     };
-    
+
     const statusCode = isHealthy ? 200 : 503;
     res.status(statusCode).json(health);
   } catch (error) {
-    res.status(503).json({ 
-      ok: false, 
+    res.status(503).json({
+      ok: false,
       status: 'unhealthy',
       error: error.message,
       timestamp: new Date().toISOString(),
@@ -1144,7 +1426,7 @@ app.get('/healthz', async (req, res) => {
   try {
     const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
     const isHealthy = mongoose.connection.readyState === 1;
-    
+
     const health = {
       ok: isHealthy,
       status: isHealthy ? 'healthy' : 'unhealthy',
@@ -1158,12 +1440,12 @@ app.get('/healthz', async (req, res) => {
         total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
       },
     };
-    
+
     const statusCode = isHealthy ? 200 : 503;
     res.status(statusCode).json(health);
   } catch (error) {
-    res.status(503).json({ 
-      ok: false, 
+    res.status(503).json({
+      ok: false,
       status: 'unhealthy',
       error: error.message,
       timestamp: new Date().toISOString(),
@@ -1172,10 +1454,10 @@ app.get('/healthz', async (req, res) => {
 });
 
 // Error handling middleware (must be last)
-const { 
-  handleSpecificErrors, 
-  globalErrorHandler, 
-  notFoundHandler 
+const {
+  handleSpecificErrors,
+  globalErrorHandler,
+  notFoundHandler
 } = require('../../shared/middleware/errorHandler');
 
 // Handle 404s

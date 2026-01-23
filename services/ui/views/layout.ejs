@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title || 'Peer Code Review' %></title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
       :root {
         /* Dark theme (default) */
@@ -45,8 +48,27 @@
       }
       
       * { margin: 0; padding: 0; box-sizing: border-box; }
+      
+      /* Hide scrollbars globally but keep scroll functionality */
+      html {
+        scroll-behavior: smooth;
+      }
+      
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      *::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
+      }
+      
+      /* Hide scrollbar for IE, Edge and Firefox */
+      * {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+      
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background: var(--bg-primary);
         color: var(--text-primary);
         line-height: 1.6;
@@ -307,175 +329,165 @@
         min-height: calc(100vh - 200px);
       }
       
-      /* Premium Footer */
+      /* QRQ Premium Footer */
       .footer {
-        background: var(--bg-secondary);
-        backdrop-filter: blur(20px);
-        border-top: 1px solid var(--border-primary);
-        margin-top: 80px;
+        background: #111111;
+        padding: 80px 0 0;
         position: relative;
-      }
-      
-      body:not(.light-theme) .footer {
-        background: linear-gradient(135deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
-        border-top: 1px solid rgba(88, 166, 255, 0.15);
-      }
-      
-      body:not(.light-theme) .footer::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent 0%, rgba(88, 166, 255, 0.3) 50%, transparent 100%);
+        overflow: hidden;
+        margin-top: 60px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
       }
       
       .footer-container {
         max-width: 1400px;
         margin: 0 auto;
-        padding: 60px 32px 40px;
+        padding: 0 40px;
+        position: relative;
+        z-index: 2;
       }
       
-      .footer-content {
-        display: grid;
-        grid-template-columns: 2fr 1fr 1fr 1fr;
+      .footer-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 100px;
+        flex-wrap: wrap;
         gap: 60px;
-        margin-bottom: 48px;
       }
       
-      .footer-brand {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
+      .footer-brand-section {
+        max-width: 400px;
       }
       
-      .footer-brand-title {
-        font-size: 28px;
-        font-weight: 900;
-        background: linear-gradient(135deg, #58a6ff 0%, #79c0ff 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        letter-spacing: -0.02em;
+      .footer-logo {
         display: flex;
         align-items: center;
         gap: 12px;
+        margin-bottom: 24px;
       }
       
-      .footer-brand-desc {
-        color: var(--text-secondary);
-        font-size: 14px;
+      .footer-logo img {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+      }
+      
+      .footer-logo span {
+        font-size: 24px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: 0.5px;
+      }
+      
+      .brand-desc {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 16px;
         line-height: 1.6;
-        max-width: 300px;
       }
       
-      .footer-social {
+      .footer-links-grid {
         display: flex;
-        gap: 12px;
-        margin-top: 8px;
+        gap: 80px;
+        flex-wrap: wrap;
       }
       
-      .footer-social-link {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        background: rgba(88, 166, 255, 0.1);
-        border: 1px solid rgba(88, 166, 255, 0.2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        font-size: 20px;
-        transition: all 0.3s ease;
+      .footer-col h4 {
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 24px;
       }
       
-      .footer-social-link:hover {
-        background: rgba(88, 166, 255, 0.2);
-        border-color: rgba(88, 166, 255, 0.4);
-        transform: translateY(-3px);
-        box-shadow: 0 4px 16px rgba(88, 166, 255, 0.3);
-      }
-      
-      .footer-section {
+      .footer-col ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
         display: flex;
         flex-direction: column;
         gap: 16px;
       }
       
-      .footer-section-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 8px;
-      }
-      
-      .footer-link {
-        color: var(--text-secondary);
+      .footer-col a {
+        color: rgba(255, 255, 255, 0.6);
         text-decoration: none;
         font-size: 14px;
-        transition: all 0.2s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
+        transition: color 0.2s;
       }
       
-      .footer-link:hover {
-        color: var(--accent-primary);
-        transform: translateX(4px);
+      .footer-col a:hover {
+        color: #ffffff;
       }
       
-      .footer-bottom {
-        padding-top: 32px;
-        border-top: 1px solid rgba(88, 166, 255, 0.1);
+      .footer-big-text {
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 200px;
+        font-weight: 900;
+        color: transparent;
+        -webkit-text-stroke: 2px rgba(255, 255, 255, 0.05);
+        text-align: center;
+        line-height: 0.8;
+        letter-spacing: -6px;
+        margin-bottom: -30px;
+        pointer-events: none;
+        user-select: none;
+        width: 100%;
+        display: block;
+        opacity: 0.5;
+      }
+      
+      .footer-bottom-bar {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 20px;
-      }
-      
-      .footer-bottom-text {
-        color: var(--text-tertiary);
+        padding: 24px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.4);
         font-size: 13px;
+        margin-top: 40px;
+        position: relative;
       }
       
-      .footer-bottom-links {
-        display: flex;
-        gap: 24px;
+      /* Global container for pages with sidebar */
+      .page-container {
+        padding-left: 24px; /* 24px padding to match right side (margin handles 70px offset) */
+        padding-right: 24px;
+        max-width: 100%;
+        box-sizing: border-box;
       }
       
-      .footer-bottom-link {
-        color: var(--text-secondary);
-        text-decoration: none;
-        font-size: 13px;
-        transition: color 0.2s ease;
+      @media (max-width: 768px) {
+        .page-container {
+          padding-left: 24px;
+        }
       }
       
-      .footer-bottom-link:hover {
-        color: var(--accent-primary);
-      }
-      
-      @media (max-width: 968px) {
-        .footer-content {
-          grid-template-columns: repeat(2, 1fr);
+      @media (max-width: 1024px) {
+        .footer-big-text {
+          font-size: 20vw;
+        }
+        .footer-top {
+          flex-direction: column;
+          gap: 40px;
+        }
+        .footer-links-grid {
+          width: 100%;
+          justify-content: space-between;
           gap: 40px;
         }
       }
       
-      @media (max-width: 640px) {
-        .footer-content {
-          grid-template-columns: 1fr;
-          gap: 32px;
-        }
-        
-        .footer-bottom {
+      @media (max-width: 768px) {
+        .footer-links-grid {
           flex-direction: column;
-          align-items: flex-start;
+          gap: 30px;
+        }
+        .footer-big-text {
+          font-size: 25vw;
         }
       }
+      
+
     </style>
     <% if (typeof blocks !== 'undefined' && blocks.additionalStyles) { %><%- blocks.additionalStyles %><% } %>
   </head>
@@ -575,74 +587,59 @@
       <%- body %>
     </div>
     
-    <!-- Premium Footer -->
-    <footer class="footer">
+    <!-- QRQ Premium Footer -->
+    <footer class="footer page-container">
       <div class="footer-container">
-        <div class="footer-content">
-          <!-- Brand Section -->
-          <div class="footer-brand">
-            <div class="footer-brand-title">
-              🤖 Peer
+        <!-- Top Section: Brand + Links -->
+        <div class="footer-top">
+          <!-- Brand -->
+          <div class="footer-brand-section">
+            <div class="footer-logo">
+              <img src="/20260109_003048.png" alt="PRQueue Logo" style="width: auto; height: 60px;">
             </div>
-            <p class="footer-brand-desc">
-              AI-powered code review and automated fixes for your GitHub repositories. Ship better code faster.
+            <p class="brand-desc">
+              Empowering developers with intelligent code reviews and seamless collaboration. Building the future of software development, one pull request at a time.
             </p>
-            <div class="footer-social">
-              <a href="https://github.com" target="_blank" class="footer-social-link" title="GitHub">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color: #58a6ff;">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
-              </a>
-              <a href="https://twitter.com" target="_blank" class="footer-social-link" title="Twitter">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color: #58a6ff;">
-                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                </svg>
-              </a>
-              <a href="mailto:hello@peer.dev" class="footer-social-link" title="Email">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #58a6ff;">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-              </a>
+          </div>
+          
+          <!-- Links Grid -->
+          <div class="footer-links-grid">
+            <div class="footer-col">
+              <h4>Product</h4>
+              <ul>
+                <li><a href="/features">Features</a></li>
+                <li><a href="/pricing">Pricing</a></li>
+                <li><a href="/docs">Documentation</a></li>
+                <li><a href="/changelog">Changelog</a></li>
+              </ul>
             </div>
-          </div>
-          
-          <!-- Product Section -->
-          <div class="footer-section">
-            <div class="footer-section-title">Product</div>
-            <a href="/" class="footer-link">→ Dashboard</a>
-            <a href="/repos" class="footer-link">→ Repositories</a>
-            <a href="/installations" class="footer-link">→ Installations</a>
-            <a href="/audits" class="footer-link">→ Audit Logs</a>
-          </div>
-          
-          <!-- Resources Section -->
-          <div class="footer-section">
-            <div class="footer-section-title">Resources</div>
-            <a href="/settings/api-keys" class="footer-link">→ API Keys</a>
-            <a href="/settings/subscription" class="footer-link">→ Subscription</a>
-            <a href="https://github.com" target="_blank" class="footer-link">→ Documentation</a>
-            <a href="https://github.com" target="_blank" class="footer-link">→ API Reference</a>
-          </div>
-          
-          <!-- Company Section -->
-          <div class="footer-section">
-            <div class="footer-section-title">Company</div>
-            <a href="/support" class="footer-link">→ Support & Help</a>
-            <a href="/privacy" class="footer-link">→ Privacy Policy</a>
-            <a href="/terms" class="footer-link">→ Terms of Service</a>
-            <a href="mailto:anirbansantra748@gmail.com" class="footer-link">→ Contact</a>
+            <div class="footer-col">
+              <h4>Company</h4>
+              <ul>
+                <li><a href="/about">About Us</a></li>
+                <li><a href="/careers">Careers</a></li>
+                <li><a href="/blog">Blog</a></li>
+                <li><a href="/contact">Contact</a></li>
+              </ul>
+            </div>
+            <div class="footer-col">
+              <h4>Connect</h4>
+              <ul>
+                <li><a href="https://twitter.com">Twitter / X</a></li>
+                <li><a href="https://github.com">GitHub</a></li>
+                <li><a href="https://discord.com">Discord</a></li>
+                <li><a href="mailto:support@qrq.com">Email Us</a></li>
+              </ul>
+            </div>
           </div>
         </div>
         
-        <div class="footer-bottom">
-          <div class="footer-bottom-text">
-            © <%= new Date().getFullYear() %> Peer. All rights reserved.
-          </div>
-          <div class="footer-bottom-links">
-            <a href="#" class="footer-bottom-link">Status</a>
-            <a href="#" class="footer-bottom-link">Security</a>
-            <a href="#" class="footer-bottom-link">Changelog</a>
+        <!-- Bottom Bar -->
+        <div class="footer-bottom-bar">
+          <div class="copyright">© <%= new Date().getFullYear() %> PRQueue Inc. All rights reserved.</div>
+          <div class="legal-links">
+            <a href="/privacy" style="margin-right: 20px; color: inherit; text-decoration: none;">Privacy</a>
+            <a href="/terms" style="color: inherit; text-decoration: none;">Terms</a>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ const { Octokit } = require('@octokit/rest');
 const logger = require('../utils/prettyLogger');
 
 /**
- * Create GitHub API client
+ * Create GitHub API client with personal access token
  */
 function getOctokit() {
   const token = process.env.GITHUB_TOKEN;
@@ -10,6 +10,24 @@ function getOctokit() {
     throw new Error('GITHUB_TOKEN not configured');
   }
   return new Octokit({ auth: token });
+}
+
+/**
+ * Get Octokit with GitHub App installation auth, falling back to personal token
+ * @param {number} [installationId] - Optional GitHub App installation ID
+ */
+async function getOctokitWithInstallation(installationId) {
+  if (installationId) {
+    try {
+      const githubAppService = require('./githubApp');
+      const octokit = await githubAppService.getInstallationOctokit(installationId);
+      logger.info('githubPR', 'Using GitHub App authentication', { installationId });
+      return octokit;
+    } catch (appError) {
+      logger.warn('githubPR', 'Failed to use GitHub App auth, falling back to token', { error: appError.message });
+    }
+  }
+  return getOctokit();
 }
 
 /**
@@ -21,9 +39,24 @@ function getOctokit() {
  * @param {string} params.base - Target branch (usually 'main' or 'master')
  * @param {string} params.title - PR title
  * @param {string} params.body - PR description
+ * @param {number} [params.installationId] - Optional GitHub App installation ID for auth
  */
-async function createPullRequest({ owner, repo, head, base, title, body }) {
-  const octokit = getOctokit();
+async function createPullRequest({ owner, repo, head, base, title, body, installationId }) {
+  let octokit;
+
+  // Use GitHub App authentication if installationId provided
+  if (installationId) {
+    try {
+      const githubAppService = require('./githubApp');
+      octokit = await githubAppService.getInstallationOctokit(installationId);
+      logger.info('githubPR', 'Using GitHub App authentication for PR creation', { installationId });
+    } catch (appError) {
+      logger.warn('githubPR', 'Failed to use GitHub App auth, falling back to token', { error: appError.message });
+      octokit = getOctokit();
+    }
+  } else {
+    octokit = getOctokit();
+  }
 
   try {
     logger.info('githubPR', 'Creating pull request', { owner, repo, head, base });
@@ -78,9 +111,10 @@ async function createPullRequest({ owner, repo, head, base, title, body }) {
  * @param {string} params.owner - Repository owner
  * @param {string} params.repo - Repository name
  * @param {number} params.prNumber - PR number
+ * @param {number} [params.installationId] - Optional GitHub App installation ID
  */
-async function checkPRMergeable({ owner, repo, prNumber }) {
-  const octokit = getOctokit();
+async function checkPRMergeable({ owner, repo, prNumber, installationId }) {
+  const octokit = await getOctokitWithInstallation(installationId);
 
   const pr = await octokit.pulls.get({
     owner,
@@ -114,8 +148,8 @@ async function checkStatusChecks({ owner, repo, ref }) {
     });
 
     const checks = response.data.check_runs || [];
-    const allPassed = checks.every(check => 
-      check.conclusion === 'success' || 
+    const allPassed = checks.every(check =>
+      check.conclusion === 'success' ||
       check.conclusion === 'skipped' ||
       check.conclusion === 'neutral'
     );
@@ -176,9 +210,10 @@ async function checkReviews({ owner, repo, prNumber }) {
  * @param {string} params.commitTitle - Merge commit title
  * @param {string} params.commitMessage - Merge commit message
  * @param {string} params.mergeMethod - 'merge', 'squash', or 'rebase' (default: 'merge')
+ * @param {number} [params.installationId] - Optional GitHub App installation ID
  */
-async function mergePullRequest({ owner, repo, prNumber, commitTitle, commitMessage, mergeMethod = 'merge' }) {
-  const octokit = getOctokit();
+async function mergePullRequest({ owner, repo, prNumber, commitTitle, commitMessage, mergeMethod = 'merge', installationId }) {
+  const octokit = await getOctokitWithInstallation(installationId);
 
   logger.info('githubPR', 'Merging pull request', { owner, repo, prNumber, mergeMethod });
 
@@ -212,9 +247,10 @@ async function mergePullRequest({ owner, repo, prNumber, commitTitle, commitMess
  * @param {number} params.prNumber - PR number
  * @param {string} params.ref - Commit SHA
  * @param {Object} params.config - Installation config
+ * @param {number} [params.installationId] - Optional GitHub App installation ID
  */
-async function attemptAutoMerge({ owner, repo, prNumber, ref, config }) {
-  logger.info('githubPR', 'Attempting auto-merge', { owner, repo, prNumber });
+async function attemptAutoMerge({ owner, repo, prNumber, ref, config, installationId }) {
+  logger.info('githubPR', 'Attempting auto-merge', { owner, repo, prNumber, installationId });
 
   // Check if auto-merge is enabled
   if (!config?.autoMerge?.enabled) {
@@ -226,18 +262,18 @@ async function attemptAutoMerge({ owner, repo, prNumber, ref, config }) {
   let mergeableStatus;
   let attempts = 0;
   const maxAttempts = 5;
-  
+
   while (attempts < maxAttempts) {
-    mergeableStatus = await checkPRMergeable({ owner, repo, prNumber });
-    
+    mergeableStatus = await checkPRMergeable({ owner, repo, prNumber, installationId });
+
     // If mergeable is null or unknown, wait and retry
     if (mergeableStatus.mergeable === null || mergeableStatus.mergeableState === 'unknown') {
       attempts++;
       if (attempts < maxAttempts) {
-        logger.info('githubPR', 'Mergeable status not ready, retrying...', { 
-          prNumber, 
+        logger.info('githubPR', 'Mergeable status not ready, retrying...', {
+          prNumber,
           attempt: attempts,
-          state: mergeableStatus.mergeableState 
+          state: mergeableStatus.mergeableState
         });
         await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
         continue;
@@ -245,7 +281,7 @@ async function attemptAutoMerge({ owner, repo, prNumber, ref, config }) {
     }
     break;
   }
-  
+
   if (!mergeableStatus.mergeable) {
     logger.warn('githubPR', 'PR not mergeable', { prNumber, state: mergeableStatus.mergeableState });
     return { merged: false, reason: 'not_mergeable', details: mergeableStatus };
@@ -273,10 +309,10 @@ async function attemptAutoMerge({ owner, repo, prNumber, ref, config }) {
       return { merged: false, reason: 'changes_requested', details: reviews };
     }
     if (reviews.approvals < requiredApprovals) {
-      logger.info('githubPR', 'Insufficient approvals', { 
-        prNumber, 
-        required: requiredApprovals, 
-        actual: reviews.approvals 
+      logger.info('githubPR', 'Insufficient approvals', {
+        prNumber,
+        required: requiredApprovals,
+        actual: reviews.approvals
       });
       return { merged: false, reason: 'insufficient_approvals', details: reviews };
     }
@@ -291,13 +327,14 @@ async function attemptAutoMerge({ owner, repo, prNumber, ref, config }) {
       commitTitle: `peer: Auto-merge fixes for PR #${prNumber}`,
       commitMessage: 'Automatically merged by Peer after all checks passed',
       mergeMethod: 'merge',
+      installationId,
     });
 
     return { merged: true, sha: result.sha };
   } catch (error) {
-    logger.error('githubPR', 'Failed to merge PR', { 
-      prNumber, 
-      error: error.message 
+    logger.error('githubPR', 'Failed to merge PR', {
+      prNumber,
+      error: error.message
     });
     return { merged: false, reason: 'merge_failed', error: error.message };
   }

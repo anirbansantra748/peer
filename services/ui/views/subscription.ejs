@@ -1,221 +1,414 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><%= title %></title>
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0d1117;
-      color: #c9d1d9;
-      padding: 20px;
-      line-height: 1.6;
-    }
-    .container { max-width: 1200px; margin: 0 auto; }
-    
-    header {
-      text-align: center;
-      margin-bottom: 40px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #21262d;
-    }
-    h1 { font-size: 36px; font-weight: 700; color: #58a6ff; margin-bottom: 12px; }
-    .subtitle { font-size: 18px; color: #8b949e; }
-    .nav-link {
-      display: inline-block;
-      margin-top: 16px;
-      color: #8b949e;
-      text-decoration: none;
-      font-size: 14px;
-    }
-    .nav-link:hover { color: #58a6ff; }
-    
-    .plans {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-      margin-bottom: 40px;
-    }
-    
-    .plan-card {
-      background: #161b22;
-      border: 2px solid #30363d;
-      border-radius: 12px;
-      padding: 32px;
-      transition: all 0.3s;
-      position: relative;
-    }
-    .plan-card:hover {
-      transform: translateY(-4px);
-      border-color: #58a6ff;
-    }
-    .plan-card.popular {
-      border-color: #238636;
-      background: #0d1b0f;
-    }
-    .plan-card.popular::before {
-      content: '⭐ MOST POPULAR';
-      position: absolute;
-      top: -12px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #238636;
-      color: white;
-      padding: 4px 16px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-    .plan-card.current {
-      border-color: #1f6feb;
-    }
-    
-    .plan-name {
-      font-size: 24px;
-      font-weight: 700;
-      color: #c9d1d9;
-      margin-bottom: 8px;
-    }
-    .plan-price {
-      font-size: 42px;
-      font-weight: 700;
-      color: #58a6ff;
-      margin-bottom: 4px;
-    }
-    .plan-price small {
-      font-size: 16px;
-      color: #8b949e;
-    }
-    .plan-desc {
-      font-size: 14px;
-      color: #8b949e;
-      margin-bottom: 24px;
-      min-height: 40px;
-    }
-    
-    .plan-features {
-      list-style: none;
-      margin-bottom: 24px;
-    }
-    .plan-features li {
-      padding: 8px 0;
-      font-size: 14px;
-      color: #c9d1d9;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .plan-features li::before {
-      content: '✓';
-      color: #238636;
-      font-weight: 700;
-    }
-    
-    .btn {
-      width: 100%;
-      padding: 12px 24px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s;
-      text-align: center;
-      text-decoration: none;
-      display: block;
-    }
-    .btn-primary {
-      background: #238636;
-      color: white;
-    }
-    .btn-primary:hover { background: #2ea043; }
-    .btn-secondary {
-      background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
-    }
-    .btn-secondary:hover { background: #30363d; }
-    .btn-outline {
-      background: transparent;
-      color: #58a6ff;
-      border: 1px solid #58a6ff;
-    }
-    .btn-outline:hover {
-      background: #58a6ff;
-      color: #0d1117;
-    }
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    
-    .faq {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 32px;
-      margin-top: 40px;
-    }
-    .faq h2 {
-      font-size: 24px;
-      margin-bottom: 24px;
-      color: #c9d1d9;
-    }
-    .faq-item {
-      margin-bottom: 20px;
-    }
-    .faq-question {
-      font-weight: 600;
-      color: #c9d1d9;
-      margin-bottom: 8px;
-    }
-    .faq-answer {
-      color: #8b949e;
-      font-size: 14px;
-    }
-    
-    .current-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      background: #1f6feb;
-      color: white;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 700;
-      margin-left: 8px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>💎 Choose Your Plan</h1>
-      <p class="subtitle">Select the plan that works best for your team</p>
-      <a href="/" class="nav-link">← Back to Dashboard</a>
-    </header>
+<% layout('layout') %>
 
-    <div class="plans">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<style>
+  :root {
+    --bg-body: #121212;
+    --bg-dashboard: #121212;
+    --bg-card: #1A1A1A;
+    --bg-card-hover: #202020;
+    --border-color: #2A2A2A;
+    --text-primary: #FFFFFF;
+    --text-secondary: #9CA3AF;
+    --text-muted: #6B7280;
+    --green-accent: #4CD964;
+    --green-badge-bg: rgba(76, 217, 100, 0.1);
+    --yellow-badge: #FFD700;
+    --cyan-accent: #00E0FF;
+    --blue-accent: #0A84FF;
+    --orange-accent: #FF9500;
+    --red-accent: #FF5F56;
+  }
+
+  /* Override Layout Defaults */
+  .navbar {
+    display: none !important;
+  }
+  
+  .footer-wave, .footer {
+    display: block !important;
+  }
+
+  .main-content {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    display: contents !important;
+  }
+
+  body {
+    background: var(--bg-body) !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    color: var(--text-primary);
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 100vh;
+    display: block;
+  }
+  
+  .dashboard-container {
+    background: var(--bg-dashboard);
+    display: block;
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 24px;
+    padding-left: 24px;
+    /* padding-left: 94px; - Removed */
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Left Sidebar - Use fixed from sidebar.ejs */
+  .left-sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+  }
+  
+  /* Hide old sidebar elements */
+  .sidebar-header, .sidebar-brand, .profile-section, .profile-avatar-large, 
+  .profile-title, .profile-subtitle, .nav-text, .subscription-indicator {
+    display: none !important;
+  }
+
+  /* Main Content Area */
+  .grid-main-content {
+    min-width: 0;
+    padding: 0 32px;
+  }
+
+  /* Page Header */
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  
+  .page-header-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--yellow-badge), var(--orange-accent));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+  }
+  
+  .page-header-content h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+    letter-spacing: -0.5px;
+  }
+  
+  .page-header-content p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  /* Plan Cards - Motta Style */
+  .plans-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    margin-bottom: 48px;
+    padding: 0 20px;
+  }
+
+  .plan-card {
+    background: rgba(26, 26, 30, 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 40px 32px;
+    transition: all 0.3s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .plan-card:hover {
+    border-color: rgba(76, 217, 100, 0.3);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .plan-card.recommended {
+    background: rgba(31, 41, 31, 0.8);
+    border: 2px solid rgba(76, 217, 100, 0.5);
+    transform: scale(1.05);
+    box-shadow: 0 20px 60px rgba(76, 217, 100, 0.15);
+  }
+
+  .plan-card.recommended:hover {
+    transform: scale(1.05) translateY(-8px);
+    box-shadow: 0 25px 70px rgba(76, 217, 100, 0.25);
+  }
+
+  .plan-header {
+    margin-bottom: 32px;
+  }
+
+  .plan-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--green-accent);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .current-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    background: rgba(10, 132, 255, 0.2);
+    color: var(--blue-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .recommended-badge {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--green-accent);
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .plan-price {
+    font-size: 56px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .plan-price small {
+    font-size: 20px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .plan-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+  }
+
+  .plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 32px 0;
+    flex-grow: 1;
+  }
+
+  .plan-features li {
+    padding: 10px 0;
+    font-size: 14px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .plan-features li::before {
+    content: '✓';
+    width: 20px;
+    height: 20px;
+    background: rgba(76, 217, 100, 0.2);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--green-accent);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .plan-features li strong {
+    color: var(--green-accent);
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+  }
+
+  .btn-primary {
+    background: var(--green-accent);
+    color: #000;
+    box-shadow: 0 4px 20px rgba(76, 217, 100, 0.3);
+  }
+
+  .btn-primary:hover {
+    background: #5FE574;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(76, 217, 100, 0.4);
+  }
+
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* FAQ Section */
+  .faq-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 32px;
+  }
+
+  .faq-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+  }
+
+  .faq-item {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .faq-item:last-child {
+    border-bottom: none;
+  }
+
+  .faq-question {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .faq-answer {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .faq-answer a {
+    color: var(--blue-accent);
+    text-decoration: none;
+  }
+
+  .faq-answer a:hover {
+    text-decoration: underline;
+  }
+
+  /* Footer Notice */
+  .footer-notice {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .footer-notice p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 1024px) {
+    .plans-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="dashboard-container">
+  <%- include('partials/sidebar', { activePage: 'subscription' }) %>
+  
+  <main class="grid-main-content">
+    <!-- Page Header -->
+    <!-- <div class="page-header">
+      <div class="page-header-icon">
+      </div>
+      <div class="page-header-content">
+        <h1>The Perfect Plan for Your Needs</h1>
+        <p>Transparent pricing makes it easy to find a plan that works for you</p>
+      </div>
+    </div> -->
+
+    <!-- Plan Cards -->
+       <br><br>
+    <div class="plans-grid">
       <!-- Free Plan -->
       <div class="plan-card <%= user.subscriptionTier === 'free' ? 'current' : '' %>">
-        <div class="plan-name">
-          Free
-          <% if (user.subscriptionTier === 'free') { %>
-            <span class="current-badge">CURRENT</span>
-          <% } %>
+        <div class="plan-header">
+          <div class="plan-name">
+            Free
+            <% if (user.subscriptionTier === 'free') { %>
+              <span class="current-badge">CURRENT</span>
+            <% } %>
+          </div>
+          <div class="plan-price">
+            $0
+            <small>/month</small>
+          </div>
+          <div class="plan-desc">Perfect for trying out Peer</div>
         </div>
-        <div class="plan-price">
-          $0
-          <small>/month</small>
-        </div>
-        <div class="plan-desc">Perfect for trying out Peer</div>
         <ul class="plan-features">
           <li>1,000 AI tokens</li>
           <li>Unlimited repositories</li>
@@ -232,18 +425,22 @@
       </div>
 
       <!-- Pro Plan -->
-      <div class="plan-card popular <%= user.subscriptionTier === 'pro' ? 'current' : '' %>">
-        <div class="plan-name">
-          Pro
-          <% if (user.subscriptionTier === 'pro') { %>
-            <span class="current-badge">CURRENT</span>
-          <% } %>
+      <div class="plan-card recommended <%= user.subscriptionTier === 'pro' ? 'current' : '' %>">
+        <div class="plan-header">
+          <div class="plan-name">
+            Pro
+            <% if (user.subscriptionTier === 'pro') { %>
+              <span class="current-badge">CURRENT</span>
+            <% } else { %>
+              <span class="recommended-badge">RECOMMENDED</span>
+            <% } %>
+          </div>
+          <div class="plan-price">
+            ₹<%= proPriceInr %>
+            <small>/purchase</small>
+          </div>
+          <div class="plan-desc">Buy tokens anytime - never expire!</div>
         </div>
-        <div class="plan-price">
-          ₹<%= proPriceInr %>
-          <small>/purchase</small>
-        </div>
-        <div class="plan-desc">Buy tokens anytime - they never expire!</div>
         <ul class="plan-features">
           <li>10,000 AI tokens (never expire)</li>
           <li>Unlimited repositories</li>
@@ -251,24 +448,26 @@
           <li>Priority support</li>
           <li>Auto-merge capabilities</li>
           <li>Custom rules</li>
-          <li><strong>Buy as many times as you want!</strong></li>
+          <li><strong>Buy multiple times!</strong></li>
         </ul>
         <button id="rzp-pro-btn" class="btn btn-primary" type="button">Buy 10,000 Tokens</button>
       </div>
 
       <!-- Enterprise Plan -->
       <div class="plan-card <%= user.subscriptionTier === 'enterprise' ? 'current' : '' %>">
-        <div class="plan-name">
-          Enterprise
-          <% if (user.subscriptionTier === 'enterprise') { %>
-            <span class="current-badge">CURRENT</span>
-          <% } %>
+        <div class="plan-header">
+          <div class="plan-name">
+            Enterprise
+            <% if (user.subscriptionTier === 'enterprise') { %>
+              <span class="current-badge">CURRENT</span>
+            <% } %>
+          </div>
+          <div class="plan-price">
+            —
+            <small>custom</small>
+          </div>
+          <div class="plan-desc">For teams and organizations</div>
         </div>
-<div class="plan-price">
-          —
-          <small>custom</small>
-        </div>
-        <div class="plan-desc">For teams and organizations</div>
         <ul class="plan-features">
           <li>Unlimited AI tokens</li>
           <li>Unlimited repositories</li>
@@ -282,13 +481,14 @@
         <% if (user.subscriptionTier === 'enterprise') { %>
           <button class="btn btn-secondary" disabled>Current Plan</button>
         <% } else { %>
-          <button class="btn btn-secondary" type="button" disabled>Enterprise (Coming Soon)</button>
+          <button class="btn btn-secondary" type="button" disabled>Coming Soon</button>
         <% } %>
       </div>
     </div>
 
-    <div class="faq">
-      <h2>❓ Frequently Asked Questions</h2>
+    <!-- FAQ Section -->
+    <div class="faq-section">
+      <h2 class="faq-title">Frequently Asked Questions</h2>
       
       <div class="faq-item">
         <div class="faq-question">What are AI tokens?</div>
@@ -301,7 +501,7 @@
       <div class="faq-item">
         <div class="faq-question">Can I use my own API keys?</div>
         <div class="faq-answer">
-          Yes! Go to <a href="/settings/api-keys" style="color: #58a6ff;">API Keys</a> to add your own Groq or Gemini keys. 
+          Yes! Go to <a href="/settings/api-keys">API Keys</a> to add your own Groq or Gemini keys. 
           This lets you use your own credits instead of ours.
         </div>
       </div>
@@ -309,7 +509,7 @@
       <div class="faq-item">
         <div class="faq-question">Can I buy tokens multiple times?</div>
         <div class="faq-answer">
-          Yes! You can purchase ₹800 for 10,000 tokens as many times as you want. Tokens never expire and stack with your existing balance.
+          Yes! You can purchase ₹<%= proPriceInr %> for 10,000 tokens as many times as you want. Tokens never expire and stack with your existing balance.
         </div>
       </div>
 
@@ -319,90 +519,94 @@
           We use industry-standard encryption and never store your payment details directly.
         </div>
       </div>
-      
+
       <div class="faq-item">
         <div class="faq-question">What is your refund policy?</div>
         <div class="faq-answer">
           We offer full refunds within 7 days of purchase if you've used less than 10% of your purchased tokens. 
-          Contact us at <a href="mailto:anirbansantra748@gmail.com" style="color: #58a6ff;">anirbansantra748@gmail.com</a> 
+          Contact us at <a href="mailto:anirbansantra748@gmail.com">anirbansantra748@gmail.com</a> 
           with your transaction details. Refunds are processed within 5-7 business days.
         </div>
       </div>
     </div>
-    
-    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; margin-top: 32px; text-align: center;">
-      <p style="color: #8b949e; font-size: 14px; margin-bottom: 12px;">
-        By purchasing, you agree to our <a href="/support" style="color: #58a6ff;">Terms of Service</a> and <a href="/support" style="color: #58a6ff;">Privacy Policy</a>. 
-        Need help? Visit our <a href="/support" style="color: #58a6ff;">Support Page</a>.
+
+    <!-- Footer Notice -->
+    <div class="footer-notice">
+      <p>
+        By purchasing, you agree to our <a href="/support" style="color: var(--blue-accent);">Terms of Service</a> and <a href="/support" style="color: var(--blue-accent);">Privacy Policy</a>. 
+        Need help? Visit our <a href="/support" style="color: var(--blue-accent);">Support Page</a>.
       </p>
     </div>
-  </div>
+  </main>
+</div>
 
-  <script>
-    (function() {
-      const btn = document.getElementById('rzp-pro-btn');
-      if (!btn) return;
-      const keyId = '<%= razorpayKeyId %>';
-      if (!keyId) {
+<script>
+  (function() {
+    const btn = document.getElementById('rzp-pro-btn');
+    if (!btn) return;
+    const keyId = '<%= razorpayKeyId %>';
+    if (!keyId) {
+      btn.disabled = true;
+      btn.textContent = 'Payment unavailable';
+      return;
+    }
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      
+      try {
         btn.disabled = true;
-        btn.textContent = 'Payment unavailable';
-        return;
-      }
-      btn.addEventListener('click', async () => {
-        if (btn.disabled) return; // Prevent double-click
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'not-allowed';
+        btn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⌛</span> Processing...';
         
-        try {
-          btn.disabled = true;
-          btn.style.opacity = '0.6';
-          btn.style.cursor = 'not-allowed';
-          btn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⌛</span> Processing...';
-          
-          const resp = await fetch('/settings/subscription/razorpay/order', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-          const data = await resp.json();
-          if (!data.ok) throw new Error(data.error || 'Failed to create order');
-          const order = data.order;
-          const options = {
-            key: keyId,
-            amount: order.amount,
-            currency: order.currency,
-            name: 'Peer Pro',
-            description: '10,000 tokens',
-            order_id: order.id,
-            prefill: {
-              name: '<%= user.displayName || user.username %>',
-              email: '<%= user.email || '' %>'
-            },
-            theme: { color: '#238636' },
-            handler: async function (response) {
-              try {
-                const verify = await fetch('/settings/subscription/razorpay/verify', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(response)
-                });
-                const result = await verify.json();
-                if (!result.ok) throw new Error(result.error || 'Verification failed');
-                window.location.href = '/settings/subscription?success=' + encodeURIComponent('Payment successful');
-              } catch (e) {
-                window.location.href = '/settings/subscription?error=' + encodeURIComponent(e.message || 'Verification failed');
-              }
-            },
-            modal: {
-              ondismiss: function() {
-                btn.disabled = false;
-                btn.textContent = 'Upgrade to Pro';
-              }
+        const resp = await fetch('/settings/subscription/razorpay/order', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        const data = await resp.json();
+        if (!data.ok) throw new Error(data.error || 'Failed to create order');
+        const order = data.order;
+        const options = {
+          key: keyId,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'Peer Pro',
+          description: '10,000 tokens',
+          order_id: order.id,
+          prefill: {
+            name: '<%= user.displayName || user.username %>',
+            email: '<%= user.email || '' %>'
+          },
+          theme: { color: '#4CD964' },
+          handler: async function (response) {
+            try {
+              const verify = await fetch('/settings/subscription/razorpay/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(response)
+              });
+              const result = await verify.json();
+              if (!result.ok) throw new Error(result.error || 'Verification failed');
+              window.location.href = '/settings/subscription?success=' + encodeURIComponent('Payment successful');
+            } catch (e) {
+              window.location.href = '/settings/subscription?error=' + encodeURIComponent(e.message || 'Verification failed');
             }
-          };
-          const rzp = new Razorpay(options);
-          rzp.open();
-        } catch (e) {
-          btn.disabled = false;
-          btn.textContent = 'Upgrade to Pro';
-          alert(e.message || 'Something went wrong');
-        }
-      });
-    })();
-  </script>
-</body>
-</html>
+          },
+          modal: {
+            ondismiss: function() {
+              btn.disabled = false;
+              btn.style.opacity = '1';
+              btn.style.cursor = 'pointer';
+              btn.textContent = 'Buy 10,000 Tokens';
+            }
+          }
+        };
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } catch (e) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.textContent = 'Buy 10,000 Tokens';
+        alert(e.message || 'Something went wrong');
+      }
+    });
+  })();
+</script>

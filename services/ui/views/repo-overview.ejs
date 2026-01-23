@@ -1,258 +1,519 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #0d1117;
-        color: #c9d1d9;
-        padding: 20px;
-        line-height: 1.6;
-      }
-      .container { max-width: 1600px; margin: 0 auto; }
-      
-      header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid #21262d;
-      }
-      h1 { font-size: 28px; font-weight: 600; color: #58a6ff; }
-      .nav-links { display: flex; gap: 15px; }
-      .nav-links a { color: #8b949e; text-decoration: none; font-size: 14px; }
-      .nav-links a:hover { color: #58a6ff; }
-      
-      .summary-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 24px;
-        margin-bottom: 40px;
-      }
-      .summary-card {
-        background: linear-gradient(135deg, rgba(22, 27, 34, 0.8) 0%, rgba(13, 17, 23, 0.9) 100%);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(88, 166, 255, 0.1);
-        border-radius: 16px;
-        padding: 28px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-      }
-      .summary-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #58a6ff 0%, #1f6feb 100%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-      .summary-card:hover::before {
-        opacity: 1;
-      }
-      .summary-card:hover { 
-        border-color: rgba(88, 166, 255, 0.4);
-        box-shadow: 0 8px 40px rgba(88, 166, 255, 0.2), 0 0 0 1px rgba(88, 166, 255, 0.1) inset;
-        transform: translateY(-4px);
-      }
-      .summary-value {
-        font-size: 42px;
-        font-weight: 900;
-        color: #c9d1d9;
-        margin-bottom: 12px;
-        letter-spacing: -0.03em;
-      }
-      .summary-label {
-        font-size: 11px;
-        color: #8b949e;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-weight: 700;
-      }
-      
-      .repo-card {
-        background: linear-gradient(135deg, rgba(22, 27, 34, 0.8) 0%, rgba(13, 17, 23, 0.9) 100%);
-        border: 1px solid rgba(88, 166, 255, 0.1);
-        border-radius: 12px;
-        padding: 28px;
-        margin-bottom: 20px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      }
-      .repo-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, #58a6ff 0%, #1f6feb 100%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-      .repo-card:hover::before {
-        opacity: 1;
-      }
-      .repo-card:hover {
-        border-color: rgba(88, 166, 255, 0.3);
-        transform: translateY(-4px);
-        box-shadow: 0 8px 32px rgba(88, 166, 255, 0.15), 0 0 0 1px rgba(88, 166, 255, 0.1) inset;
-      }
-      
-      .repo-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 16px;
-      }
-      .repo-name {
-        font-size: 20px;
-        font-weight: 600;
-        color: #c9d1d9;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .mode-badge {
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-      }
-      .mode-0 { background: #238636; color: #aff5b4; }
-      .mode-1 { background: #0969da; color: #a5d6ff; }
-      .mode-2 { background: #9a6700; color: #f0e6b9; }
-      
-      .repo-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 16px;
-        margin-top: 16px;
-      }
-      .stat-item {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .stat-label {
-        font-size: 11px;
-        color: #8b949e;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .stat-value {
-        font-size: 24px;
-        font-weight: 700;
-      }
-      
-      .link-btn {
-        padding: 8px 16px;
-        background: #21262d;
-        color: #58a6ff;
-        border: 1px solid #30363d;
-        border-radius: 6px;
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: 500;
-        display: inline-block;
-        transition: background 0.2s;
-      }
-      .link-btn:hover {
-        background: #30363d;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <header>
-        <h1>📊 Repository Overview</h1>
-        <div class="nav-links">
-          <a href="/">← Dashboard</a>
+<% layout('layout') %>
+
+<style>
+  :root {
+    --bg-body: #121212;
+    --bg-dashboard: #121212;
+    --bg-card: #1A1A1A;
+    --bg-card-hover: #202020;
+    --border-color: #2A2A2A;
+    --text-primary: #FFFFFF;
+    --text-secondary: #9CA3AF;
+    --text-muted: #6B7280;
+    
+    --green-accent: #4CD964;
+    --green-badge-bg: rgba(76, 217, 100, 0.1);
+    --yellow-badge: #FFD700;
+    --cyan-accent: #00E0FF;
+    --blue-accent: #0A84FF;
+    --red-accent: #FF5F56;
+  }
+
+  /* Override Layout Defaults */
+  .navbar { display: none !important; }
+  .footer-wave, .footer { display: block !important; }
+  .main-content {
+    max-width: none !important; margin: 0 !important; padding: 0 !important;
+    min-height: auto !important; display: contents !important;
+  }
+  body {
+    background: var(--bg-body) !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text-primary);
+    padding: 0 !important; margin: 0 !important;
+    min-height: 100vh; display: block;
+  }
+  
+  .dashboard-container {
+    background: var(--bg-dashboard);
+    display: block;
+    width: 100%;
+    min-height: 100vh;
+    padding: 24px;
+    /* padding-left: 94px; - Removed to prevent double padding */
+  }
+
+  /* Sidebar - use fixed from sidebar.ejs */
+  .left-sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+  }
+  
+  /* Hide old sidebar elements */
+  .sidebar-header, .sidebar-brand, .profile-section, .profile-avatar-large, 
+  .profile-title, .profile-subtitle, .nav-text, .subscription-indicator {
+    display: none !important;
+  }
+
+
+  .grid-main-content {
+    min-width: 0;
+    padding: 0 32px;
+  }
+
+  /* Page Header */
+  .page-header {
+    margin: 32px 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .page-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* Top Stats Section */
+  .overview-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  
+  .overview-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 120px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  .overview-card:hover {
+    transform: translateY(-4px);
+    border-color: #3a3a3a;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+  
+  .overview-value-group {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .overview-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .overview-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .icon-blue { background: rgba(10, 132, 255, 0.1); color: var(--blue-accent); }
+  .icon-green { background: rgba(76, 217, 100, 0.1); color: var(--green-accent); }
+  .icon-yellow { background: rgba(255, 215, 0, 0.1); color: var(--yellow-badge); }
+  .icon-red { background: rgba(255, 95, 86, 0.1); color: var(--red-accent); }
+  
+  .overview-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 12px;
+    font-weight: 500;
+  }
+
+  /* Search Bar */
+  .search-bar-container {
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 20px 14px 44px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  .search-input:focus {
+    outline: none;
+    border-color: var(--text-secondary);
+  }
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+  }
+
+  /* Repos Grid - Exactly 2 per row */
+  .repos-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    padding-bottom: 40px;
+  }
+  
+  .repo-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .repo-card:hover {
+    background: var(--bg-card-hover);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+  
+  .repo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  
+  .repo-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .repo-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: #2a2a2a;
+  }
+  .repo-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+  
+  .mode-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(42, 42, 42, 0.5);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+  }
+  
+  /* Repo Stats Grid */
+  .card-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .card-stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card-stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .card-stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .value-green { color: var(--green-accent); }
+  .value-blue { color: var(--blue-accent); }
+  
+  .repo-footer {
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  
+  .view-details-btn {
+    background: var(--green-accent);
+    color: #000;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 12px;
+    border: none;
+    cursor: pointer;
+  }
+  
+  @media (max-width: 1200px) {
+    .dashboard-container { grid-template-columns: 1fr; }
+    .left-sidebar { display: none; } /* Hide sidebar on small screens if not mobile responsive yet */
+  }
+</style>
+
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <%- include('partials/sidebar', { activePage: 'repos' }) %>
+  
+  <!-- Main Content -->
+  <main class="grid-main-content">
+    
+    <!-- Header -->
+    <div class="page-header">
+      <div class="page-title">Repository Overview</div>
+    </div>
+
+    <!-- Top Stats Cards -->
+    <div class="overview-stats-grid">
+      <div class="overview-card">
+        <div class="overview-value-group">
+          <div class="overview-value"><%= totalRepos %></div>
+          <div class="overview-icon icon-blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          </div>
         </div>
-      </header>
-      
-      <div class="summary-cards">
-        <div class="summary-card">
-          <div class="summary-value"><%= totalRepos %></div>
-          <div class="summary-label">Total Repositories</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-value" style="color: #f0883e;"><%= totalPRs %></div>
-          <div class="summary-label">Total PRs Analyzed</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-value" style="color: #da3633;"><%= totalIssues %></div>
-          <div class="summary-label">Total Issues Found</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-value" style="color: #3fb950;"><%= totalFixed %></div>
-          <div class="summary-label">Issues Fixed</div>
-        </div>
+        <div class="overview-label">Total Repositories</div>
+        <!-- Mini Graph -->
+        <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none" style="margin-top: 12px;">
+          <defs>
+            <linearGradient id="gradient-repos" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#0A84FF;stop-opacity:0.2" />
+              <stop offset="100%" style="stop-color:#0A84FF;stop-opacity:0" />
+            </linearGradient>
+          </defs>
+          <path d="M0,20 L20,18 L40,16 L60,14 L80,12 L100,10 L100,32 L0,32 Z" fill="url(#gradient-repos)" />
+          <polyline points="0,20 20,18 40,16 60,14 80,12 100,10" stroke="#0A84FF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="0" cy="20" r="2" fill="#0A84FF" />
+          <circle cx="20" cy="18" r="2" fill="#0A84FF" />
+          <circle cx="40" cy="16" r="2" fill="#0A84FF" />
+          <circle cx="60" cy="14" r="2" fill="#0A84FF" />
+          <circle cx="80" cy="12" r="2" fill="#0A84FF" />
+          <circle cx="100" cy="10" r="2.5" fill="#0A84FF" />
+        </svg>
       </div>
       
+      <div class="overview-card">
+        <div class="overview-value-group">
+          <div class="overview-value"><%= totalPRs %></div>
+          <div class="overview-icon icon-yellow">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          </div>
+        </div>
+        <div class="overview-label">Total PRs Analyzed</div>
+        <!-- Mini Graph -->
+        <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none" style="margin-top: 12px;">
+          <defs>
+            <linearGradient id="gradient-prs" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.2" />
+              <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0" />
+            </linearGradient>
+          </defs>
+          <path d="M0,22 L20,19 L40,20 L60,16 L80,14 L100,11 L100,32 L0,32 Z" fill="url(#gradient-prs)" />
+          <polyline points="0,22 20,19 40,20 60,16 80,14 100,11" stroke="#FFD700" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="0" cy="22" r="2" fill="#FFD700" />
+          <circle cx="20" cy="19" r="2" fill="#FFD700" />
+          <circle cx="40" cy="20" r="2" fill="#FFD700" />
+          <circle cx="60" cy="16" r="2" fill="#FFD700" />
+          <circle cx="80" cy="14" r="2" fill="#FFD700" />
+          <circle cx="100" cy="11" r="2.5" fill="#FFD700" />
+        </svg>
+      </div>
+      
+      <div class="overview-card">
+        <div class="overview-value-group">
+          <div class="overview-value"><%= totalIssues %></div>
+          <div class="overview-icon icon-red">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          </div>
+        </div>
+        <div class="overview-label">Total Issues Found</div>
+        <!-- Mini Graph -->
+        <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none" style="margin-top: 12px;">
+          <defs>
+            <linearGradient id="gradient-issues" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#FF5F56;stop-opacity:0.2" />
+              <stop offset="100%" style="stop-color:#FF5F56;stop-opacity:0" />
+            </linearGradient>
+          </defs>
+          <path d="M0,16 L20,17 L40,19 L60,18 L80,20 L100,22 L100,32 L0,32 Z" fill="url(#gradient-issues)" />
+          <polyline points="0,16 20,17 40,19 60,18 80,20 100,22" stroke="#FF5F56" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="0" cy="16" r="2" fill="#FF5F56" />
+          <circle cx="20" cy="17" r="2" fill="#FF5F56" />
+          <circle cx="40" cy="19" r="2" fill="#FF5F56" />
+          <circle cx="60" cy="18" r="2" fill="#FF5F56" />
+          <circle cx="80" cy="20" r="2" fill="#FF5F56" />
+          <circle cx="100" cy="22" r="2.5" fill="#FF5F56" />
+        </svg>
+      </div>
+      
+      <div class="overview-card">
+        <div class="overview-value-group">
+          <div class="overview-value"><%= totalFixed %></div>
+          <div class="overview-icon icon-green">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+        </div>
+        <div class="overview-label">Issues Fixed</div>
+        <!-- Mini Graph -->
+        <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none" style="margin-top: 12px;">
+          <defs>
+            <linearGradient id="gradient-fixed" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#4CD964;stop-opacity:0.2" />
+              <stop offset="100%" style="stop-color:#4CD964;stop-opacity:0" />
+            </linearGradient>
+          </defs>
+          <path d="M0,26 L20,22 L40,18 L60,14 L80,11 L100,8 L100,32 L0,32 Z" fill="url(#gradient-fixed)" />
+          <polyline points="0,26 20,22 40,18 60,14 80,11 100,8" stroke="#4CD964" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="0" cy="26" r="2" fill="#4CD964" />
+          <circle cx="20" cy="22" r="2" fill="#4CD964" />
+          <circle cx="40" cy="18" r="2" fill="#4CD964" />
+          <circle cx="60" cy="14" r="2" fill="#4CD964" />
+          <circle cx="80" cy="11" r="2" fill="#4CD964" />
+          <circle cx="100" cy="8" r="2.5" fill="#4CD964" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Search/Filter -->
+    <div class="search-bar-container">
+      <span class="search-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </span>
+      <input type="text" class="search-input" placeholder="Search Repositories..." id="repoSearch" oninput="filterRepos(this.value)">
+    </div>
+
+    <!-- Repos Grid -->
+    <div class="repos-grid">
       <% repos.forEach(repo => { %>
         <div class="repo-card" onclick="window.location.href='/repo/<%= repo.name %>'">
+          <!-- Header -->
           <div class="repo-header">
-            <div class="repo-name">
-              📦 <%= repo.name %>
+            <div class="repo-title-group">
+              <img src="https://github.com/<%= repo.name.split('/')[0] %>.png" class="repo-avatar" alt="">
+              <div class="repo-name"><%= repo.name %></div>
             </div>
-            <span class="mode-badge mode-<%= repo.mode %>">
-              Mode <%= repo.mode %>: <%= repo.modeName %>
-            </span>
-          </div>
-          
-          <div class="repo-stats">
-            <div class="stat-item">
-              <div class="stat-label">PRs Analyzed</div>
-              <div class="stat-value" style="color: #58a6ff;"><%= repo.totalPRs %></div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">Issues Found</div>
-              <div class="stat-value" style="color: #f0883e;"><%= repo.totalIssues %></div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">Issues Solved</div>
-              <div class="stat-value" style="color: #3fb950;"><%= repo.issuesSolved %></div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">Fix Rate</div>
-              <div class="stat-value" style="color: <%= repo.fixRate >= 75 ? '#3fb950' : repo.fixRate >= 50 ? '#f0883e' : '#da3633' %>">
-                <%= repo.fixRate %>%
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">Success Rate</div>
-              <div class="stat-value">
-                <%= repo.successRate %>%
-              </div>
+            <!-- Top Right Statistic (Matches reference '0 percent' or similar status) -->
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 500;">
+              <%= repo.modeName %>
             </div>
           </div>
           
-          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #21262d; font-size: 12px; color: #8b949e;">
-            Last activity: <%= new Date(repo.lastActivity).toLocaleString() %>
+          <!-- Inner Dark Card Look -->
+          <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px; margin-bottom: 0;">
+            
+            <!-- Row 1: Stats & Time -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+              <!-- Left: PRs -->
+              <div style="display: flex; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                </div>
+                <div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Total PRs</div>
+                  <div style="font-size: 13px; color: var(--text-secondary);">
+                     <span style="color: var(--text-primary); font-weight: 600;"><%= repo.totalPRs %> Analyzed</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Middle: Issues -->
+              <div style="text-align: right; padding-right: 20px;">
+                <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                  <%= repo.totalIssues %> Found / <%= repo.issuesSolved %> Fixed
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted);">
+                   Fix Rate: <%= repo.fixRate %>%
+                </div>
+              </div>
+
+              <!-- Right: Activity -->
+              <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);">
+                <div style="width: 8px; height: 8px; background: <%= repo.successRate >= 80 ? '#4CD964' : (repo.successRate >= 50 ? '#0A84FF' : '#FF5F56') %>; border-radius: 50%;"></div>
+                <span><%= new Date(repo.lastActivity).toLocaleDateString() %></span>
+              </div>
+            </div>
+
+            <!-- Row 2: Stats and Button -->
+             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px;">
+                <div style="display: flex; gap: 40px;">
+                   <!-- Fix Rate -->
+                   <div>
+                     <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+                       <%= repo.fixRate %>%
+                     </div>
+                     <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Fix Rate</div>
+                   </div>
+                   <!-- Success Rate -->
+                   <div>
+                     <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+                       <%= repo.successRate %>%
+                     </div>
+                     <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Success Rate</div>
+                   </div>
+                </div>
+
+                <!-- View Details Button -->
+                <button class="view-details-btn" style="padding: 10px 24px; font-size: 13px; border-radius: 24px;">
+                  View Details
+                </button>
+             </div>
+
           </div>
         </div>
       <% }) %>
       
       <% if (repos.length === 0) { %>
-        <div style="text-align: center; padding: 60px 20px; color: #6e7681;">
-          <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
-          <p>No repositories analyzed yet.</p>
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+          No repositories found.
         </div>
       <% } %>
     </div>
-  </body>
-</html>
+    
+  </main>
+</div>
+
+<script>
+  // Repository search/filter functionality
+  function filterRepos(query) {
+    const cards = document.querySelectorAll('.repo-card');
+    const lowerQuery = query.toLowerCase().trim();
+    
+    cards.forEach(card => {
+      const repoName = card.querySelector('.repo-name');
+      if (repoName) {
+        const name = repoName.textContent.toLowerCase();
+        if (lowerQuery === '' || name.includes(lowerQuery)) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      }
+    });
+  }
+</script>

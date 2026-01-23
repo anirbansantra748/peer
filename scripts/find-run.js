@@ -6,12 +6,12 @@ const PRRun = require('../shared/models/PRRun');
 async function findRun(searchId) {
   try {
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/peer');
-    
+
     console.log(`\n🔍 Searching for run: ${searchId}\n`);
-    
+
     // Try multiple ways to find it
     let run = null;
-    
+
     // Method 1: Try as ObjectId
     try {
       run = await PRRun.findById(searchId);
@@ -21,7 +21,7 @@ async function findRun(searchId) {
     } catch (e) {
       console.log('❌ findById failed:', e.message);
     }
-    
+
     // Method 2: Try as string search
     if (!run) {
       run = await PRRun.findOne({ _id: searchId });
@@ -29,19 +29,19 @@ async function findRun(searchId) {
         console.log('✅ Found using findOne with string!');
       }
     }
-    
+
     // Method 3: Search in all fields
     if (!run) {
       const allRuns = await PRRun.find();
       console.log(`\n📊 Total runs in database: ${allRuns.length}`);
       console.log('Checking if any match...\n');
-      
+
       allRuns.forEach((r, idx) => {
         const idStr = r._id.toString();
-        console.log(`${idx + 1}. ${idStr} ${idStr === searchId ? '← MATCH!' : ''}`);
+        console.log(`${idx + 1}. ${idStr} ${idStr === searchId ? ' MATCH!' : ''}`);
       });
     }
-    
+
     if (run) {
       console.log('\n═══════════════════════════════════════════════════════');
       console.log('Run Details:');
@@ -63,7 +63,7 @@ async function findRun(searchId) {
       console.log('  3. Wrong database connection');
       console.log('  4. The run ID is incorrect\n');
     }
-    
+
     await mongoose.connection.close();
   } catch (error) {
     console.error('❌ Error:', error.message);
