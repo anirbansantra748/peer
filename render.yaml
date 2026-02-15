@@ -32,6 +32,8 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: OPENAI_API_KEY
+        sync: false
       - key: OPENROUTER_API_KEY
         sync: false
       - key: RAZORPAY_KEY_ID
@@ -39,6 +41,14 @@ services:
       - key: RAZORPAY_KEY_SECRET
         sync: false
       - key: ENCRYPTION_KEY
+        sync: false
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: VOYAGE_API_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
       - key: UI_BASE
         value: https://peer-ui.onrender.com
@@ -77,8 +87,8 @@ services:
         value: https://peer-ui.onrender.com/auth/github/callback
     healthCheckPath: /health
 
-  # Analyzer Worker
-  - type: worker
+  # Analyzer Service (Converted to Web for Free Plan)
+  - type: web
     name: peer-analyzer
     env: node
     region: singapore
@@ -100,11 +110,22 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: OPENAI_API_KEY
+        sync: false
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: VOYAGE_API_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+    healthCheckPath: /health
 
-  # Autofix Worker
-  - type: worker
+  # Autofix Service (Converted to Web for Free Plan)
+  - type: web
     name: peer-autofix
     env: node
     region: singapore
@@ -126,8 +147,19 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: OPENAI_API_KEY
+        sync: false
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: VOYAGE_API_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+    healthCheckPath: /health
 
 databases:
   # MongoDB (You'll need to use MongoDB Atlas - Free tier)
