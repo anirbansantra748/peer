@@ -79,14 +79,30 @@ function applyLineTransform(file, lines, lineNumber, finding) {
   return { ok: true, newLines: workingLines, hunk: { line: lineNumber || 1, original, inserted, rule: finding.rule, reason: changed.reason } };
 }
 
-async function cloneRepoAtSha(repo, sha) {
+async function cloneRepoAtSha(repo, sha, installationId = null) {
   const tempDir = path.join(os.tmpdir(), `peer-autofix-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await fsp.mkdir(tempDir, { recursive: true });
-  const url = safeRepoUrl(repo);
+
+  // Try to get GitHub App installation token for authenticated git operations
+  let authUrl = safeRepoUrl(repo);
+  if (installationId) {
+    try {
+      const githubAppService = require('../services/githubApp');
+      const octokit = await githubAppService.getInstallationOctokit(installationId);
+      const { data: tokenData } = await octokit.apps.createInstallationAccessToken({
+        installation_id: installationId
+      });
+      authUrl = `https://x-access-token:${tokenData.token}@github.com/${repo}.git`;
+      logger.info('autofix', 'Using GitHub App token for git operations', { repo });
+    } catch (e) {
+      logger.warn('autofix', 'Failed to get GitHub App token, falling back', { repo, error: String(e) });
+    }
+  }
+
   const git = simpleGit();
   try {
     // Shallow, no-checkout clone then fetch only the target commit
-    await git.clone(url, tempDir, ['--no-checkout']);
+    await git.clone(authUrl, tempDir, ['--no-checkout']);
     const git2 = simpleGit({ baseDir: tempDir });
     await git2.fetch('origin', sha, { '--depth': 1 });
     await git2.checkout(sha);
@@ -94,7 +110,7 @@ async function cloneRepoAtSha(repo, sha) {
   } catch (e) {
     // Fallback to full clone + checkout
     const git3 = simpleGit();
-    await git3.clone(url, tempDir);
+    await git3.clone(authUrl, tempDir);
     const git4 = simpleGit({ baseDir: tempDir });
     await git4.checkout(sha);
     return { tempDir, git: git4 };
@@ -107,6 +123,64 @@ async function buildPreview(patchRequestId) {
   const prRun = await PRRun.findById(patch.runId);
   if (!prRun) throw new Error('Run not found');
 
+  // Get the actual GitHub installation ID from the Installation document
+  const Installation = require('../models/Installation');
+  let githubInstallationId = null;
+  if (prRun.installationId) {
+    const installation = await Installation.findById(prRun.installationId);
+    if (installation && installation.installationId) {
+      githubInstallationId = installation.installationId;
+      logger.info('autofix', 'Resolved GitHub installation ID', {
+        mongoId: prRun.installationId,
+        githubInstallationId
+      });
+    }
+  }
+
+  // Load user context for API keys and token tracking
+  const User = require('../models/User');
+  const userContext = patch.userId ? await User.findById(patch.userId) : null;
+
+  // DISABLED: Token limit check - commented out for local development
+  // To re-enable, uncomment the block below
+  /*
+  // Check token limit before starting (estimate ~500 tokens per request)
+  if (userContext) {
+    const { checkUserTokenLimit } = require('../utils/userTokens');
+    const { notifyTokenLimitExceeded } = require('../utils/errorNotification');
+    const estimatedTokens = 500; // Estimate ~500 tokens per autofix request
+    const check = await checkUserTokenLimit(userContext, estimatedTokens);
+    if (!check.allowed && !check.useUserKeys) {
+      patch.status = 'failed';
+      patch.error = check.reason;
+      await patch.save();
+      logger.error('autofix', 'Token limit exceeded', { 
+        patchRequestId, 
+        userId: userContext._id,
+        reason: check.reason 
+      });
+      
+      // Notify user about token limit
+      await notifyTokenLimitExceeded(
+        userContext._id,
+        userContext.tokensUsed || 0,
+        userContext.tokenLimit || 1000
+      );
+      
+      throw new Error(check.reason);
+    }
+    logger.info('autofix', 'User context loaded', { 
+      patchRequestId, 
+      userId: userContext._id,
+      hasGroqKey: !!userContext.apiKeys?.groq,
+      hasGeminiKey: !!userContext.apiKeys?.gemini,
+      tokenLimit: userContext.tokenLimit,
+      tokensUsed: userContext.tokensUsed
+    });
+  }
+  */
+  logger.info('autofix', 'Token limit check DISABLED for local development');
+
   const startTs = Date.now();
   const timeBudgetMs = parseInt(process.env.PREVIEW_TIME_BUDGET_MS || '30000', 10) || 30000;
   const initialMaxFiles = parseInt(process.env.PREVIEW_INITIAL_MAX_FILES || '30', 10) || 30;
@@ -116,15 +190,15 @@ async function buildPreview(patchRequestId) {
   patch.preview = { unifiedDiff: '', files: [], filesExpected: 0 };
   await patch.save();
 
-  const { tempDir } = await cloneRepoAtSha(patch.repo, patch.sha);
+  const { tempDir } = await cloneRepoAtSha(patch.repo, patch.sha, githubInstallationId);
   let selected = prRun.findings.filter(f => patch.selectedFindingIds.includes(String(f._id)));
 
   // Severity prioritization
   const sevOrder = { critical: 4, high: 3, medium: 2, low: 1 };
-  selected = selected.slice().sort((a,b)=> (sevOrder[b.severity||'low']-sevOrder[a.severity||'low']) || a.file.localeCompare(b.file) || ((a.line||0)-(b.line||0)));
+  selected = selected.slice().sort((a, b) => (sevOrder[b.severity || 'low'] - sevOrder[a.severity || 'low']) || a.file.localeCompare(b.file) || ((a.line || 0) - (b.line || 0)));
 
   // Limit to unique files list for planning
-  const filesPlanned = Array.from(new Set(selected.map(f=>f.file)));
+  const filesPlanned = Array.from(new Set(selected.map(f => f.file)));
   patch.preview.filesExpected = filesPlanned.length;
   await patch.save();
 
@@ -148,7 +222,12 @@ async function buildPreview(patchRequestId) {
     entry.hunks.push({ ...result.hunk, rule: f.rule, findingId: String(f._id) });
   }
 
-  const strategy = (process.env.LLM_STRATEGY || ((process.env.LLM_PROVIDER||'').toLowerCase()==='gemini' ? 'minimal' : 'full')).toLowerCase(); // 'minimal' | 'full'
+  const strategy = (process.env.LLM_STRATEGY || ((process.env.LLM_PROVIDER || '').toLowerCase() === 'gemini' ? 'minimal' : 'full')).toLowerCase(); // 'minimal' | 'full'
+  logger.info('autofix', 'Strategy selected for batch preview', {
+    strategy,
+    LLM_STRATEGY: process.env.LLM_STRATEGY,
+    LLM_PROVIDER: process.env.LLM_PROVIDER
+  });
   // Attempt AI assistance per file
   const rewriteMode = process.env.LLM_REWRITE_MODE || 'always'; // 'always' | 'auto' | 'unchanged_only'
   for (const [file, entry] of fileMap.entries()) {
@@ -213,7 +292,7 @@ async function buildPreview(patchRequestId) {
             // Track a hunk for UI (inserted == fix)
             const findingId = String(p.findingId || relatedFindings[0]?._id || 'ai');
             const originalChecksum = crypto.createHash('sha1').update(original, 'utf8').digest('hex');
-            (entry.hunks = entry.hunks || []).push({ line: p.line, original, inserted: fix, rule: relatedFindings.find(f=>String(f._id)===findingId)?.rule || 'ai-minimal', findingId, originalChecksum, warn, provider: plan.provider || (process.env.LLM_PROVIDER||'auto'), model: plan.model || '', timestamp: new Date(plan.timestamp || Date.now()), type: String(p.type||'').toLowerCase(), multiLine: !!isMultiLine });
+            (entry.hunks = entry.hunks || []).push({ line: p.line, original, inserted: fix, rule: relatedFindings.find(f => String(f._id) === findingId)?.rule || 'ai-minimal', findingId, originalChecksum, warn, provider: plan.provider || (process.env.LLM_PROVIDER || 'auto'), model: plan.model || '', timestamp: new Date(plan.timestamp || Date.now()), type: String(p.type || '').toLowerCase(), multiLine: !!isMultiLine });
             appliedCount++;
           }
           entry.newLines = lines;
@@ -222,9 +301,9 @@ async function buildPreview(patchRequestId) {
           // Build change summary for this file
           entry.changeSummary = {
             file,
-            patches: (entry.hunks || []).map(h => ({ findingId: h.findingId, line: h.line, type: h.type || 'syntax', reason: plan.patches.find(p=>String(p.findingId||'ai')===String(h.findingId))?.reason || '', warn: h.warn || '' })),
+            patches: (entry.hunks || []).map(h => ({ findingId: h.findingId, line: h.line, type: h.type || 'syntax', reason: plan.patches.find(p => String(p.findingId || 'ai') === String(h.findingId))?.reason || '', warn: h.warn || '' })),
             model: plan.model || '',
-            provider: plan.provider || (process.env.LLM_PROVIDER||'auto'),
+            provider: plan.provider || (process.env.LLM_PROVIDER || 'auto'),
             timestamp: new Date(plan.timestamp || Date.now()),
           };
           continue;
@@ -232,12 +311,18 @@ async function buildPreview(patchRequestId) {
         // If no patches returned, leave as-is
       } else {
         // Full-file rewrite
-        const improved = await rewriteFileWithAI({ file, code: currentText, findings: relatedFindings });
-        if (improved && typeof improved === 'string') {
-          const normalized = String(improved).replace(/\r\n/g, '\n');
+        const improved = await rewriteFileWithAI({
+          file,
+          code: currentText,
+          findings: relatedFindings,
+          userContext // Pass user context for API keys and token tracking
+        });
+        if (improved && improved.text && typeof improved.text === 'string') {
+          const normalized = String(improved.text).replace(/\r\n/g, '\n');
           if (normalized.trim() && normalized.trim() !== currentText.trim()) {
             entry.newLines = normalized.split('\n');
             entry.aiRewritten = true;
+            logger.info('autofix', 'AI rewrite applied', { file, provider: improved.provider, cached: !!improved.cached });
           } else {
             logger.info('autofix', 'AI returned unchanged content', { file });
           }
@@ -262,7 +347,7 @@ async function buildPreview(patchRequestId) {
     let syntaxOk = true;
     if (/\.(js|jsx|ts|tsx)$/.test(ext)) {
       try {
-        const tmpOut = path.join(tempDir, `.__preview_${path.basename(file).replace(/[^a-zA-Z0-9_.-]/g,'_')}`);
+        const tmpOut = path.join(tempDir, `.__preview_${path.basename(file).replace(/[^a-zA-Z0-9_.-]/g, '_')}`);
         await fsp.writeFile(tmpOut, improvedLines.join('\n'), 'utf8');
         await new Promise((resolve) => {
           const { spawn } = require('child_process');
@@ -332,10 +417,24 @@ async function applyPatch(patchRequestId) {
   const prRun = await PRRun.findById(patch.runId);
   if (!prRun) throw new Error('Run not found');
 
+  // Get the actual GitHub installation ID from the Installation document
+  const Installation = require('../models/Installation');
+  let githubInstallationId = null;
+  if (prRun.installationId) {
+    const installation = await Installation.findById(prRun.installationId);
+    if (installation && installation.installationId) {
+      githubInstallationId = installation.installationId;
+      logger.info('autofix', 'Resolved GitHub installation ID for apply', {
+        mongoId: prRun.installationId,
+        githubInstallationId
+      });
+    }
+  }
+
   patch.status = 'applying';
   await patch.save();
 
-  const { tempDir, git } = await cloneRepoAtSha(patch.repo, patch.sha);
+  const { tempDir, git } = await cloneRepoAtSha(patch.repo, patch.sha, githubInstallationId);
   const branchName = `peer/autofix/${patch.runId}-${Date.now()}`;
   await git.checkoutLocalBranch(branchName);
 
@@ -348,11 +447,20 @@ async function applyPatch(patchRequestId) {
     const file = f.file;
     const abs = path.join(tempDir, file);
     const eol = f.eol || '\n';
+
+    // Debug logging
+    logger.info('autofix', 'Applying file', {
+      file,
+      aiRewritten: f.aiRewritten,
+      hasImprovedText: !!(f.improvedText && f.improvedText.trim()),
+      hunksCount: (f.hunks || []).length
+    });
+
     // If AI provided a full-file improvedText, write it as-is
     if (f.aiRewritten && typeof f.improvedText === 'string' && f.improvedText.trim()) {
       try {
         await fsp.mkdir(path.dirname(abs), { recursive: true });
-      } catch {}
+      } catch { }
       await fsp.writeFile(abs, String(f.improvedText).replace(/\r\n/g, '\n').split('\n').join(eol), 'utf8');
       const ids = Array.isArray(f.findingIds) && f.findingIds.length ? f.findingIds : ['all'];
       ids.forEach(id => applied.push({ findingId: id, file }));
@@ -416,7 +524,7 @@ async function applyPatch(patchRequestId) {
   }
 
   let commitSha = '';
-  try { const log = await git.log({ maxCount: 1 }); commitSha = log.latest && log.latest.hash; } catch {}
+  try { const log = await git.log({ maxCount: 1 }); commitSha = log.latest && log.latest.hash; } catch { }
 
   patch.results = { branchName, commitSha, applied, skipped, errors };
   patch.status = errors.length ? 'failed' : 'completed';
@@ -428,17 +536,145 @@ async function applyPatch(patchRequestId) {
       const run = await PRRun.findById(patch.runId);
       if (run) {
         const idSet = new Set((patch.selectedFindingIds || []).map(String));
+        let fixedCount = 0;
         (run.findings || []).forEach(f => {
           if (idSet.has(String(f._id))) {
             f.fixed = true;
             f.fixedAt = new Date();
             f.fixedByPatchRequestId = String(patch._id);
+            fixedCount++;
           }
         });
         await run.save();
+
+        logger.info('autofix', '✅ FINDINGS MARKED AS FIXED', {
+          runId: patch.runId,
+          patchRequestId: String(patch._id),
+          fixedCount,
+          totalFindings: run.findings.length,
+          repo: run.repo,
+          prNumber: run.prNumber
+        });
+
+        // Calculate stats
+        const totalIssues = run.findings.length;
+        const totalFixed = run.findings.filter(f => f.fixed).length;
+        const fixRate = totalIssues > 0 ? Math.round((totalFixed / totalIssues) * 100) : 0;
+
+        console.log('\n========================================');
+        console.log('🎉 AUTO-FIX COMPLETED');
+        console.log('========================================');
+        console.log(`📦 Repository: ${run.repo}`);
+        console.log(`🔢 PR Number: #${run.prNumber}`);
+        console.log(`🔍 Total Issues: ${totalIssues}`);
+        console.log(`✅ Fixed in this run: ${fixedCount}`);
+        console.log(`💯 Total Fixed: ${totalFixed} (${fixRate}%)`);
+        console.log('========================================\n');
       }
     } catch (e) {
       logger.warn('autofix', 'Failed to mark findings fixed', { runId: patch.runId, error: String(e) });
+    }
+  }
+
+  // Create Pull Request and attempt auto-merge if in commit/merge mode
+  if (!errors.length) {
+    try {
+      const { createPullRequest, attemptAutoMerge } = require('../services/githubPR');
+      const Installation = require('../models/Installation');
+
+      // Get installation config
+      const run = await PRRun.findById(patch.runId);
+      if (run && run.installationId) {
+        const installation = await Installation.findById(run.installationId);
+
+        if (installation && (installation.config.mode === 'commit' || installation.config.mode === 'merge')) {
+          // Parse repo owner/name
+          const [owner, repo] = patch.repo.split('/');
+
+          // Detect base branch from repository default
+          const githubAppService = require('../services/githubApp');
+          let baseBranch = 'main'; // default fallback
+          try {
+            const octokit = await githubAppService.getInstallationOctokit(installation.installationId);
+            const { data: repoData } = await octokit.repos.get({ owner, repo });
+            baseBranch = repoData.default_branch || 'main';
+            logger.info('autofix', 'Detected default branch', { repo: patch.repo, baseBranch });
+          } catch (branchError) {
+            logger.warn('autofix', 'Failed to detect default branch, using main', {
+              repo: patch.repo,
+              error: String(branchError)
+            });
+          }
+
+          // Create PR with fixes
+          logger.info('autofix', 'Creating pull request for fixes', {
+            patchRequestId: patch._id.toString(),
+            branch: branchName,
+            base: baseBranch
+          });
+
+          const prResult = await createPullRequest({
+            owner,
+            repo,
+            head: branchName,
+            base: baseBranch,
+            title: `peer: Auto-fix ${applied.length} issue(s) from PR #${patch.prNumber}`,
+            body: `This PR contains automatic fixes for issues found in PR #${patch.prNumber}.\n\n**Fixed:**\n- ${applied.length} issue(s) across ${new Set(applied.map(a => a.file)).size} file(s)\n\n**Skipped:**\n- ${skipped.length} issue(s)\n\nGenerated by Peer AI Code Review.`,
+            installationId: installation.installationId  // Use GitHub App auth
+          });
+
+          patch.results.fixPrNumber = prResult.prNumber;
+          patch.results.fixPrUrl = prResult.url;
+          await patch.save();
+
+          logger.info('autofix', 'Pull request created successfully', {
+            patchRequestId: patch._id.toString(),
+            prNumber: prResult.prNumber,
+            url: prResult.url
+          });
+
+          // Attempt auto-merge if mode is 'merge'
+          if (installation.config.mode === 'merge') {
+            logger.info('autofix', 'Attempting auto-merge', {
+              patchRequestId: patch._id.toString(),
+              prNumber: prResult.prNumber
+            });
+
+            const mergeResult = await attemptAutoMerge({
+              owner,
+              repo,
+              prNumber: prResult.prNumber,
+              ref: commitSha,
+              config: installation.config,
+              installationId: installation.installationId  // Use GitHub App auth
+            });
+
+            patch.results.autoMerged = mergeResult.merged;
+            patch.results.autoMergeReason = mergeResult.reason;
+            await patch.save();
+
+            if (mergeResult.merged) {
+              logger.info('autofix', 'Pull request auto-merged successfully', {
+                patchRequestId: patch._id.toString(),
+                prNumber: prResult.prNumber
+              });
+            } else {
+              logger.info('autofix', 'Pull request not auto-merged', {
+                patchRequestId: patch._id.toString(),
+                prNumber: prResult.prNumber,
+                reason: mergeResult.reason
+              });
+            }
+          }
+        }
+      }
+    } catch (prError) {
+      logger.error('autofix', 'Failed to create/merge pull request', {
+        patchRequestId: patch._id.toString(),
+        error: String(prError),
+        stack: prError.stack
+      });
+      // Don't fail the whole patch - it was still applied successfully
     }
   }
 
@@ -450,6 +686,10 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
   if (!patch) throw new Error('PatchRequest not found');
   const prRun = await PRRun.findById(patch.runId);
   if (!prRun) throw new Error('Run not found');
+
+  // Load user context for API keys and token tracking
+  const User = require('../models/User');
+  const userContext = patch.userId ? await User.findById(patch.userId) : null;
 
   // Skip non-code files that shouldn't be auto-fixed
   const nonCodeFiles = [
@@ -465,10 +705,10 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
     /^\.env(\.example)?$/i,
     /\.(txt|md|rst|log|lock)$/i,
   ];
-  
+
   const fileBasename = path.basename(filePath);
   const shouldSkip = nonCodeFiles.some(pattern => pattern.test(fileBasename));
-  
+
   if (shouldSkip) {
     logger.info('autofix', 'Skipping non-code file', { file: filePath });
     patch.preview = patch.preview || { unifiedDiff: '', files: [], filesExpected: 0 };
@@ -494,7 +734,7 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
   patch.preview = patch.preview || { unifiedDiff: '', files: [], filesExpected: 0 };
   let stubIndex = (patch.preview.files || []).findIndex(f => f.file === filePath);
   if (stubIndex === -1) {
-    patch.preview.files.push({ file: filePath, ready: false, findingIds: findings.map(f=>String(f._id)) });
+    patch.preview.files.push({ file: filePath, ready: false, findingIds: findings.map(f => String(f._id)) });
     stubIndex = patch.preview.files.length - 1;
   }
   await patch.save();
@@ -531,7 +771,13 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
   let hunks = [];
   let newLines = null;
   const currentText = originalLines.join('\n');
-  const strategy = (process.env.LLM_STRATEGY || ((process.env.LLM_PROVIDER||'').toLowerCase()==='gemini' ? 'minimal' : 'full')).toLowerCase();
+  const strategy = (process.env.LLM_STRATEGY || ((process.env.LLM_PROVIDER || '').toLowerCase() === 'gemini' ? 'minimal' : 'full')).toLowerCase();
+  logger.info('autofix', 'Strategy detected', {
+    strategy,
+    file: filePath,
+    LLM_STRATEGY: process.env.LLM_STRATEGY,
+    LLM_PROVIDER: process.env.LLM_PROVIDER
+  });
   if (strategy === 'minimal') {
     try {
       const plan = await planMinimalFixesWithAI({ file: filePath, code: currentText, findings });
@@ -570,7 +816,7 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
           lines.splice(idx + 1, 0, lineWithComment('', 'old', original));
           if (warn) lines.splice(idx + 2, 0, lineWithComment('', 'warn', warn));
           const originalChecksum = crypto.createHash('sha1').update(original, 'utf8').digest('hex');
-          hunks.push({ line: p.line, original, inserted: fix, rule: findings.find(f=>String(f._id)===findingId)?.rule || 'ai-minimal', findingId, originalChecksum, warn, provider: plan.provider || (process.env.LLM_PROVIDER||'auto'), model: plan.model || '', timestamp: new Date(plan.timestamp || Date.now()), type: String(p.type||'').toLowerCase(), multiLine: !!isMultiLine });
+          hunks.push({ line: p.line, original, inserted: fix, rule: findings.find(f => String(f._id) === findingId)?.rule || 'ai-minimal', findingId, originalChecksum, warn, provider: plan.provider || (process.env.LLM_PROVIDER || 'auto'), model: plan.model || '', timestamp: new Date(plan.timestamp || Date.now()), type: String(p.type || '').toLowerCase(), multiLine: !!isMultiLine });
           count++;
         }
         newLines = lines;
@@ -579,7 +825,12 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
       // ignore
     }
   } else {
-    const out = await rewriteFileWithAI({ file: filePath, code: currentText, findings });
+    const out = await rewriteFileWithAI({
+      file: filePath,
+      code: currentText,
+      findings,
+      userContext // Pass user context for API keys and token tracking
+    });
     const text = out?.text || '';
     if (text && text.trim() && text.trim() !== currentText.trim()) {
       newLines = String(text).replace(/\r\n/g, '\n').split('\n');
@@ -602,19 +853,23 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
         warn: h.warn || ''
       })),
       model: hunks[0]?.model || '',
-      provider: hunks[0]?.provider || (process.env.LLM_PROVIDER||'auto'),
+      provider: hunks[0]?.provider || (process.env.LLM_PROVIDER || 'auto'),
       timestamp: new Date()
     };
   }
-  
+
   // Update file entry
   patch.preview.files[stubIndex].ready = true;
   patch.preview.files[stubIndex].hunks = hunks;
-  patch.preview.files[stubIndex].originalText = originalLines.join('\n');
-  patch.preview.files[stubIndex].improvedText = improvedLines.join('\n');
+  const origText = originalLines.join('\n');
+  const improvedText = improvedLines.join('\n');
+  patch.preview.files[stubIndex].originalText = origText;
+  patch.preview.files[stubIndex].improvedText = improvedText;
   patch.preview.files[stubIndex].unifiedDiff = fileUnified;
-  patch.preview.files[stubIndex].findingIds = findings.map(f=>String(f._id));
-  patch.preview.files[stubIndex].aiRewritten = false;
+  patch.preview.files[stubIndex].findingIds = findings.map(f => String(f._id));
+  // Set aiRewritten=true if text changed and we have no hunks, OR if text changed significantly
+  const textChanged = origText !== improvedText;
+  patch.preview.files[stubIndex].aiRewritten = textChanged && (hunks.length === 0 || strategy === 'full');
   patch.preview.files[stubIndex].eol = eol;
   patch.preview.files[stubIndex].changeSummary = changeSummary;
 
@@ -622,13 +877,13 @@ async function buildPreviewForSingleFile(patchRequestId, filePath) {
   const planned = patch.preview.filesExpected || patch.preview.files.length;
   const readyCount = (patch.preview.files || []).filter(f => f.ready).length;
   const newStatus = (readyCount >= planned && planned > 0) ? 'preview_ready' : 'preview_partial';
-  logger.info('autofix', 'Updating patch status', { 
+  logger.info('autofix', 'Updating patch status', {
     patchRequestId: patch._id.toString(),
     file: filePath,
-    readyCount, 
-    planned, 
+    readyCount,
+    planned,
     oldStatus: patch.status,
-    newStatus 
+    newStatus
   });
   patch.status = newStatus;
   await patch.save();

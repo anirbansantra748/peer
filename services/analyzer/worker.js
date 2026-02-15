@@ -1,4 +1,5 @@
 require('dotenv').config();
+const express = require('express');
 const mongoose = require('mongoose');
 const { Worker, connection } = require('../../shared/queue');
 const PRRun = require('../../shared/models/PRRun');
@@ -6,6 +7,18 @@ const Installation = require('../../shared/models/Installation');
 const logger = require('../../shared/utils/prettyLogger');
 const { analyzeRepoDeep } = require('../../shared/analyzers');
 const { orchestrate } = require('../../shared/orchestrator');
+
+// Create HTTP server for health checks (required for Render web service)
+const app = express();
+const PORT = process.env.PORT || 3002;
+
+app.get('/health', (req, res) => {
+  res.json({ ok: true, service: 'analyzer', status: 'running' });
+});
+
+app.listen(PORT, () => {
+  logger.info('analyzer', `Health check server listening on port ${PORT}`);
+});
 
 // Connect to MongoDB
 mongoose
@@ -61,10 +74,13 @@ const analyzerWorker = new Worker(
         }
       }
 
-      // Update status to running
+      // Update status to running and store the mode at creation time
       prRun.status = 'running';
+      if (installationConfig && installationConfig.mode) {
+        prRun.mode = installationConfig.mode;
+      }
       await prRun.save();
-      logger.info('analyzer', 'PRRun set to running', { runId });
+      logger.info('analyzer', 'PRRun set to running', { runId, mode: prRun.mode });
 
       // Analyze repository with all 4 analyzers (style, logic, security, improvement)
       const { findings, changed, analyzerResults } = await analyzeRepoDeep({ repo, sha, baseSha });
@@ -106,6 +122,93 @@ const analyzerWorker = new Worker(
       await prRun.save();
 
       logger.info('analyzer', 'Run completed', { runId, summary: prRun.summary, findings: prRun.findings.length });
+      
+      console.log('\n========================================');
+      console.log('✅ ANALYSIS COMPLETED');
+      console.log('========================================');
+      console.log(`📦 Repository: ${repo}`);
+      console.log(`🔢 PR Number: #${prNumber}`);
+      console.log(`🔍 Issues Found: ${prRun.findings.length}`);
+      console.log(`🔴 Critical: ${prRun.findings.filter(f => f.severity === 'critical').length}`);
+      console.log(`🟠 High: ${prRun.findings.filter(f => f.severity === 'high').length}`);
+      console.log(`🟡 Medium: ${prRun.findings.filter(f => f.severity === 'medium').length}`);
+      console.log(`⚪ Low: ${prRun.findings.filter(f => f.severity === 'low').length}`);
+      if (installationConfig && (installationConfig.mode === 'commit' || installationConfig.mode === 'merge')) {
+        console.log(`🤖 Auto-fix will start next...`);
+      }
+      console.log('========================================\n');
+
+      // Send notification after analysis completes
+      try {
+        const notificationHelper = require('../../shared/utils/notificationHelper');
+        const installation = prRun.installationId ? await Installation.findById(prRun.installationId) : null;
+        
+        if (installation && installation.userId) {
+          await notificationHelper.notifyPRAnalyzed({
+            userId: installation.userId,
+            repo: prRun.repo,
+            prNumber: prRun.prNumber,
+            runId: prRun._id.toString(),
+            issuesCount: prRun.findings.length,
+            mode: installationConfig?.mode || 'review'
+          });
+          logger.info('analyzer', 'PR analyzed notification sent', { runId, userId: installation.userId });
+        }
+      } catch (notifError) {
+        logger.warn('analyzer', 'Failed to send notification', { runId, error: String(notifError) });
+      }
+
+      // Auto-trigger autofix if mode is 'commit' or 'merge' (skip for 'review' mode)
+      if (installationConfig && (installationConfig.mode === 'commit' || installationConfig.mode === 'merge')) {
+        // Get all finding IDs to auto-fix
+        const findingIds = prRun.findings.map(f => String(f._id));
+        
+        // Only trigger if there are findings
+        if (findingIds.length > 0) {
+          logger.info('analyzer', 'Auto-triggering autofix', { 
+            runId, 
+            mode: installationConfig.mode,
+            findingsCount: findingIds.length 
+          });
+        } else {
+          logger.info('analyzer', 'No findings to fix, skipping autofix', { runId });
+        }
+        
+        if (findingIds.length > 0) {
+          // Import autofix queue
+          const { autofixQueue } = require('../../shared/queue');
+          // Create preview first (automatically creates PatchRequest)
+          const PatchRequest = require('../../shared/models/PatchRequest');
+          
+          // Get userId from installation if available
+          const installation = prRun.installationId ? await Installation.findById(prRun.installationId) : null;
+          const userId = installation?.userId || null;
+          
+          const patch = new PatchRequest({
+            runId,
+            repo: prRun.repo,
+            prNumber: prRun.prNumber,
+            sha: prRun.sha,
+            selectedFindingIds: findingIds,
+            userId, // Add user context for token tracking
+            status: 'queued',
+            preview: { unifiedDiff: '', files: [], filesExpected: 0 },
+          });
+          await patch.save();
+          
+          logger.info('analyzer', 'PatchRequest created for auto-fix', { 
+            patchRequestId: patch._id.toString(),
+            findingsCount: findingIds.length 
+          });
+          
+          // Enqueue preview job
+          await autofixQueue.add('preview', { patchRequestId: patch._id.toString() });
+          
+          logger.info('analyzer', 'Auto-fix preview job enqueued', { 
+            patchRequestId: patch._id.toString() 
+          });
+        }
+      }
 
       return { runId, status: 'completed', summary: prRun.summary, findingsCount: prRun.findings.length };
     } catch (error) {

@@ -1,0 +1,216 @@
+<% layout('layout') %>
+
+<style>
+  .support-container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .support-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .support-title {
+    font-size: 36px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #58a6ff 0%, #79c0ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+  .support-subtitle {
+    color: #8b949e;
+    font-size: 16px;
+  }
+  
+  .contact-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+  .contact-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .contact-card:hover {
+    border-color: #58a6ff;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+  .contact-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  .contact-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #c9d1d9;
+    margin-bottom: 8px;
+  }
+  .contact-text {
+    color: #8b949e;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .contact-link {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #238636;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+  .contact-link:hover {
+    background: #2ea043;
+  }
+  
+  .faq-section {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 32px;
+  }
+  .faq-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #c9d1d9;
+    margin-bottom: 24px;
+  }
+  .faq-item {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #21262d;
+  }
+  .faq-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  .faq-question {
+    font-size: 16px;
+    font-weight: 600;
+    color: #c9d1d9;
+    margin-bottom: 8px;
+  }
+  .faq-answer {
+    color: #8b949e;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .faq-answer a {
+    color: #58a6ff;
+    text-decoration: none;
+  }
+  .faq-answer a:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<div class="support-container">
+  <div class="support-header">
+    <h1 class="support-title">💬 Support & Help</h1>
+    <p class="support-subtitle">We're here to help! Get in touch with us through any of these channels.</p>
+  </div>
+
+  <div class="contact-cards">
+    <div class="contact-card">
+      <div class="contact-icon">📧</div>
+      <h3 class="contact-title">Email Support</h3>
+      <p class="contact-text">Get help via email. We typically respond within 24 hours.</p>
+      <a href="mailto:anirbansantra748@gmail.com?subject=Peer Support Request" class="contact-link">Email Us</a>
+    </div>
+
+    <div class="contact-card">
+      <div class="contact-icon">🐙</div>
+      <h3 class="contact-title">GitHub Issues</h3>
+      <p class="contact-text">Report bugs or request features on our GitHub repository.</p>
+      <a href="https://github.com/anirbansantra748/peer/issues" target="_blank" class="contact-link">Open Issue</a>
+    </div>
+
+    <div class="contact-card">
+      <div class="contact-icon">💰</div>
+      <h3 class="contact-title">Payment Issues</h3>
+      <p class="contact-text">Having trouble with payments or subscriptions?</p>
+      <a href="mailto:anirbansantra748@gmail.com?subject=Payment Issue - Peer" class="contact-link">Contact Support</a>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <h2 class="faq-title">❓ Frequently Asked Questions</h2>
+    
+    <div class="faq-item">
+      <div class="faq-question">I paid but didn't receive my tokens. What should I do?</div>
+      <div class="faq-answer">
+        First, please refresh your <a href="/settings/subscription">subscription page</a> and check your dashboard. 
+        If you still don't see the tokens, email us at <a href="mailto:anirbansantra748@gmail.com">anirbansantra748@gmail.com</a> 
+        with your payment receipt or transaction ID. We'll resolve it within 24 hours.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question">How do I cancel my subscription?</div>
+      <div class="faq-answer">
+        You can downgrade to the free plan anytime from your <a href="/settings/subscription">subscription page</a>. 
+        Your purchased tokens will remain available until used. For refund requests, please contact us within 7 days of purchase.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question">Do purchased tokens expire?</div>
+      <div class="faq-answer">
+        No! Purchased tokens (Pro tier) never expire. Only free tier tokens (1,000/month) reset monthly. 
+        Your purchased tokens remain available until you use them.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question">Can I get a refund?</div>
+      <div class="faq-answer">
+        Yes, we offer refunds within 7 days of purchase if you haven't used more than 10% of the purchased tokens. 
+        Contact us at <a href="mailto:anirbansantra748@gmail.com">anirbansantra748@gmail.com</a> with your transaction details.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question">How do I add my own API keys?</div>
+      <div class="faq-answer">
+        Go to <a href="/settings/api-keys">API Keys Settings</a> and add your Groq or Gemini API keys. 
+        This lets you bypass token limits and use your own credits.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question">The GitHub App isn't analyzing my PRs. What's wrong?</div>
+      <div class="faq-answer">
+        Check if:
+        <ul style="margin-top: 8px; padding-left: 20px;">
+          <li>The GitHub App is installed on your repository</li>
+          <li>The repository is selected in your <a href="/installations">installations</a></li>
+          <li>You have enough tokens remaining</li>
+          <li>The PR isn't created by Peer itself (we skip those to prevent loops)</li>
+        </ul>
+        If issues persist, contact us with your repository name and PR number.
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align: center; padding: 32px; background: #161b22; border: 1px solid #30363d; border-radius: 12px;">
+    <h3 style="color: #c9d1d9; margin-bottom: 12px;">Still need help?</h3>
+    <p style="color: #8b949e; margin-bottom: 20px;">
+      Can't find what you're looking for? We're always happy to help!
+    </p>
+    <a href="mailto:anirbansantra748@gmail.com?subject=Support Request - Peer" 
+       class="contact-link"
+       style="background: #58a6ff;">
+      📧 Contact Support Team
+    </a>
+  </div>
+</div>

@@ -92,7 +92,7 @@ function categorizeFinding(finding) {
   let category = 'RECOMMENDED'; // default
   let impact = '';
   let consequence = '';
-  let effort = '5 min'; // default
+  let effort = '3 min'; // default (reduced from 5 min)
   let canSkip = true;
   
   // Check for BLOCKING issues (security + critical runtime errors)
@@ -158,23 +158,23 @@ function estimateEffort(finding) {
   const { rule = '', message = '' } = finding;
   const text = `${rule} ${message}`.toLowerCase();
   
-  // Complex fixes (10+ min)
+  // Complex fixes (reduced from 15 to 8 min)
   if (/refactor|restructure|redesign|migrate/i.test(text)) {
-    return '15 min';
+    return '8 min';
   }
   
-  // Medium fixes (5-10 min)
+  // Medium fixes (reduced from 10 to 5 min)
   if (/replace|update|change.*logic|add.*validation/i.test(text)) {
-    return '10 min';
+    return '5 min';
   }
   
-  // Simple fixes (2-5 min)
+  // Simple fixes (reduced from 3 to 2 min)
   if (/remove|delete|add|fix.*typo/i.test(text)) {
-    return '3 min';
+    return '2 min';
   }
   
-  // Default
-  return '5 min';
+  // Default (reduced from 5 to 3 min)
+  return '3 min';
 }
 
 /**
@@ -200,7 +200,7 @@ function getCategorySummary(findings) {
   };
   
   const totalEstimatedMinutes = enhanced.reduce((sum, f) => {
-    const mins = parseInt(f.effort) || 5;
+    const mins = parseInt(f.effort) || 3; // default reduced from 5 to 3
     return sum + mins;
   }, 0);
   

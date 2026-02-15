@@ -57,8 +57,9 @@ const installationSchema = new mongoose.Schema({
     // Auto-processing mode
     mode: {
       type: String,
-      enum: ['analyze', 'commit', 'merge'],
+      enum: ['analyze', 'commit', 'merge', 'review'],
       default: 'analyze', // Just analyze and comment, don't auto-commit
+      // 'review' = show findings in UI, user manually selects which to fix
     },
     // Which severity levels to auto-fix
     severities: {

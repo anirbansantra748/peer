@@ -5,8 +5,8 @@
   "description": "Peer (PR Auto Reviewer Platform) – skeleton",
   "license": "MIT",
   "scripts": {
-    "dev:api": "node services/api/server.js",
-    "dev:ui": "node services/ui/app.js",
+    "dev:ui": "nodemon services/ui/app.js",
+    "dev:api": "nodemon services/api/server.js",
     "dev:analyzer": "nodemon services/analyzer/worker.js",
     "dev:autofix": "nodemon services/autofix/worker.js",
     "dev:worker": "npm run dev:analyzer",
@@ -17,24 +17,31 @@
   "dependencies": {
     "@octokit/app": "^16.1.1",
     "@octokit/auth-app": "^8.1.1",
-    "@octokit/rest": "^21.0.2",
-    "axios": "^1.12.2",
+    "@octokit/rest": "^21.1.1",
+    "@qdrant/js-client-rest": "^1.16.2",
+    "axios": "^1.13.3",
     "bullmq": "^5.60.0",
     "chalk": "^5.6.2",
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "ejs": "^3.1.10",
+    "ejs-mate": "^4.0.0",
+    "eslint": "^9.38.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
     "express-session": "^1.18.2",
     "ioredis": "^5.8.0",
     "mongoose": "^8.19.0",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^6.9.8",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
-    "simple-git": "^3.28.0"
+    "razorpay": "^2.9.6",
+    "simple-git": "^3.28.0",
+    "toastify-js": "^1.12.0"
   },
   "devDependencies": {
-    "eslint": "^9.36.0",
     "nodemon": "^3.1.10"
   }
 }

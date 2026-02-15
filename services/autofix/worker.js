@@ -1,9 +1,24 @@
 require('dotenv').config();
+const express = require('express');
 const mongoose = require('mongoose');
 const { Worker, connection } = require('../../shared/queue');
 const logger = require('../../shared/utils/prettyLogger');
 const PatchRequest = require('../../shared/models/PatchRequest');
 const { buildPreview, applyPatch } = require('../../shared/autofix/engine');
+process.env.LLM_STRATEGY='full';
+
+// Create HTTP server for health checks (required for Render web service)
+const app = express();
+const PORT = process.env.PORT || 3003;
+
+app.get('/health', (req, res) => {
+  res.json({ ok: true, service: 'autofix', status: 'running' });
+});
+
+app.listen(PORT, () => {
+  logger.info('autofix', `Health check server listening on port ${PORT}`);
+});
+
 
 // Connect to MongoDB
 mongoose
@@ -26,6 +41,38 @@ const autofixWorker = new Worker(
     if (name === 'preview') {
       const patch = await buildPreview(patchRequestId);
       logger.info('autofix', 'Preview built', { patchRequestId, status: patch.status, bytes: (patch.preview?.unifiedDiff || '').length });
+
+      // Auto-trigger apply if mode is commit/merge
+      if (patch.status === 'preview_ready') {
+        const PRRun = require('../../shared/models/PRRun');
+        const Installation = require('../../shared/models/Installation');
+        const { autofixQueue } = require('../../shared/queue');
+
+        try {
+          const run = await PRRun.findById(patch.runId);
+          if (run && run.installationId) {
+            const installation = await Installation.findById(run.installationId);
+
+            if (installation && (installation.config.mode === 'commit' || installation.config.mode === 'merge')) {
+              logger.info('autofix', 'Auto-triggering apply job', {
+                patchRequestId,
+                mode: installation.config.mode
+              });
+
+              // Enqueue apply job
+              await autofixQueue.add('apply', { patchRequestId });
+
+              logger.info('autofix', 'Apply job enqueued', { patchRequestId });
+            }
+          }
+        } catch (error) {
+          logger.error('autofix', 'Failed to auto-trigger apply', {
+            patchRequestId,
+            error: String(error)
+          });
+        }
+      }
+
       return { patchRequestId, status: patch.status };
     }
 
@@ -41,6 +88,55 @@ const autofixWorker = new Worker(
     if (name === 'apply') {
       const patch = await applyPatch(patchRequestId);
       logger.info('autofix', 'Apply completed', { patchRequestId, status: patch.status, applied: patch.results?.applied?.length });
+      
+      // Send notification after apply completes
+      try {
+        const PRRun = require('../../shared/models/PRRun');
+        const Installation = require('../../shared/models/Installation');
+        const notificationHelper = require('../../shared/utils/notificationHelper');
+        
+        const run = await PRRun.findById(patch.runId);
+        if (run && run.installationId) {
+          const installation = await Installation.findById(run.installationId);
+          
+          if (installation && installation.userId) {
+            const fixedCount = patch.results?.applied?.length || 0;
+            const fixPrNumber = patch.results?.fixPrNumber;
+            const fixPrUrl = patch.results?.fixPrUrl;
+            const autoMerged = patch.results?.autoMerged;
+            
+            // Determine which notification to send based on mode and merge status
+            if (installation.config.mode === 'merge' && autoMerged) {
+              // Mode 0: Auto-merge complete
+              await notificationHelper.notifyAutoMergeComplete({
+                userId: installation.userId,
+                repo: patch.repo,
+                prNumber: patch.prNumber,
+                runId: patch.runId,
+                fixedCount,
+                fixPrNumber,
+                fixPrUrl
+              });
+              logger.info('autofix', 'Auto-merge complete notification sent', { patchRequestId });
+            } else if (installation.config.mode === 'commit' || (installation.config.mode === 'merge' && !autoMerged)) {
+              // Mode 1: Approval needed
+              await notificationHelper.notifyApprovalNeeded({
+                userId: installation.userId,
+                repo: patch.repo,
+                prNumber: patch.prNumber,
+                runId: patch.runId,
+                fixedCount,
+                fixPrNumber,
+                fixPrUrl
+              });
+              logger.info('autofix', 'Approval needed notification sent', { patchRequestId });
+            }
+          }
+        }
+      } catch (notifError) {
+        logger.warn('autofix', 'Failed to send notification', { patchRequestId, error: String(notifError) });
+      }
+      
       return { patchRequestId, status: patch.status };
     }
 

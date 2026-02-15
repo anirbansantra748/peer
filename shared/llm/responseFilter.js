@@ -26,6 +26,8 @@ const EXPLANATORY_PATTERNS = [
   /^Modifications:/im,
   /^Updates:/im,
   /^Fixes\s+applied:/im,
+  /^Fixed\s+issues?:/im,
+  /^Corrected\s+(?:the|issues):/im,
   
   // Numbered change lists (1., 2., 3., etc.)
   /^\d+\.\s+(?:Replaced|Added|Removed|Fixed|Changed|Used|Updated)/im,

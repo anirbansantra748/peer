@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script>
+      // Fetch and display LLM usage
+      async function refreshUsage() {
+        try {
+          const res = await fetch('/api/llm/usage');
+          const data = await res.json();
+          
+          if (data.ok) {
+            document.getElementById('usage-calls').textContent = data.total.calls.toLocaleString();
+            document.getElementById('usage-tokens').textContent = data.total.tokens.toLocaleString();
+            
+            // Find provider with most calls
+            const providers = data.providers || {};
+            const topProvider = Object.entries(providers).sort((a, b) => b[1].calls - a[1].calls)[0];
+            document.getElementById('usage-provider').textContent = topProvider ? topProvider[0].toUpperCase() : 'None';
+          }
+        } catch (error) {
+          console.error('Failed to fetch usage:', error);
+        }
+      }
+      
+      // Load usage on page load
+      window.addEventListener('load', refreshUsage);
+      
+      // Fetch and display user token usage
+      async function refreshUserUsage() {
+        try {
+          const res = await fetch('/api/user/usage');
+          const data = await res.json();
+          
+          if (data.ok) {
+            document.getElementById('user-tokens-used').textContent = data.tokensUsed.toLocaleString();
+            document.getElementById('user-token-limit').textContent = data.unlimited ? 'Unlimited' : data.tokenLimit.toLocaleString();
+            document.getElementById('user-tokens-remaining').textContent = data.unlimited ? 'Unlimited' : data.remaining.toLocaleString();
+            
+            // Update progress bar
+            const progressBar = document.getElementById('usage-progress');
+            const progressFill = document.getElementById('usage-progress-fill');
+            const progressText = document.getElementById('usage-progress-text');
+            
+            if (progressBar && progressFill && progressText) {
+              if (data.unlimited) {
+                progressFill.style.width = '0%';
+                progressFill.style.background = '#238636';
+                progressText.textContent = 'Unlimited';
+              } else {
+                const percentage = data.percentage;
+                progressFill.style.width = percentage + '%';
+                
+                // Color based on usage
+                if (percentage >= 90) {
+                  progressFill.style.background = '#da3633';
+                } else if (percentage >= 75) {
+                  progressFill.style.background = '#f0883e';
+                } else {
+                  progressFill.style.background = '#238636';
+                }
+                
+                progressText.textContent = percentage + '%';
+              }
+            }
+            
+            // Update subscription badge
+            const subBadge = document.getElementById('subscription-badge');
+            if (subBadge) {
+              subBadge.textContent = data.subscriptionTier.toUpperCase();
+              subBadge.className = 'subscription-badge ' + (data.subscriptionTier === 'free' ? 'sub-free' : data.subscriptionTier === 'pro' ? 'sub-pro' : 'sub-enterprise');
+            }
+            
+            // Show/hide upgrade message
+            const upgradeMsg = document.getElementById('upgrade-message');
+            if (upgradeMsg) {
+              if (data.percentage >= 90 && !data.hasOwnKeys && !data.unlimited) {
+                upgradeMsg.style.display = 'block';
+              } else {
+                upgradeMsg.style.display = 'none';
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch user usage:', error);
+        }
+      }
+      
+      // Load user usage on page load
+      window.addEventListener('load', refreshUserUsage);
+    </script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      .container { max-width: 1400px; margin: 0 auto; }
+      
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #21262d;
+        position: relative;
+      }
+      h1 { 
+        font-size: 28px;
+        font-weight: 600;
+        color: #58a6ff;
+      }
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+      .user-info a {
+        color: #8b949e;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .user-info a:hover { color: #58a6ff; }
+      .user-name {
+        color: #8b949e;
+        font-size: 14px;
+      }
+      .settings-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+      .settings-btn {
+        padding: 8px 12px;
+        background: #21262d;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .settings-btn:hover {
+        background: #30363d;
+        border-color: #58a6ff;
+      }
+      .settings-menu {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 100%;
+        margin-top: 8px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        min-width: 200px;
+        z-index: 1000;
+      }
+      .settings-dropdown:hover .settings-menu {
+        display: block;
+      }
+      .settings-menu a {
+        display: block;
+        padding: 12px 16px;
+        color: #c9d1d9;
+        text-decoration: none;
+        font-size: 14px;
+        border-bottom: 1px solid #21262d;
+      }
+      .settings-menu a:last-child {
+        border-bottom: none;
+      }
+      .settings-menu a:hover {
+        background: #0d1117;
+        color: #58a6ff;
+      }
+      .token-usage-card {
+        background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .usage-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .usage-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #c9d1d9;
+      }
+      .subscription-badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .sub-free {
+        background: #6e7681;
+        color: #f0f6fc;
+      }
+      .sub-pro {
+        background: #238636;
+        color: #aff5b4;
+      }
+      .sub-enterprise {
+        background: #1f6feb;
+        color: #a5d6ff;
+      }
+      .usage-progress {
+        height: 8px;
+        background: #21262d;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+      .usage-progress-fill {
+        height: 100%;
+        background: #238636;
+        transition: width 0.3s ease, background 0.3s ease;
+      }
+      .usage-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .usage-stat {
+        text-align: center;
+      }
+      .usage-stat-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #c9d1d9;
+      }
+      .usage-stat-label {
+        font-size: 11px;
+        color: #8b949e;
+        text-transform: uppercase;
+        margin-top: 4px;
+      }
+      .upgrade-message {
+        display: none;
+        background: #9a6700;
+        color: #f0e6b9;
+        padding: 12px;
+        border-radius: 6px;
+        margin-top: 12px;
+        font-size: 13px;
+      }
+      .upgrade-message a {
+        color: #f0e6b9;
+        text-decoration: underline;
+      }
+      
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-bottom: 30px;
+      }
+      .stat-card {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 20px;
+        transition: border-color 0.2s;
+      }
+      .stat-card:hover { border-color: #58a6ff; }
+      .stat-label {
+        color: #8b949e;
+        font-size: 13px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+      .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: #c9d1d9;
+        margin-bottom: 4px;
+      }
+      .stat-desc {
+        font-size: 12px;
+        color: #6e7681;
+      }
+      
+      .section {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #c9d1d9;
+        margin-bottom: 20px;
+      }
+      
+      .activity-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px 12px;
+        border-bottom: 1px solid #21262d;
+        transition: background 0.2s;
+      }
+      .activity-item:last-child { border-bottom: none; }
+      .activity-item:hover { background: #0d1117; }
+      .activity-details {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .activity-detail-row {
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        color: #8b949e;
+      }
+      .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .badge-success { background: #1a7f37; color: #aff5b4; }
+      .badge-warning { background: #9a6700; color: #f0e6b9; }
+      .badge-danger { background: #a40e26; color: #ffdce0; }
+      .badge-info { background: #0969da; color: #a5d6ff; }
+      
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .status-queued { background: #848d97; }
+      .status-running { background: #1f6feb; animation: pulse 2s infinite; }
+      .status-completed { background: #238636; }
+      .status-failed { background: #da3633; }
+      
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+      
+      .activity-content {
+        flex: 1;
+        min-width: 0;
+      }
+      .activity-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: #c9d1d9;
+        margin-bottom: 2px;
+      }
+      .activity-meta {
+        font-size: 12px;
+        color: #6e7681;
+      }
+      .activity-link {
+        color: #58a6ff;
+        text-decoration: none;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+      .activity-link:hover { text-decoration: underline; }
+      
+      .quick-links {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+      }
+      .quick-link {
+        display: block;
+        padding: 14px 18px;
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        color: #c9d1d9;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      .quick-link:hover {
+        border-color: #58a6ff;
+        background: #161b22;
+      }
+      
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #6e7681;
+      }
+      .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🤖 Peer Dashboard</h1>
+        <div class="user-info">
+          <div class="settings-dropdown">
+            <button class="settings-btn">⚙️ Settings ▾</button>
+            <div class="settings-menu">
+              <a href="/settings/api-keys">🔑 API Keys</a>
+              <a href="/settings/subscription">💎 Subscription</a>
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Token Usage Widget -->
+      <div class="token-usage-card">
+        <div class="usage-header">
+          <div class="usage-title">🎯 Your Token Usage</div>
+          <span id="subscription-badge" class="subscription-badge sub-free">FREE</span>
+        </div>
+        <div id="usage-progress" class="usage-progress">
+          <div id="usage-progress-fill" class="usage-progress-fill" style="width: 0%;"></div>
+        </div>
+        <div style="text-align: center; margin-bottom: 8px;">
+          <span id="usage-progress-text" style="font-size: 14px; font-weight: 600; color: #c9d1d9;">0%</span>
+        </div>
+        <div class="usage-stats">
+          <div class="usage-stat">
+            <div class="usage-stat-value" id="user-tokens-used">0</div>
+            <div class="usage-stat-label">Tokens Used</div>
+          </div>
+          <div class="usage-stat">
+            <div class="usage-stat-value" id="user-tokens-remaining">1,000</div>
+            <div class="usage-stat-label">Remaining</div>
+          </div>
+          <div class="usage-stat">
+            <div class="usage-stat-value" id="user-token-limit">1,000</div>
+            <div class="usage-stat-label">Total Limit</div>
+          </div>
+        </div>
+        <div id="upgrade-message" class="upgrade-message">
+          ⚠️ You're running low on tokens! <a href="/settings/api-keys">Add your API keys</a> or <a href="/settings/subscription">upgrade your plan</a> to continue.
+        </div>
+      </div>
+      
+      <!-- Stats Summary -->
+      <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-size: 13px; color: #8b949e; margin-bottom: 4px;">⏱️ Last Updated</div>
+          <div style="font-size: 14px; color: #c9d1d9; font-weight: 500;"><%= new Date().toLocaleString() %></div>
+        </div>
+        <div style="display: flex; gap: 24px;">
+          <div>
+            <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Total PRs</div>
+            <div style="font-size: 24px; font-weight: 700; color: #c9d1d9;"><%= stats.totalRuns %></div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Issues Found</div>
+            <div style="font-size: 24px; font-weight: 700; color: #f0883e;"><%= stats.totalIssues %></div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Issues Fixed</div>
+            <div style="font-size: 24px; font-weight: 700; color: #3fb950;"><%= stats.fixedIssues %></div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Fix Rate</div>
+            <div style="font-size: 24px; font-weight: 700; color: #58a6ff;"><%= stats.totalIssues > 0 ? Math.round(stats.fixedIssues / stats.totalIssues * 100) : 0 %>%</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- AI Usage Widget (System-wide, not per-user) -->
+      <!-- Hidden for now as it shows global usage -->
+      <% if (false) { %>
+      <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 16px; font-weight: 600; color: #c9d1d9; margin: 0;">🤖 AI Usage (System-wide)</h3>
+          <button onclick="refreshUsage()" style="padding: 6px 12px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; font-size: 13px; cursor: pointer;">🔄</button>
+        </div>
+        <div id="usage-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #58a6ff;" id="usage-calls">--</div>
+            <div style="font-size: 12px; color: #8b949e; margin-top: 4px;">Total Calls</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #3fb950;" id="usage-tokens">--</div>
+            <div style="font-size: 12px; color: #8b949e; margin-top: 4px;">Tokens Used</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 14px; font-weight: 600; color: #c9d1d9;" id="usage-provider">--</div>
+            <div style="font-size: 12px; color: #8b949e; margin-top: 4px;">Primary Provider</div>
+          </div>
+        </div>
+      </div>
+      <% } %>
+      
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <a href="/repos" style="text-decoration: none; color: inherit;">
+          <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="stat-label">📊 Total PRs Analyzed</div>
+            <div class="stat-value"><%= stats.totalRuns %></div>
+            <div class="stat-desc"><%= stats.completedRuns %> completed successfully</div>
+          </div>
+        </a>
+        <a href="/repos" style="text-decoration: none; color: inherit;">
+          <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="stat-label">🔍 Issues Found</div>
+            <div class="stat-value" style="color: #f0883e;"><%= stats.totalIssues %></div>
+            <div class="stat-desc">Detected across all repositories</div>
+          </div>
+        </a>
+        <a href="/repos" style="text-decoration: none; color: inherit;">
+          <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="stat-label">✅ Issues Fixed</div>
+            <div class="stat-value" style="color: #3fb950;"><%= stats.fixedIssues %></div>
+            <div class="stat-desc"><%= stats.totalIssues > 0 ? Math.round(stats.fixedIssues / stats.totalIssues * 100) : 0 %>% of all issues resolved</div>
+          </div>
+        </a>
+        <a href="/installations" style="text-decoration: none; color: inherit;">
+          <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="stat-label">🔗 Connected Repos</div>
+            <div class="stat-value"><%= stats.totalConnectedRepos %></div>
+            <div class="stat-desc">Repositories with Peer installed</div>
+          </div>
+        </a>
+      </div>
+      
+      <!-- Repository Stats Table -->
+      <% if (repoStats && repoStats.length > 0) { %>
+      <div class="section">
+        <div class="section-title">📦 Repository Statistics</div>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 1px solid #30363d;">
+                <th style="text-align: left; padding: 12px 8px; color: #8b949e; font-size: 13px; font-weight: 600;">Repository</th>
+                <th style="text-align: center; padding: 12px 8px; color: #8b949e; font-size: 13px; font-weight: 600;">Total PRs</th>
+                <th style="text-align: center; padding: 12px 8px; color: #8b949e; font-size: 13px; font-weight: 600;">Completed</th>
+                <th style="text-align: center; padding: 12px 8px; color: #8b949e; font-size: 13px; font-weight: 600;">Issues Found</th>
+                <th style="text-align: center; padding: 12px 8px; color: #8b949e; font-size: 13px; font-weight: 600;">Issues Fixed</th>
+                <th style="text-align: center; padding: 12px 8px; color: #8b949e; font-size: 13px; font-weight: 600;">Fix Rate</th>
+                <th style="text-align: center; padding: 12px 8px; color: #8b949e; font-size: 13px; font-weight: 600;">Success Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% repoStats.forEach((repo, idx) => { %>
+              <tr style="border-bottom: 1px solid #21262d; <%= idx % 2 === 0 ? 'background: #0d1117;' : '' %>">
+                <td style="padding: 12px 8px; color: #c9d1d9; font-size: 14px; font-family: ui-monospace, monospace;"><%= repo.repo %></td>
+                <td style="text-align: center; padding: 12px 8px; color: #c9d1d9; font-size: 14px;"><%= repo.totalPRs %></td>
+                <td style="text-align: center; padding: 12px 8px; color: #c9d1d9; font-size: 14px;"><%= repo.completedPRs %></td>
+                <td style="text-align: center; padding: 12px 8px; color: #c9d1d9; font-size: 14px;"><%= repo.totalIssues %></td>
+                <td style="text-align: center; padding: 12px 8px; font-size: 14px;">
+                  <span style="<%= repo.fixedIssues > 0 ? 'color: #3fb950;' : 'color: #c9d1d9;' %>"><%= repo.fixedIssues %></span>
+                </td>
+                <td style="text-align: center; padding: 12px 8px; font-size: 14px;">
+                  <span style="padding: 4px 8px; border-radius: 12px; font-weight: 500; <%= repo.fixRate >= 75 ? 'background: #1a7f37; color: #aff5b4;' : repo.fixRate >= 50 ? 'background: #9a6700; color: #f0e6b9;' : repo.fixRate >= 25 ? 'background: #9a6700; color: #f0e6b9;' : 'background: #a40e26; color: #ffdce0;' %>"><%= repo.fixRate %>%</span>
+                </td>
+                <td style="text-align: center; padding: 12px 8px; font-size: 14px;">
+                  <span style="padding: 4px 8px; border-radius: 12px; font-weight: 500; <%= repo.successRate >= 75 ? 'background: #1a7f37; color: #aff5b4;' : repo.successRate >= 50 ? 'background: #9a6700; color: #f0e6b9;' : repo.successRate >= 25 ? 'background: #9a6700; color: #f0e6b9;' : 'background: #a40e26; color: #ffdce0;' %>"><%= repo.successRate %>%</span>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <% } %>
+      
+      <!-- Recent Activity -->
+      <div class="section">
+        <div class="section-title">📊 Recent Activity</div>
+        <% if (recentRuns && recentRuns.length > 0) { %>
+          <% recentRuns.forEach(run => { 
+            const findings = run.findings || [];
+            const fixedCount = findings.filter(f => f.fixed).length;
+            const criticalCount = findings.filter(f => f.severity === 'critical').length;
+            const highCount = findings.filter(f => f.severity === 'high').length;
+            const mediumCount = findings.filter(f => f.severity === 'medium').length;
+            const lowCount = findings.filter(f => f.severity === 'low').length;
+            const fixRate = findings.length > 0 ? Math.round((fixedCount / findings.length) * 100) : 0;
+          %>
+            <div class="activity-item">
+              <span class="status-badge status-<%= run.status %>">
+                <%= run.status === 'completed' ? '✓' : run.status === 'failed' ? '✗' : run.status === 'running' ? '⟳' : '○' %>
+              </span>
+              <div class="activity-content">
+                <div class="activity-title">
+                  📦 <%= run.repo %> #<%= run.prNumber %>
+                </div>
+                <div class="activity-meta" style="margin-bottom: 8px;">
+                  <strong style="color: #c9d1d9;"><%= run.status.toUpperCase() %></strong> • 
+                  🕰️ <%= new Date(run.createdAt).toLocaleString() %>
+                </div>
+                <div class="activity-details">
+                  <div class="activity-detail-row">
+                    <div class="detail-item">
+                      <span>🔍 Total Issues:</span>
+                      <strong style="color: #c9d1d9;"><%= findings.length %></strong>
+                    </div>
+                    <div class="detail-item">
+                      <span>✅ Fixed:</span>
+                      <strong style="color: #3fb950;"><%= fixedCount %></strong>
+                      <% if (findings.length > 0) { %>
+                        <span class="badge <%= fixRate >= 75 ? 'badge-success' : fixRate >= 50 ? 'badge-warning' : 'badge-danger' %>"><%= fixRate %>%</span>
+                      <% } %>
+                    </div>
+                  </div>
+                  <% if (findings.length > 0) { %>
+                  <div class="activity-detail-row">
+                    <div class="detail-item">
+                      <span>Severity:</span>
+                      <% if (criticalCount > 0) { %><span class="badge badge-danger">🔴 <%= criticalCount %> Critical</span><% } %>
+                      <% if (highCount > 0) { %><span class="badge badge-warning">🟠 <%= highCount %> High</span><% } %>
+                      <% if (mediumCount > 0) { %><span class="badge badge-info">🟡 <%= mediumCount %> Medium</span><% } %>
+                      <% if (lowCount > 0) { %><span class="badge" style="background: #6e7681; color: #c9d1d9;">⚪ <%= lowCount %> Low</span><% } %>
+                    </div>
+                  </div>
+                  <% } %>
+                  <% if (run.sha) { %>
+                  <div class="activity-detail-row">
+                    <div class="detail-item">
+                      <span>📦 Commit:</span>
+                      <code style="font-size: 11px; color: #58a6ff;"><%= run.sha.substring(0, 7) %></code>
+                    </div>
+                  </div>
+                  <% } %>
+                </div>
+              </div>
+              <a href="/pr/<%= run._id %>" class="activity-link">View Details →</a>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>No PR runs yet. Connect a repository to get started!</p>
+          </div>
+        <% } %>
+      </div>
+      
+      <!-- Quick Links -->
+      <div class="section">
+        <div class="section-title">⚡ Quick Actions</div>
+        <div class="quick-links">
+          <a href="/installations" class="quick-link">📦 Manage Installations</a>
+          <a href="/audits" class="quick-link">📋 View All Audit Logs</a>
+          <a href="/run" class="quick-link">▶️ Trigger Manual Run</a>
+          <a href="/settings/api-keys" class="quick-link">🔑 API Keys</a>
+          <a href="/settings/subscription" class="quick-link">💎 Subscription</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

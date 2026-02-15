@@ -147,6 +147,12 @@ const prRunSchema = new mongoose.Schema({
     ref: 'Installation',
     index: true,
   },
+  // Store the mode at the time of PR creation (for display persistence)
+  mode: {
+    type: String,
+    enum: ['analyze', 'commit', 'merge', 'review'],
+    default: 'analyze',
+  },
   findings: [findingSchema],
   summary: {
     type: summarySchema,

@@ -1,0 +1,968 @@
+<% layout('layout') %>
+
+<style>
+  :root {
+    --bg-body: #121212; /* Lighter dark background */
+    --bg-dashboard: #121212;
+    --bg-card: #1A1A1A; /* Lighter dark grey for cards */
+    --bg-card-hover: #202020;
+    --border-color: #2A2A2A;
+    --text-primary: #FFFFFF;
+    --text-secondary: #9CA3AF;
+    --text-muted: #6B7280;
+    
+    --green-accent: #4CD964;
+    --green-badge-bg: rgba(76, 217, 100, 0.1);
+    --yellow-badge: #FFD700;
+    --cyan-accent: #00E0FF;
+    --blue-accent: #0A84FF;
+  }
+
+  /* Override Layout Defaults */
+  .navbar {
+    display: none !important;
+  }
+  
+  .footer-wave, .footer {
+    display: block !important;
+  }
+
+  .main-content {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    display: contents !important;
+  }
+
+  body {
+    background: var(--bg-body) !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    color: var(--text-primary);
+    padding: 0 !important; /* Full screen, no padding */
+    margin: 0 !important;
+    min-height: 100vh;
+    display: block; /* Default block display for full scroll */
+  }
+  
+  .dashboard-container {
+    background: var(--bg-dashboard);
+    display: block;
+    width: 100%;
+    min-height: auto;
+    margin: 0;
+    margin-left: 70px;
+    padding: 24px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Left Sidebar - Use the new sidebar.ejs styles */
+  .left-sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 70px !important;
+    height: 100vh !important;
+    background: #1a1a1a !important;
+    border-radius: 0 20px 20px 0 !important;
+    border-right: none !important;
+    padding: 24px 0 !important;
+    z-index: 1000 !important;
+  }
+  
+  /* Old sidebar styles - Hidden, use sidebar.ejs styles */
+  .sidebar-header, .sidebar-brand, .profile-section,
+  .profile-avatar-large, .profile-title, .profile-subtitle,
+  .subscription-indicator {
+    display: none !important;
+  }
+
+  /* Main Content Area within Grid */
+  .grid-main-content {
+    min-width: 0;
+    padding: 0 32px;
+  }
+
+  /* Token Usage Section */
+  .token-usage-section {
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 32px;
+    align-items: center;
+  }
+
+  .token-usage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    color: var(--text-primary);
+    font-weight: 500;
+    margin: 0;
+  }
+
+  .tier-badge {
+    background: var(--yellow-badge);
+    color: #000;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .token-card {
+    flex: 1;
+    background: var(--bg-card);
+    border-radius: 20px;
+    padding: 24px;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 140px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .token-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .token-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+
+  .token-change {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .token-change.positive {
+    background: rgba(76, 217, 100, 0.2);
+    color: var(--green-accent);
+  }
+  
+  .sparkline {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    opacity: 1;
+  }
+  
+  .sparkline polyline {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  
+  .sparkline circle {
+    fill: currentColor;
+    stroke: var(--bg-card);
+    stroke-width: 2;
+  }
+  
+  .sparkline path.fill {
+    fill: currentColor;
+    opacity: 0.15;
+  }
+  
+  /* Stats Summary */
+  .stats-summary {
+    background: var(--bg-card); /* It's a card in the reference */
+    border-radius: 20px;
+    padding: 24px 32px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .stats-grid {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 0;
+    gap: 0;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  .stat-value {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--green-accent);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  /* Repository Statistics Table */
+  .repo-stats-section {
+    background: transparent;
+    padding: 0;
+    margin-top: 32px;
+  }
+  
+  .repo-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+  }
+
+  .repo-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 4px;
+    margin-top: 10px;
+  }
+
+  .repo-table thead {
+    border-bottom: none;
+  }
+
+  .repo-table th {
+    text-align: left;
+    padding: 8px 16px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: none;
+  }
+  
+  .repo-table th:first-child {
+    padding-left: 20px;
+  }
+
+  .repo-table td {
+    background: transparent;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    border: none;
+  }
+  
+  .repo-table td:first-child {
+    padding-left: 20px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .repo-table td:last-child {
+    color: var(--text-secondary);
+    text-align: left;
+    padding-right: 20px;
+  }
+
+  /* Alternating row colors - Dark/Light pattern */
+  .repo-table tbody tr.row-dark td {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .repo-table tbody tr.row-light td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .severity-badge {
+    display: inline-block;
+    padding: 0;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  .severity-SM { color: var(--text-muted); }
+  .severity-SV { color: #FF5F56; }
+  .severity-FI { color: var(--green-accent); }
+  .severity-M  { color: var(--green-accent); }
+  .severity-VI { color: var(--green-accent); }
+  .severity-K1 { color: var(--text-muted); }
+
+  .severity-badge {
+    display: inline-block;
+    padding: 2px 0;
+    min-width: 24px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .severity-SM, .severity-SV { color: #ff5f56; background: none; }
+  .severity-M, .severity-FI { color: var(--green-accent); background: none; }
+
+  /* Recent Activity Cards */
+  .recent-activity-section {
+    margin-top: 48px;
+  }
+  
+  .activity-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  
+  .activity-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+  
+  .activity-card:hover {
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+  }
+  
+  .activity-number {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 600;
+    min-width: 40px;
+    text-align: center;
+  }
+  
+  .activity-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .activity-repo-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .activity-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .activity-reviewer {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  
+  .activity-progress {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+  }
+  
+  .progress-ring {
+    transform: rotate(-90deg);
+  }
+  
+  .progress-ring-circle {
+    stroke: rgba(255, 255, 255, 0.1);
+    fill: none;
+    stroke-width: 4;
+  }
+  
+  .progress-ring-circle-fill {
+    stroke: var(--green-accent);
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s;
+  }
+  
+  .progress-ring-circle-fill.red {
+    stroke: #FF5F56;
+  }
+  
+  .progress-ring-circle-fill.blue {
+    stroke: var(--blue-accent);
+  }
+  
+  .progress-percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  
+  /* Repository Statistics with Progress */
+  .repo-stats-progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .mini-progress {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    display: inline-block;
+  }
+  
+  .mini-progress svg {
+    transform: rotate(-90deg);
+  }
+  
+  .mini-progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 9px;
+    font-weight: 700;
+  }
+  
+  /* Hide Right Sidebar */
+  .right-sidebar {
+    display: none !important;
+  }
+  
+  .activity-list {
+    margin-bottom: 32px;
+  }
+  
+  .activity-item {
+    background: var(--bg-card);
+    border-radius: 30px; /* Pill shape */
+    padding: 8px 8px 8px 8px;
+    margin-bottom: 12px;
+    border: none;
+  }
+
+  .activity-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .activity-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-color);
+  }
+
+  .activity-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .activity-name {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .activity-time {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .activity-amount {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .activity-section-divider {
+    margin: 24px 0;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .toggle-switch {
+    width: 40px;
+    height: 20px;
+    background: #30363d;
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .toggle-switch.active {
+    background: var(--green-accent);
+  }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: left 0.2s;
+  }
+
+  .toggle-switch.active::after {
+    left: 22px;
+  }
+
+  .action-button {
+    width: 100%;
+    padding: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .action-button:hover {
+    background: rgba(56, 139, 253, 0.1);
+    border-color: var(--blue-accent);
+  }
+
+  .action-button.primary {
+    background: var(--green-accent);
+    border-color: var(--green-accent);
+    color: #000;
+  }
+
+  .action-button.primary:hover {
+    background: #2ea043;
+  }
+
+  @media (max-width: 1200px) {
+    .dashboard-container {
+      grid-template-columns: 1fr;
+    }
+
+    .left-sidebar, .right-sidebar {
+      position: static;
+    }
+  }
+</style>
+
+<div class="dashboard-container">
+  <!-- Left Sidebar -->
+  <%- include('partials/sidebar', { activePage: 'dashboard' }) %>
+
+  <!-- Main Content -->
+  <main class="grid-main-content">
+    <!-- Token Usage -->
+    <section class="token-usage-section">
+      <div style="flex: 1;">
+        <div class="token-usage-header">
+          <h2 class="section-title">Token Usage</h2>
+          <span class="tier-badge">⭐ Free</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">750/1000 tokens remaining (Free Tier)</div>
+      </div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+      <div class="token-card">
+        <div class="token-label">
+          <span>PRs Reviewed</span>
+        </div>
+        <div class="token-value" id="prs-reviewed-value"><%= stats.totalRuns || 0 %></div>
+        <svg class="sparkline" viewBox="0 0 100 28" preserveAspectRatio="none" style="color: var(--cyan-accent); width: 100%;">
+          <defs>
+            <linearGradient id="gradient-cyan" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:currentColor;stop-opacity:0.3" />
+              <stop offset="100%" style="stop-color:currentColor;stop-opacity:0" />
+            </linearGradient>
+          </defs>
+          <path class="fill" d="M0,18 L20,16 L40,12 L60,14 L80,10 L100,8 L100,28 L0,28 Z" fill="url(#gradient-cyan)" />
+          <polyline points="0,18 20,16 40,12 60,14 80,10 100,8" />
+          <circle cx="0" cy="18" r="2" />
+          <circle cx="20" cy="16" r="2" />
+          <circle cx="40" cy="12" r="2" />
+          <circle cx="60" cy="14" r="2" />
+          <circle cx="80" cy="10" r="2" />
+          <circle cx="100" cy="8" r="2.5" />
+        </svg>
+      </div>
+
+      <div class="token-card">
+        <div class="token-label">
+          <span>Issues Detected</span>
+          <% if (stats.totalIssues > 0) { %>
+          <span class="token-change positive">+<%= Math.min(Math.round((stats.totalIssues / stats.totalRuns) * 10) || 0, 99) %>%</span>
+          <% } %>
+        </div>
+        <div class="token-value" id="issues-detected-value"><%= stats.totalIssues || 0 %></div>
+        <svg class="sparkline" viewBox="0 0 100 28" preserveAspectRatio="none" style="color: var(--yellow-badge); width: 100%;">
+          <defs>
+            <linearGradient id="gradient-yellow" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:currentColor;stop-opacity:0.3" />
+              <stop offset="100%" style="stop-color:currentColor;stop-opacity:0" />
+            </linearGradient>
+          </defs>
+          <path class="fill" d="M0,20 L20,18 L40,16 L60,14 L80,12 L100,10 L100,28 L0,28 Z" fill="url(#gradient-yellow)" />
+          <polyline points="0,20 20,18 40,16 60,14 80,12 100,10" />
+          <circle cx="0" cy="20" r="2" />
+          <circle cx="20" cy="18" r="2" />
+          <circle cx="40" cy="16" r="2" />
+          <circle cx="60" cy="14" r="2" />
+          <circle cx="80" cy="12" r="2" />
+          <circle cx="100" cy="10" r="2.5" />
+        </svg>
+      </div>
+
+      <div class="token-card">
+        <div class="token-label">
+          <span>Issues Fixed</span>
+          <% const fixRate = stats.totalIssues > 0 ? Math.round((stats.fixedIssues / stats.totalIssues) * 100) : 0; %>
+          <% if (fixRate > 0) { %>
+          <span class="token-change positive">+<%= fixRate %>%</span>
+          <% } %>
+        </div>
+        <div class="token-value" id="issues-fixed-value"><%= stats.fixedIssues || 0 %></div>
+        <svg class="sparkline" viewBox="0 0 100 28" preserveAspectRatio="none" style="color: var(--green-accent); width: 100%;">
+          <defs>
+            <linearGradient id="gradient-green" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:currentColor;stop-opacity:0.3" />
+              <stop offset="100%" style="stop-color:currentColor;stop-opacity:0" />
+            </linearGradient>
+          </defs>
+          <path class="fill" d="M0,16 L20,14 L40,18 L60,12 L80,10 L100,8 L100,28 L0,28 Z" fill="url(#gradient-green)" />
+          <polyline points="0,16 20,14 40,18 60,12 80,10 100,8" />
+          <circle cx="0" cy="16" r="2" />
+          <circle cx="20" cy="14" r="2" />
+          <circle cx="40" cy="18" r="2" />
+          <circle cx="60" cy="12" r="2" />
+          <circle cx="80" cy="10" r="2" />
+          <circle cx="100" cy="8" r="2.5" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <section class="stats-summary">
+      <h2 class="section-title">Stats Summary</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">Total PRS</div>
+          <div class="stat-value"><%= stats.totalRuns || 320 %></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Issues Fixed</div>
+          <div class="stat-value"><%= stats.fixedIssues || 280 %></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Fix Rate</div>
+          <div class="stat-value"><%= stats.totalIssues > 0 ? Math.round(stats.fixedIssues / stats.totalIssues * 100) : 87.5 %>%</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Repository Statistics -->
+    <section class="repo-stats-section">
+      <h2 class="section-title">Repository Statistics</h2>
+      <table class="repo-table">
+        <thead>
+          <tr>
+            <th>Repository</th>
+            <th>PRs</th>
+            <th>Issues Found</th>
+            <th>Issues Fixed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (repoStats && repoStats.length > 0) { %>
+            <% repoStats.forEach((repo, index) => { %>
+            <tr class="<%= index % 2 === 0 ? 'row-dark' : 'row-light' %>">
+              <td><%= repo.repo %></td>
+              <td><%= repo.totalPRs || 0 %></td>
+              <td><%= repo.totalIssues || 0 %></td>
+              <td><%= repo.fixedIssues || 0 %></td>
+            </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                <div style="margin-bottom: 12px; font-size: 16px; color: var(--text-secondary);">No PR analysis data yet</div>
+                <div style="font-size: 13px;">Open a pull request in your connected repositories to see analysis results here.</div>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Recent Activity Section -->
+    <section class="recent-activity-section">
+      <h3 class="repo-section-title">Recent Activity</h3>
+      <div class="activity-cards-container">
+        <% if (recentRuns && recentRuns.length > 0) { %>
+          <% recentRuns.slice(0, 6).forEach((run, index) => { 
+            // Calculate actual fix rate as progress
+            const findings = run.findings || [];
+            const fixedCount = findings.filter(f => f.fixed).length;
+            const progress = findings.length > 0 ? Math.round((fixedCount / findings.length) * 100) : 0;
+            const circumference = 2 * Math.PI * 20;
+            const offset = circumference - (progress / 100) * circumference;
+            const color = progress > 70 ? 'green' : (progress > 40 ? 'blue' : 'red');
+            // Calculate hours ago
+            const createdAt = new Date(run.createdAt);
+            const now = new Date();
+            const hoursAgo = Math.floor((now - createdAt) / (1000 * 60 * 60));
+            const timeAgo = hoursAgo < 1 ? 'Just now' : hoursAgo < 24 ? hoursAgo + ' hours ago' : Math.floor(hoursAgo / 24) + ' days ago';
+          %>
+          <a href="/runs/<%= run._id || '#' %>/select" class="activity-card">
+            <div class="activity-number">#<%= index + 1 %></div>
+            <div class="activity-info">
+              <div class="activity-repo-name"><%= run.repo || 'Unknown Repo' %></div>
+              <div class="activity-meta">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="opacity: 0.7; margin-right: 4px; vertical-align: middle;"><path d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm0 2.122a2.25 2.25 0 1 0-1.5 0v.878A2.25 2.25 0 0 0 5.75 8.5h1.5v2.128a2.251 2.251 0 1 0 1.5 0V8.5h1.5a2.25 2.25 0 0 0 2.25-2.25v-.878a2.25 2.25 0 1 0-1.5 0v.878a.75.75 0 0 1-.75.75h-4.5A.75.75 0 0 1 5 6.25v-.878zm3.75 7.378a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm3-8.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5z"/></svg><span>PR #<%= run.prNumber || 'N/A' %></span>
+                <span>•</span>
+                <span><%= timeAgo %></span>
+              </div>
+              <div class="activity-reviewer">Status: <%= run.status || 'pending' %></div>
+            </div>
+            <div class="activity-progress">
+              <svg class="progress-ring" width="48" height="48">
+                <circle class="progress-ring-circle" cx="24" cy="24" r="20"></circle>
+                <circle class="progress-ring-circle-fill <%= color %>" cx="24" cy="24" r="20"
+                  style="stroke-dasharray: <%= circumference %>; stroke-dashoffset: <%= offset %>;"></circle>
+              </svg>
+              <div class="progress-percentage"><%= progress %>%</div>
+            </div>
+          </a>
+          <% }) %>
+        <% } else { %>
+          <% 
+          const dummyActivities = [
+            { repo: 'anirbansantra747+hub/ubx', pr: 234, hours: 23, reviewer: 'Normal Reviewer', progress: 85 },
+            { repo: 'anirbansantra747+hub/ubx', pr: 233, hours: 22, reviewer: 'Senior Reviewer', progress: 92 },
+            { repo: 'anirbansantra747+hub/ubx', pr: 232, hours: 21, reviewer: 'Code Review Bot', progress: 45 },
+            { repo: 'anirbansantra748/test', pr: 45, hours: 5, reviewer: 'Normal Reviewer', progress: 78 },
+            { repo: 'anirbansantra748/Guess_Country', pr: 12, hours: 3, reviewer: 'Lead Developer', progress: 95 },
+            { repo: 'anirbansantra748/project-api', pr: 67, hours: 8, reviewer: 'QA Reviewer', progress: 60 }
+          ];
+          dummyActivities.forEach((activity, index) => { 
+            const circumference = 2 * Math.PI * 20;
+            const offset = circumference - (activity.progress / 100) * circumference;
+            const color = activity.progress > 70 ? '' : (activity.progress > 40 ? 'blue' : 'red');
+          %>
+          <a href="#" class="activity-card">
+            <div class="activity-number">#<%= index + 1 %></div>
+            <div class="activity-info">
+              <div class="activity-repo-name"><%= activity.repo %></div>
+              <div class="activity-meta">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="opacity: 0.7; margin-right: 4px; vertical-align: middle;"><path d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm0 2.122a2.25 2.25 0 1 0-1.5 0v.878A2.25 2.25 0 0 0 5.75 8.5h1.5v2.128a2.251 2.251 0 1 0 1.5 0V8.5h1.5a2.25 2.25 0 0 0 2.25-2.25v-.878a2.25 2.25 0 1 0-1.5 0v.878a.75.75 0 0 1-.75.75h-4.5A.75.75 0 0 1 5 6.25v-.878zm3.75 7.378a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm3-8.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5z"/></svg><span>PR #<%= activity.pr %></span>
+                <span>•</span>
+                <span><%= activity.hours %> hours ago</span>
+              </div>
+              <div class="activity-reviewer">Done by: <%= activity.reviewer %></div>
+            </div>
+            <div class="activity-progress">
+              <svg class="progress-ring" width="48" height="48">
+                <circle class="progress-ring-circle" cx="24" cy="24" r="20"></circle>
+                <circle class="progress-ring-circle-fill <%= color %>" cx="24" cy="24" r="20"
+                  style="stroke-dasharray: <%= circumference %>; stroke-dashoffset: <%= offset %>;"></circle>
+              </svg>
+              <div class="progress-percentage"><%= activity.progress %>%</div>
+            </div>
+          </a>
+          <% }) %>
+        <% } %>
+      </div>
+    </section>
+  </main>
+
+  <!-- Right Sidebar - Recent Activity -->
+  <aside class="right-sidebar">
+    <div class="activity-header">
+      <h2 class="section-title">Recent PR Activity</h2>
+      <a href="#" style="color: var(--text-muted); font-size: 20px; text-decoration: none;">⊕</a>
+    </div>
+    <div class="activity-subtitle">Merge4 Dual Orientallime</div>
+
+    <ul class="activity-list">
+      <% if (recentRuns && recentRuns.length > 0) { %>
+        <% recentRuns.slice(0, 6).forEach(run => { %>
+        <li class="activity-item">
+          <div class="activity-user">
+            <img src="https://github.com/identicons/<%= Math.random() * 1000 %>.png" 
+                 alt="User" 
+                 class="activity-avatar">
+            <div class="activity-info">
+              <div class="activity-name"><%= run.repo ? run.repo.split('/')[1] : 'User' %></div>
+              <div class="activity-time"><%= Math.floor(Math.random() * 60) + 1 %> Minutes Ago</div>
+            </div>
+          </div>
+          <div class="activity-amount">$<%= (Math.random() * 10).toFixed(2) %></div>
+        </li>
+        <% }) %>
+      <% } else { %>
+        <li class="activity-item">
+          <div class="activity-user">
+            <img src="https://avatars.githubusercontent.com/u/1?v=4" alt="Bogdan Nastin" class="activity-avatar">
+            <div class="activity-info">
+              <div class="activity-name">Bogdan Nastin</div>
+              <div class="activity-time">02 Minutes Ago</div>
+            </div>
+          </div>
+          <div class="activity-amount">$2.10</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-user">
+            <img src="https://avatars.githubusercontent.com/u/2?v=4" alt="User" class="activity-avatar">
+            <div class="activity-info">
+              <div class="activity-name">Corporatacpl</div>
+              <div class="activity-time">Fired 5 Issues (auto-merged)</div>
+            </div>
+          </div>
+          <div class="activity-amount">$6.10</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-user">
+            <img src="https://avatars.githubusercontent.com/u/3?v=4" alt="User" class="activity-avatar">
+            <div class="activity-info">
+              <div class="activity-name">GwedRepieSallyir</div>
+              <div class="activity-time">Fired 5 issues (auto-merged)</div>
+            </div>
+          </div>
+          <div class="activity-amount">+$2.20</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-user">
+            <img src="https://avatars.githubusercontent.com/u/4?v=4" alt="User" class="activity-avatar">
+            <div class="activity-info">
+              <div class="activity-name">NiaJuxed gr Mightine</div>
+              <div class="activity-time">02 Minutes Ago</div>
+            </div>
+          </div>
+          <div class="activity-amount">+$2.10</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-user">
+            <img src="https://avatars.githubusercontent.com/u/5?v=4" alt="User" class="activity-avatar">
+            <div class="activity-info">
+              <div class="activity-name">Yulla AuegRulubah</div>
+              <div class="activity-time">Fired 5 issues (auto-merged)</div>
+            </div>
+          </div>
+          <div class="activity-amount">+$3.30</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-user">
+            <img src="https://avatars.githubusercontent.com/u/6?v=4" alt="User" class="activity-avatar">
+            <div class="activity-info">
+              <div class="activity-name">DirendBirok roor</div>
+              <div class="activity-time">Fired 3 issues (2 merge)</div>
+            </div>
+          </div>
+          <div class="activity-amount">+$4.10</div>
+        </li>
+      <% } %>
+    </ul>
+
+    <div class="activity-section-divider"></div>
+
+    <div class="activity-header" style="margin-bottom: 16px;">
+      <h2 class="section-title">Recent PR Activity</h2>
+      <a href="#" style="color: var(--text-muted); font-size: 18px; text-decoration: none;">⋯</a>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <div style="font-size: 13px; color: var(--text-secondary);">Auto-merge enabled<br><span style="font-size: 11px; color: var(--text-muted);">(Nights Might Nzbbbler)</span></div>
+      <div class="toggle-switch active"></div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+      <div style="font-size: 13px; color: var(--text-secondary);">Severity Hit fasion1</div>
+      <div class="toggle-switch"></div>
+    </div>
+
+    <button class="action-button">
+      <span>+</span>
+      <span>Connect GitHub App</span>
+    </button>
+
+    <button class="action-button primary">
+      <span>Upgrade Subscription</span>
+      <span style="background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 10px;">CEN OPT</span>
+    </button>
+  </aside>
+</div>
+
+<script>
+  // Add toggle functionality
+  document.querySelectorAll('.toggle-switch').forEach(toggle => {
+    toggle.addEventListener('click', function() {
+      this.classList.toggle('active');
+    });
+  });
+
+  // Fetch and update real token usage
+  async function refreshUserUsage() {
+    try {
+      const res = await fetch('/api/user/usage');
+      const data = await res.json();
+      
+      if (data.ok) {
+        // Update values if needed
+        // document.getElementById('balance-value').textContent = '$ ' + data.tokensUsed.toLocaleString();
+      }
+    } catch (error) {
+      console.error('Failed to fetch user usage:', error);
+    }
+  }
+  
+  window.addEventListener('load', refreshUserUsage);
+</script>

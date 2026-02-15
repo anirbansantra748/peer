@@ -34,6 +34,68 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  // Onboarding completion flag
+  onboardingComplete: {
+    type: Boolean,
+    default: false,
+  },
+  // Token usage tracking
+  tokensUsed: {
+    type: Number,
+    default: 0,
+  },
+  tokenLimit: {
+    type: Number,
+    default: 1000, // Free tier: 1000 tokens/month
+  },
+  // Monthly token reset date (for free tier)
+  tokenResetDate: {
+    type: Date,
+    default: function() {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth() + 1, 1); // First day of next month
+    },
+  },
+  // Purchased token credits (Pro tier - doesn't expire)
+  purchasedTokens: {
+    type: Number,
+    default: 0,
+  },
+  // User's own API keys (encrypted)
+  apiKeys: {
+    groq: String,
+    gemini: String,
+  },
+  // Subscription tier
+  subscriptionTier: {
+    type: String,
+    enum: ['free', 'pro', 'enterprise'],
+    default: 'free',
+  },
+  subscriptionExpiry: Date,
+  subscriptionStatus: {
+    type: String,
+    enum: ['active', 'expired', 'cancelled'],
+    default: 'active',
+  },
+  // Notification preferences
+  notificationEmail: {
+    type: String, // Separate from GitHub email, user can override
+  },
+  notifications: {
+    email: {
+      prCreated: { type: Boolean, default: true },
+      autoMergeComplete: { type: Boolean, default: true },
+      approvalNeeded: { type: Boolean, default: true },
+      issueSelectionNeeded: { type: Boolean, default: true },
+    },
+    toast: {
+      prCreated: { type: Boolean, default: true },
+      autoMergeComplete: { type: Boolean, default: true },
+      approvalNeeded: { type: Boolean, default: true },
+      issueSelectionNeeded: { type: Boolean, default: true },
+    },
+  },
 }, {
   timestamps: true, // Adds createdAt and updatedAt
 });

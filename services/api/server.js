@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const rateLimit = require('express-rate-limit');
 const { analyzeQueue, autofixQueue } = require('../../shared/queue');
 const PRRun = require('../../shared/models/PRRun');
 const Installation = require('../../shared/models/Installation');
@@ -8,11 +9,111 @@ const logger = require('../../shared/utils/prettyLogger');
 const llmCache = require('../../shared/cache/llmCache');
 
 const app = express();
+
+// Rate limiter for webhooks
+const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Allow 100 webhook calls per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Razorpay webhook must use raw body for signature verification; register BEFORE json parser
+app.post('/webhook/razorpay', webhookLimiter, express.raw({ type: '*/*' }), async (req, res) => {
+  try {
+    const signature = req.header('x-razorpay-signature') || req.header('X-Razorpay-Signature');
+    const body = req.body instanceof Buffer ? req.body.toString('utf8') : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+    const { verifyWebhookSignature, processSuccessfulPayment } = require('../../shared/services/razorpayService');
+    const PaymentTransaction = require('./models/PaymentTransaction');
+
+    if (!signature) return res.status(400).send('Missing signature');
+    const valid = verifyWebhookSignature(body, signature);
+    if (!valid) return res.status(400).send('Invalid signature');
+
+    const event = JSON.parse(body);
+    const eventType = event.event;
+    const eventId = event.payload?.payment?.entity?.id || event.payload?.order?.entity?.id;
+    const orderId = event.payload?.payment?.entity?.order_id || event.payload?.order?.entity?.id;
+
+    // Idempotency check: Skip if we've already processed this event
+    if (eventId && orderId) {
+      const existing = await PaymentTransaction.findOne({ orderId, eventId });
+      if (existing) {
+        logger.info('api', 'Duplicate webhook event, skipping', { eventType, eventId, orderId });
+        return res.json({ ok: true, status: 'duplicate' });
+      }
+    }
+
+    if (eventType === 'payment.captured' || eventType === 'payment.authorized') {
+      const payment = event.payload?.payment?.entity;
+      if (payment) {
+        try {
+          await processSuccessfulPayment(payment);
+          
+          // Log webhook event
+          await PaymentTransaction.create({
+            userId: payment.notes?.userId,
+            orderId: payment.order_id,
+            paymentId: payment.id,
+            amount: payment.amount / 100,
+            currency: payment.currency,
+            status: eventType === 'payment.captured' ? 'captured' : 'authorized',
+            method: payment.method,
+            eventId: payment.id,
+            eventType: eventType,
+            razorpaySignature: signature,
+            metadata: event.payload,
+          });
+        } catch (processError) {
+          // Log failed webhook processing
+          try {
+            await PaymentTransaction.create({
+              userId: payment.notes?.userId,
+              orderId: payment.order_id,
+              paymentId: payment.id,
+              amount: payment.amount / 100,
+              currency: payment.currency,
+              status: 'failed',
+              method: payment.method,
+              eventId: payment.id,
+              eventType: eventType,
+              errorCode: 'WEBHOOK_PROCESSING_ERROR',
+              errorDescription: processError.message,
+              metadata: event.payload,
+            });
+          } catch (logError) {
+            logger.error('api', 'Failed to log webhook error', { error: logError.message });
+          }
+          
+          // Return 500 to trigger Razorpay retry
+          logger.error('api', 'Razorpay webhook processing failed', { error: processError.message, eventType, orderId });
+          return res.status(500).json({ ok: false, error: 'Processing failed' });
+        }
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    logger.error('api', 'Razorpay webhook error', { error: String(error) });
+    // Return 500 to let Razorpay retry
+    res.status(500).json({ ok: false });
+  }
+});
+
+// JSON parser for regular routes (must be after webhook raw route)
 app.use(express.json({ limit: '2mb' }));
 
 // GitHub App webhook routes
 const githubAppWebhooks = require('./routes/githubAppWebhooks');
 app.use('/webhook/github-app', githubAppWebhooks);
+
+// Runs API routes
+const runsRoutes = require('./routes/runs');
+app.use('/api/runs', runsRoutes);
+
+// Notifications API routes
+const notificationsRoutes = require('./routes/notifications');
+app.use('/api/notifications', notificationsRoutes);
 
 // Connect to MongoDB
 mongoose
@@ -24,8 +125,83 @@ mongoose
   });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ ok: true });
+app.get('/health', async (req, res) => {
+  try {
+    // Check MongoDB connectivity
+    const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const isHealthy = mongoose.connection.readyState === 1;
+    
+    const health = {
+      ok: isHealthy,
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      mongodb: mongoStatus,
+      environment: process.env.NODE_ENV || 'development',
+    };
+    
+    const statusCode = isHealthy ? 200 : 503;
+    res.status(statusCode).json(health);
+  } catch (error) {
+    res.status(503).json({ 
+      ok: false, 
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Detailed healthz endpoint
+app.get('/healthz', async (req, res) => {
+  try {
+    const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const isHealthy = mongoose.connection.readyState === 1;
+    
+    const health = {
+      ok: isHealthy,
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      mongodb: mongoStatus,
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.APP_VERSION || '1.0.0',
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
+      },
+    };
+    
+    const statusCode = isHealthy ? 200 : 503;
+    res.status(statusCode).json(health);
+  } catch (error) {
+    res.status(503).json({ 
+      ok: false, 
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// LLM usage statistics endpoint
+app.get('/api/llm/usage', async (req, res) => {
+  try {
+    const usageTracker = require('../../shared/llm/usageTracker');
+    const totalUsage = await usageTracker.getTotalUsage();
+    const providerUsage = await usageTracker.getProviderUsage();
+    const dailyUsage = await usageTracker.getDailyUsage(7); // Last 7 days
+    
+    res.json({
+      ok: true,
+      total: totalUsage,
+      providers: providerUsage,
+      daily: dailyUsage
+    });
+  } catch (error) {
+    logger.error('api', 'LLM usage error', { error: String(error) });
+    res.status(500).json({ error: 'Failed to fetch LLM usage' });
+  }
 });
 
 // Cache statistics endpoint
@@ -168,6 +344,13 @@ app.post('/webhook/github', async (req, res) => {
 
     logger.info('api', 'Webhook received', { source, ghEvent, delivery, repo, prNumber, sha });
 
+    // Ignore PRs created by Peer autofix (prevent infinite loop)
+    const prBranch = req.body?.pull_request?.head?.ref || '';
+    if (prBranch.startsWith('peer/autofix/')) {
+      logger.info('api', 'Ignoring Peer autofix PR to prevent loop', { repo, prNumber, branch: prBranch });
+      return res.json({ ok: true, ignored: true, reason: 'peer_autofix_pr' });
+    }
+
     // Look up installation for this repository
     const installation = await Installation.findOne({
       'repositories.fullName': repo,
@@ -242,6 +425,17 @@ app.post('/webhook/github', async (req, res) => {
     });
 
     logger.info('api', 'Job enqueued', { jobId: job.id, runId: prRun._id.toString() });
+    
+    console.log('\n========================================');
+    console.log('📥 WEBHOOK TRIGGERED');
+    console.log('========================================');
+    console.log(`📦 Repository: ${repo}`);
+    console.log(`🔢 PR Number: #${prNumber}`);
+    console.log(`🏷️ Run ID: ${prRun._id.toString()}`);
+    console.log(`⚙️ Mode: ${installation.config.mode}`);
+    console.log(`🔍 Severities: ${installation.config.severities.join(', ')}`);
+    console.log(`⏳ Status: QUEUED - Analysis starting...`);
+    console.log('========================================\n');
 
     res.json({ ok: true, runId: prRun._id.toString() });
   } catch (error) {
@@ -252,6 +446,36 @@ app.post('/webhook/github', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// Setup monthly token reset cron job
+const cron = require('node-cron');
+const resetMonthlyTokens = require('../../scripts/resetMonthlyTokens');
+
+// Run at midnight on the 1st of every month
+cron.schedule('0 0 1 * *', async () => {
+  logger.info('cron', 'Starting scheduled monthly token reset');
+  try {
+    await resetMonthlyTokens();
+  } catch (error) {
+    logger.error('cron', 'Scheduled token reset failed', { error: String(error) });
+  }
+}, {
+  timezone: 'Asia/Kolkata' // Indian timezone
+});
+
+// Also run daily at midnight to catch any users who passed reset date
+cron.schedule('0 0 * * *', async () => {
+  logger.info('cron', 'Running daily token reset check');
+  try {
+    await resetMonthlyTokens();
+  } catch (error) {
+    logger.error('cron', 'Daily token reset check failed', { error: String(error) });
+  }
+}, {
+  timezone: 'Asia/Kolkata'
+});
+
+logger.info('cron', 'Token reset cron jobs scheduled');
 
 const PORT = process.env.API_PORT || 3001;
 // --- Autofix API ---
@@ -328,6 +552,89 @@ app.post('/runs/:runId/patches/preview', async (req, res) => {
   }
 });
 
+// Re-run AI fixes: create new patch request with same findings as a previous one
+app.post('/runs/:runId/rerun', async (req, res) => {
+  try {
+    const { runId } = req.params;
+    const { patchRequestId } = req.body || {};
+    
+    const prRun = await PRRun.findById(runId);
+    if (!prRun) return res.status(404).json({ error: 'Run not found' });
+    
+    // If patchRequestId is provided, use those findings; otherwise use all unfixed findings
+    let selectedFindingIds;
+    if (patchRequestId) {
+      const previousPatch = await PatchRequest.findById(patchRequestId);
+      if (!previousPatch || previousPatch.runId !== runId) {
+        return res.status(404).json({ error: 'Previous patch request not found' });
+      }
+      selectedFindingIds = previousPatch.selectedFindingIds;
+    } else {
+      // Use all unfixed findings
+      selectedFindingIds = prRun.findings
+        .filter(f => !f.fixed)
+        .map(f => String(f._id));
+    }
+    
+    if (!selectedFindingIds || selectedFindingIds.length === 0) {
+      return res.status(400).json({ error: 'No findings to process' });
+    }
+    
+    // Create new patch request
+    const filesMap = new Map();
+    const idsSet = new Set(selectedFindingIds.map(String));
+    const selected = prRun.findings.filter(f => idsSet.has(String(f._id)));
+    
+    for (const f of selected) {
+      if (!filesMap.has(f.file)) filesMap.set(f.file, new Set());
+      filesMap.get(f.file).add(String(f._id));
+    }
+    
+    const filesExpected = filesMap.size;
+    const fileStubs = Array.from(filesMap.entries()).map(([file, set]) => ({ 
+      file, 
+      ready: false, 
+      findingIds: Array.from(set) 
+    }));
+    
+    const newPatch = new PatchRequest({
+      runId,
+      repo: prRun.repo,
+      prNumber: prRun.prNumber,
+      sha: prRun.sha,
+      selectedFindingIds: uniq(selectedFindingIds.map(String)),
+      status: 'preview_partial',
+      preview: { unifiedDiff: '', files: fileStubs, filesExpected },
+    });
+    await newPatch.save();
+    
+    // Enqueue all files for preview
+    const uniqueFiles = Array.from(filesMap.keys());
+    logger.info('api', 'Re-running AI fixes', { 
+      patchRequestId: newPatch._id.toString(), 
+      fileCount: uniqueFiles.length,
+      findingsCount: selectedFindingIds.length
+    });
+    
+    const jobs = [];
+    for (const file of uniqueFiles) {
+      const job = autofixQueue.add('preview_file', { patchRequestId: newPatch._id.toString(), file });
+      jobs.push(job);
+    }
+    await Promise.all(jobs);
+    
+    res.json({ 
+      ok: true, 
+      patchRequestId: newPatch._id.toString(), 
+      filesQueued: jobs.length,
+      findingsCount: selectedFindingIds.length
+    });
+  } catch (error) {
+    logger.error('api', 'Rerun error', { error: String(error) });
+    res.status(500).json({ error: 'Failed to re-run AI fixes' });
+  }
+});
+
 // Apply a previously previewed patch
 app.post('/runs/:runId/patches/apply', async (req, res) => {
   try {
@@ -338,23 +645,45 @@ app.post('/runs/:runId/patches/apply', async (req, res) => {
     const patch = await PatchRequest.findById(patchRequestId);
     if (!patch || patch.runId !== runId) return res.status(404).json({ error: 'PatchRequest not found for this run' });
     
-    // Provide detailed error about why patch can't be applied
-    if (!patch.preview || !patch.preview.files || patch.status !== 'preview_ready') {
-      const filesReady = (patch.preview?.files || []).filter(f => f.ready).length;
-      const filesTotal = patch.preview?.filesExpected || 0;
-      const currentStatus = patch.status || 'unknown';
-      
+    // Check if all files are ready (more reliable than status field)
+    const files = patch.preview?.files || [];
+    const filesExpected = patch.preview?.filesExpected || files.length;
+    const filesReady = files.filter(f => f.ready).length;
+    const allFilesReady = filesReady >= filesExpected && filesExpected > 0;
+    
+    // Also check status to catch failed states
+    const currentStatus = patch.status || 'unknown';
+    const isFailed = currentStatus === 'preview_failed' || currentStatus === 'failed';
+    
+    if (isFailed) {
+      return res.status(400).json({ 
+        error: 'Preview failed',
+        details: {
+          currentStatus,
+          message: 'Preview generation failed. Please try creating a new preview.'
+        }
+      });
+    }
+    
+    // If not all files ready yet, reject with detailed info
+    if (!allFilesReady) {
       return res.status(400).json({ 
         error: 'PatchRequest is not ready to apply',
         details: {
           currentStatus,
-          requiredStatus: 'preview_ready',
-          filesProcessed: `${filesReady}/${filesTotal}`,
-          message: currentStatus === 'preview_partial' 
-            ? `Preview still processing (${filesReady}/${filesTotal} files ready). Please wait and try again.`
-            : `Current status: ${currentStatus}. Expected: preview_ready`
+          filesReady,
+          filesExpected,
+          filesProcessed: `${filesReady}/${filesExpected}`,
+          message: `Preview still processing (${filesReady}/${filesExpected} files ready). Please wait and try again.`
         }
       });
+    }
+    
+    // Update status to preview_ready if it's still partial but all files are done
+    if (allFilesReady && currentStatus === 'preview_partial') {
+      patch.status = 'preview_ready';
+      await patch.save();
+      logger.info('api', 'Updated patch status to preview_ready', { patchRequestId: patch._id.toString() });
     }
 
     // Enqueue an autofix apply job
@@ -504,6 +833,42 @@ app.get('/runs/:runId/patches/:patchRequestId/file', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch or enqueue file preview' });
   }
+});
+
+// Error handling middleware (must be last)
+const { 
+  handleSpecificErrors, 
+  globalErrorHandler, 
+  notFoundHandler 
+} = require('../../shared/middleware/errorHandler');
+
+// Handle 404s
+app.use(notFoundHandler);
+
+// Handle specific error types
+app.use(handleSpecificErrors);
+
+// Global error handler
+app.use(globalErrorHandler);
+
+// Unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('api', 'Unhandled Promise Rejection', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+
+// Uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('api', 'Uncaught Exception', {
+    error: error.message,
+    stack: error.stack,
+  });
+  // Give time for logs to flush, then exit
+  setTimeout(() => {
+    process.exit(1);
+  }, 1000);
 });
 
 app.listen(PORT, () => logger.info('api', `listening`, { port: PORT }));

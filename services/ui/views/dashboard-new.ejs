@@ -1,0 +1,728 @@
+<% layout('layout') %>
+
+<style>
+  /* Modern Design System - Based on Reference Images */
+  :root {
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --spacing-xs: 8px;
+    --spacing-sm: 12px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+  }
+
+  /* Token Usage Card - Premium Style */
+  .token-usage-card {
+    background: linear-gradient(135deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(88, 166, 255, 0.12);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .token-usage-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(88, 166, 255, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .usage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    position: relative;
+    z-index: 1;
+  }
+
+  .usage-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .usage-badges {
+    display: flex;
+    gap: var(--spacing-sm);
+  }
+
+  .badge {
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-platform {
+    background: rgba(110, 118, 129, 0.2);
+    color: #8b949e;
+    border: 1px solid rgba(110, 118, 129, 0.3);
+  }
+
+  .badge-free { background: #6e7681; color: #f0f6fc; }
+  .badge-pro { background: #238636; color: #aff5b4; }
+
+  .usage-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+    position: relative;
+    z-index: 1;
+  }
+
+  .usage-stat {
+    text-align: center;
+  }
+
+  .usage-stat-value {
+    font-size: 48px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #c9d1d9 0%, #8b949e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .usage-stat-label {
+    font-size: 12px;
+    color: #8b949e;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Stats Overview Banner */
+  .stats-overview {
+    background: linear-gradient(135deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(88, 166, 255, 0.12);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-2xl);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xl);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stats-overview::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(88, 166, 255, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .stat-overview-item {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  .stat-overview-label {
+    font-size: 11px;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .stat-overview-value {
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-overview-value.primary {
+    background: linear-gradient(135deg, #58a6ff 0%, #79c0ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .stat-overview-value.success {
+    background: linear-gradient(135deg, #3fb950 0%, #2ea043 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .stat-overview-value.warning {
+    background: linear-gradient(135deg, #f0883e 0%, #d97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .stat-overview-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  .stat-overview-badge.positive {
+    background: rgba(35, 134, 54, 0.15);
+    color: #3fb950;
+  }
+
+  /* Repository Cards Grid */
+  .repos-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .section-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #c9d1d9;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .repos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .repo-card {
+    background: linear-gradient(135deg, rgba(22, 27, 34, 0.9) 0%, rgba(13, 17, 23, 0.95) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(88, 166, 255, 0.1);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .repo-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, rgba(88, 166, 255, 0.5) 50%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .repo-card:hover {
+    border-color: rgba(88, 166, 255, 0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(88, 166, 255, 0.15);
+  }
+
+  .repo-card:hover::before {
+    opacity: 1;
+  }
+
+  .repo-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .repo-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #c9d1d9;
+    font-family: ui-monospace, monospace;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .repo-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .repo-stat {
+    text-align: center;
+    padding: var(--spacing-sm);
+    background: rgba(33, 38, 45, 0.5);
+    border-radius: var(--radius-sm);
+  }
+
+  .repo-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #c9d1d9;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .repo-stat-label {
+    font-size: 10px;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+
+  .repo-chart {
+    height: 80px;
+    background: rgba(33, 38, 45, 0.3);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: flex-end;
+    padding: var(--spacing-sm);
+    gap: 4px;
+  }
+
+  .repo-chart-bar {
+    flex: 1;
+    background: linear-gradient(180deg, rgba(88, 166, 255, 0.5) 0%, rgba(88, 166, 255, 0.2) 100%);
+    border-radius: 2px 2px 0 0;
+    transition: all 0.3s ease;
+  }
+
+  .repo-chart-bar:hover {
+    background: linear-gradient(180deg, rgba(88, 166, 255, 0.8) 0%, rgba(88, 166, 255, 0.4) 100%);
+  }
+
+  .repo-metrics {
+    display: flex;
+    gap: var(--spacing-md);
+  }
+
+  .repo-metric {
+    flex: 1;
+    padding: var(--spacing-sm);
+    background: rgba(33, 38, 45, 0.4);
+    border-radius: var(--radius-sm);
+    text-align: center;
+  }
+
+  .repo-metric-value {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .repo-metric-value.success {
+    color: #3fb950;
+  }
+
+  .repo-metric-value.warning {
+    color: #f0883e;
+  }
+
+  .repo-metric-label {
+    font-size: 10px;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* Recent Activity Section */
+  .activity-section {
+    background: linear-gradient(135deg, rgba(22, 27, 34, 0.9) 0%, rgba(13, 17, 23, 0.95) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(88, 166, 255, 0.1);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .activity-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(33, 38, 45, 0.5);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    border-radius: var(--radius-sm);
+  }
+
+  .activity-item:last-child {
+    border-bottom: none;
+  }
+
+  .activity-item:hover {
+    background: rgba(88, 166, 255, 0.05);
+    transform: translateX(4px);
+  }
+
+  .activity-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid rgba(88, 166, 255, 0.2);
+    flex-shrink: 0;
+  }
+
+  .activity-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .activity-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #c9d1d9;
+    margin-bottom: 4px;
+    font-family: ui-monospace, monospace;
+  }
+
+  .activity-meta {
+    font-size: 13px;
+    color: #8b949e;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+  }
+
+  .activity-stats {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+  }
+
+  .activity-stat {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .status-indicator {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .status-completed {
+    background: linear-gradient(135deg, #238636 0%, #1a7f37 100%);
+    box-shadow: 0 0 16px rgba(35, 134, 54, 0.4);
+  }
+
+  .status-running {
+    background: linear-gradient(135deg, #1f6feb 0%, #0969da 100%);
+    box-shadow: 0 0 16px rgba(31, 111, 235, 0.4);
+    animation: pulse 2s infinite;
+  }
+
+  .status-failed {
+    background: linear-gradient(135deg, #da3633 0%, #a40e26 100%);
+    box-shadow: 0 0 16px rgba(218, 54, 51, 0.4);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: var(--spacing-2xl);
+    color: #6e7681;
+  }
+
+  .empty-state-icon {
+    font-size: 64px;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .empty-state-text {
+    font-size: 16px;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 968px) {
+    .stats-overview {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .repos-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .stats-overview {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-lg);
+    }
+
+    .usage-stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<!-- Page Header -->
+<div style="margin-bottom: var(--spacing-2xl);">
+  <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+    <div style="width: 4px; height: 56px; background: linear-gradient(180deg, #58a6ff 0%, #1f6feb 100%); border-radius: 4px; box-shadow: 0 0 20px rgba(88, 166, 255, 0.5);"></div>
+    <h1 style="font-size: 42px; font-weight: 900; background: linear-gradient(135deg, #58a6ff 0%, #79c0ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.03em; margin: 0;">Dashboard</h1>
+  </div>
+</div>
+
+<!-- Token Usage Card -->
+<div class="token-usage-card">
+  <div class="usage-header">
+    <div class="usage-title">🎯 Token Usage</div>
+    <div class="usage-badges">
+      <span id="token-source-badge" class="badge badge-platform">PLATFORM</span>
+      <span id="subscription-badge" class="badge badge-free">FREE</span>
+    </div>
+  </div>
+  <div class="usage-stats-grid">
+    <div class="usage-stat">
+      <div class="usage-stat-value" id="user-tokens-used">0</div>
+      <div class="usage-stat-label">Used</div>
+    </div>
+    <div class="usage-stat">
+      <div class="usage-stat-value" id="user-tokens-remaining" style="background: linear-gradient(135deg, #3fb950 0%, #2ea043 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">1,000</div>
+      <div class="usage-stat-label">Remaining</div>
+    </div>
+    <div class="usage-stat">
+      <div class="usage-stat-value" id="user-token-limit">1,000</div>
+      <div class="usage-stat-label">Total Limit</div>
+    </div>
+  </div>
+  <div id="upgrade-message" style="display: none; background: #9a6700; color: #f0e6b9; padding: 12px; border-radius: 8px; margin-top: 16px; font-size: 13px;">
+    ⚠️ You're running low on tokens! <a href="/settings/api-keys" style="color: #f0e6b9; text-decoration: underline;">Add your API keys</a> or <a href="/settings/subscription" style="color: #f0e6b9; text-decoration: underline;">upgrade your plan</a> to continue.
+  </div>
+</div>
+
+<!-- Stats Overview -->
+<div class="stats-overview">
+  <div class="stat-overview-item">
+    <div class="stat-overview-label">📊 Total PRs</div>
+    <div class="stat-overview-value primary"><%= stats.totalRuns %></div>
+    <div class="stat-overview-badge positive">↑ <%= stats.completedRuns %> Completed</div>
+  </div>
+  <div class="stat-overview-item">
+    <div class="stat-overview-label">🔍 Issues Found</div>
+    <div class="stat-overview-value warning"><%= stats.totalIssues %></div>
+  </div>
+  <div class="stat-overview-item">
+    <div class="stat-overview-label">✅ Issues Fixed</div>
+    <div class="stat-overview-value success"><%= stats.fixedIssues %></div>
+  </div>
+  <div class="stat-overview-item">
+    <div class="stat-overview-label">🎯 Fix Rate</div>
+    <div class="stat-overview-value success"><%= stats.totalIssues > 0 ? Math.round(stats.fixedIssues / stats.totalIssues * 100) : 0 %>%</div>
+  </div>
+</div>
+
+<!-- Repository Cards -->
+<% if (repoStats && repoStats.length > 0) { %>
+<div style="margin-bottom: var(--spacing-2xl);">
+  <div class="repos-section-header">
+    <div class="section-title">📦 Repository Statistics</div>
+    <a href="/repos" style="color: #58a6ff; text-decoration: none; font-size: 14px; font-weight: 600;">View All →</a>
+  </div>
+  <div class="repos-grid">
+    <% repoStats.forEach((repo) => { %>
+    <div class="repo-card">
+      <div class="repo-card-header">
+        <div class="repo-name">
+          📦 <%= repo.repo %>
+        </div>
+      </div>
+      
+      <div class="repo-stats-row">
+        <div class="repo-stat">
+          <div class="repo-stat-value"><%= repo.totalPRs %></div>
+          <div class="repo-stat-label">Total PRs</div>
+        </div>
+        <div class="repo-stat">
+          <div class="repo-stat-value" style="color: #f0883e;"><%= repo.totalIssues %></div>
+          <div class="repo-stat-label">Issues Found</div>
+        </div>
+        <div class="repo-stat">
+          <div class="repo-stat-value" style="color: #3fb950;"><%= repo.fixedIssues %></div>
+          <div class="repo-stat-label">Fixed</div>
+        </div>
+      </div>
+
+      <!-- Simple Chart Visualization -->
+      <div class="repo-chart">
+        <% 
+        const maxVal = Math.max(repo.totalPRs, repo.totalIssues, repo.fixedIssues);
+        const prHeight = maxVal > 0 ? (repo.totalPRs / maxVal) * 100 : 0;
+        const issuesHeight = maxVal > 0 ? (repo.totalIssues / maxVal) * 100 : 0;
+        const fixedHeight = maxVal > 0 ? (repo.fixedIssues / maxVal) * 100 : 0;
+        %>
+        <div class="repo-chart-bar" style="height: <%= prHeight %>%; background: linear-gradient(180deg, rgba(88, 166, 255, 0.6) 0%, rgba(88, 166, 255, 0.3) 100%);" title="PRs: <%= repo.totalPRs %>"></div>
+        <div class="repo-chart-bar" style="height: <%= issuesHeight %>%; background: linear-gradient(180deg, rgba(240, 136, 62, 0.6) 0%, rgba(240, 136, 62, 0.3) 100%);" title="Issues: <%= repo.totalIssues %>"></div>
+        <div class="repo-chart-bar" style="height: <%= fixedHeight %>%; background: linear-gradient(180deg, rgba(63, 185, 80, 0.6) 0%, rgba(63, 185, 80, 0.3) 100%);" title="Fixed: <%= repo.fixedIssues %>"></div>
+      </div>
+
+      <div class="repo-metrics">
+        <div class="repo-metric">
+          <div class="repo-metric-value <%= repo.fixRate >= 75 ? 'success' : 'warning' %>"><%= repo.fixRate %>%</div>
+          <div class="repo-metric-label">Fix Rate</div>
+        </div>
+        <div class="repo-metric">
+          <div class="repo-metric-value <%= repo.successRate >= 75 ? 'success' : 'warning' %>"><%= repo.successRate %>%</div>
+          <div class="repo-metric-label">Success Rate</div>
+        </div>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+</div>
+<% } %>
+
+<!-- Recent Activity -->
+<div class="activity-section">
+  <div class="section-title" style="margin-bottom: var(--spacing-lg);">📊 Recent Activity</div>
+  
+  <% if (recentRuns && recentRuns.length > 0) { %>
+    <% recentRuns.forEach(run => { 
+      const findings = run.findings || [];
+      const fixedCount = findings.filter(f => f.fixed).length;
+      const fixRate = findings.length > 0 ? Math.round((fixedCount / findings.length) * 100) : 0;
+    %>
+      <a href="/pr/<%= run._id %>" class="activity-item">
+        <div class="status-indicator status-<%= run.status %>">
+          <%= run.status === 'completed' ? '✓' : run.status === 'failed' ? '✗' : run.status === 'running' ? '⟳' : '○' %>
+        </div>
+        <div class="activity-content">
+          <div class="activity-title">
+            <%= run.repo %> #<%= run.prNumber %>
+          </div>
+          <div class="activity-meta">
+            <span style="color: #c9d1d9; font-weight: 600;"><%= run.status.toUpperCase() %></span>
+            <span style="color: #6e7681;">•</span>
+            <span>🕰️ <%= new Date(run.createdAt).toLocaleDateString() %> <%= new Date(run.createdAt).toLocaleTimeString() %></span>
+          </div>
+        </div>
+        <div class="activity-stats">
+          <div class="activity-stat">
+            <span style="color: #8b949e;">🔍</span>
+            <strong style="color: #c9d1d9;"><%= findings.length %></strong>
+          </div>
+          <div class="activity-stat">
+            <span style="color: #3fb950;">✅</span>
+            <strong style="color: #3fb950;"><%= fixedCount %></strong>
+          </div>
+          <% if (findings.length > 0) { %>
+          <div class="activity-stat">
+            <span class="badge" style="background: <%= fixRate >= 75 ? '#1a7f37' : fixRate >= 50 ? '#9a6700' : '#a40e26' %>; color: <%= fixRate >= 75 ? '#aff5b4' : '#f0e6b9' %>; padding: 4px 8px; font-size: 11px;"><%= fixRate %>%</span>
+          </div>
+          <% } %>
+        </div>
+      </a>
+    <% }) %>
+  <% } else { %>
+    <div class="empty-state">
+      <div class="empty-state-icon">📭</div>
+      <div class="empty-state-text">No PR runs yet</div>
+      <p style="font-size: 14px;">Connect a repository to get started!</p>
+    </div>
+  <% } %>
+</div>
+
+<script>
+  // Fetch and display user token usage
+  async function refreshUserUsage() {
+    try {
+      const res = await fetch('/api/user/usage');
+      const data = await res.json();
+      
+      if (data.ok) {
+        document.getElementById('user-tokens-used').textContent = data.tokensUsed.toLocaleString();
+        document.getElementById('user-token-limit').textContent = data.unlimited ? '∞' : data.tokenLimit.toLocaleString();
+        document.getElementById('user-tokens-remaining').textContent = data.unlimited ? '∞' : data.remaining.toLocaleString();
+        
+        // Update subscription badge
+        const subBadge = document.getElementById('subscription-badge');
+        if (subBadge) {
+          subBadge.textContent = data.subscriptionTier.toUpperCase();
+          subBadge.className = 'badge ' + (data.subscriptionTier === 'free' ? 'badge-free' : 'badge-pro');
+        }
+        
+        // Update token source badge
+        const tokenSourceBadge = document.getElementById('token-source-badge');
+        if (tokenSourceBadge) {
+          if (data.hasOwnKeys) {
+            tokenSourceBadge.textContent = 'YOUR API KEYS';
+            tokenSourceBadge.className = 'badge badge-pro';
+          } else {
+            tokenSourceBadge.textContent = 'PLATFORM';
+            tokenSourceBadge.className = 'badge badge-platform';
+          }
+        }
+        
+        // Show/hide upgrade message
+        const upgradeMsg = document.getElementById('upgrade-message');
+        if (upgradeMsg) {
+          if (data.percentage >= 90 && !data.hasOwnKeys && !data.unlimited) {
+            upgradeMsg.style.display = 'block';
+          } else {
+            upgradeMsg.style.display = 'none';
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch user usage:', error);
+    }
+  }
+  
+  // Load user usage on page load
+  window.addEventListener('load', refreshUserUsage);
+</script>
