@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRQueue | The AI Engineer</title>
+    <meta name="description" content="PRQ is the intelligent layer above your code. Automated fixes, token-based analysis, and security auditing.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            main: '#050505',
+                            card: '#0A0A0A',
+                            border: '#1F1F1F',
+                            sidebar: '#0F0F0F'
+                        },
+                        brand: {
+                            primary: '#00FF94', // Electric Mint
+                            accent: '#22C55E',  // Green-500 equivalent for success
+                            danger: '#EF4444',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)",
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* --- CORE STYLING --- */
+        body {
+            background-color: #050505;
+            color: #E2E8F0;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Grid Background matching image */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: var(--tw-backgroundImage-grid-pattern);
+            background-size: 60px 60px;
+            z-index: -2;
+            mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+            opacity: 0.6;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Card Hover */
+        .obsidian-card {
+            background: #0A0A0A;
+            border: 1px solid #1F1F1F;
+            transition: all 0.3s ease;
+        }
+        .obsidian-card:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #00FF94;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #00FF94;
+        }
+    </style>
+</head>
+<body class="selection:bg-brand-primary selection:text-black">
+
+    <!-- Background -->
+    <div class="grid-bg"></div>
+
+    <!-- Navigation (Matched to Image) -->
+    <nav class="fixed w-full z-50 top-0 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <!-- Left: Logo (Icon Only, Bigger) -->
+            <a href="/" class="flex items-center gap-3 group">
+                <img src="/7dfd4e47-c1f2-4bd9-af7a-cb7d54b2e772.jpg-output.png" alt="PRQueue" class="w-32 h-32 object-contain hover:scale-105 transition-transform duration-300">
+            </a>
+
+            <!-- Center: Links -->
+            <div class="hidden md:flex items-center space-x-10 text-sm font-medium text-gray-400">
+                <a href="#features" class="hover:text-white transition-colors">Features</a>
+                <a href="#setup" class="hover:text-white transition-colors">How it Works</a>
+                <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+            </div>
+
+            <!-- Right: Auth -->
+            <div class="flex items-center gap-6">
+                <!-- Single GitHub Login Button -->
+                <a href="https://peer-ui-tz7y.onrender.com/login" class="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-brand-primary transition-all shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(0,255,148,0.4)]">
+                    <i class="fa-brands fa-github text-lg"></i>
+                    <span>Login with GitHub</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section (Redesigned) -->
+    <section class="relative pt-32 pb-20 px-6 min-h-screen flex flex-col items-center">
+        
+        <!-- New Badge -->
+        <div class="mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-sm text-gray-400 hover:border-white/20 transition-colors cursor-default">
+            <span class="bg-white/10 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">New</span>
+            <span>PRQueue v1.0 is now available</span>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="text-5xl md:text-7xl font-bold text-white text-center tracking-tight leading-[1.1] mb-6">
+            The AI Engineer<br />
+            That Fixes Your Code.
+        </h1>
+
+        <!-- Subhead -->
+        <p class="text-lg md:text-xl text-gray-400 text-center max-w-2xl mb-10 leading-relaxed">
+            Connect PRQueue to your repository. It autonomously reviews PRs, fixes complex logic errors, and merges changes without human intervention.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="flex items-center gap-4 mb-16">
+            <a href="#pricing" class="bg-white text-black px-6 py-3 rounded-lg font-bold text-sm hover:bg-gray-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                Start Autonomy
+            </a>
+            <a href="https://www.youtube.com/watch?v=w7jWYkLUTHc&t=2s" target="_blank" class="bg-[#1A1A1A] border border-white/10 text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-[#252525] transition-all">
+                View Demo
+            </a>
+        </div>
+
+        <!-- Dashboard Mockup (Pixel Perfect to Image) -->
+        <div class="w-full max-w-5xl bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl shadow-2xl overflow-hidden animate-float">
+            <!-- Window Bar -->
+            <div class="flex items-center px-4 py-3 border-b border-[#1F1F1F] bg-[#0A0A0A]">
+                <div class="flex gap-2 mr-4">
+                    <div class="w-3 h-3 rounded-full bg-[#FF5F56]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#FFBD2E]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#27C93F]"></div>
+                </div>
+                <div class="flex items-center bg-[#111] border border-white/5 rounded px-3 py-1 text-[10px] font-mono text-gray-400 gap-2">
+                    <span class="font-bold text-white">PR #142: Fix Critical Security Vuln</span>
+                    <span class="w-[1px] h-3 bg-gray-700"></span>
+                    <span>auth_service.go</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-12 min-h-[400px]">
+                <!-- Sidebar -->
+                <div class="hidden md:block col-span-3 border-r border-[#1F1F1F] bg-bg-sidebar p-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-3 px-3 py-2 bg-blue-500/10 text-blue-400 rounded-md text-xs font-bold border border-blue-500/20 cursor-pointer">
+                            <i class="fa-solid fa-bolt"></i> Actions
+                        </div>
+                        <div class="flex items-center gap-3 px-3 py-2 text-gray-500 hover:text-gray-300 rounded-md text-xs font-medium cursor-pointer transition-colors">
+                            <i class="fa-regular fa-file"></i> Files (3)
+                        </div>
+                        <div class="flex items-center gap-3 px-3 py-2 text-gray-500 hover:text-gray-300 rounded-md text-xs font-medium cursor-pointer transition-colors">
+                            <i class="fa-regular fa-comments"></i> Comments
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="col-span-12 md:col-span-9 p-6 bg-[#0A0A0A]">
+                    <!-- Analysis Header -->
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-sm font-bold text-white">Analysis Result</h3>
+                        <span class="bg-[#052e1f] text-brand-primary border border-brand-primary/20 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide">
+                            High Confidence Fix
+                        </span>
+                    </div>
+
+                    <!-- Code Diff Block -->
+                    <div class="font-mono text-xs bg-[#050505] border border-[#1F1F1F] rounded-lg overflow-hidden mb-6">
+                        <!-- Context Line -->
+                        <div class="flex items-center text-gray-500 py-1.5 px-4 border-b border-[#1F1F1F]/50">
+                            <span class="w-6 text-right mr-4 opacity-30 select-none">42</span>
+                            <span><span class="text-purple-400">func</span> <span class="text-blue-400">GetUser</span>(id <span class="text-yellow-300">string</span>) {</span>
+                        </div>
+                        
+                        <!-- Deleted Line -->
+                        <div class="flex items-center bg-[rgba(239,68,68,0.1)] text-gray-400 py-1.5 px-4 relative">
+                             <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-red-500"></div>
+                            <span class="w-6 text-right mr-4 text-red-500/50 select-none">43</span>
+                            <span class="opacity-70 line-through decoration-red-500/40">q := fmt.<span class="text-blue-300">Sprintf</span>(<span class="text-green-300">"SELECT * FROM users WHERE id='%s'"</span>, id)</span>
+                        </div>
+                        
+                        <!-- Added Line -->
+                        <div class="flex items-center bg-[rgba(0,255,148,0.1)] text-white py-1.5 px-4 relative">
+                            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-brand-primary"></div>
+                            <span class="w-6 text-right mr-4 text-brand-primary/50 select-none">44</span>
+                            <span>row := db.<span class="text-blue-300">QueryRow</span>(<span class="text-green-300">"SELECT * FROM users WHERE id=?"</span>, id)</span>
+                        </div>
+                        
+                        <!-- Context Line -->
+                        <div class="flex items-center text-gray-500 py-1.5 px-4 border-t border-[#1F1F1F]/50">
+                            <span class="w-6 text-right mr-4 opacity-30 select-none">45</span>
+                            <span>}</span>
+                        </div>
+                    </div>
+
+                    <!-- AI Reasoning Box -->
+                    <div class="border border-[#1F1F1F] rounded-lg p-4 bg-[#0F0F0F]">
+                        <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-center">AI Reasoning</div>
+                        <p class="text-xs text-gray-300 text-center leading-relaxed">
+                            Detected potential SQL injection vulnerability in raw query string construction. Refactored to use parameterized queries to sanitize input and ensure security.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Automation Levels -->
+    <section class="py-24 px-6 border-y border-white/5 bg-[#050505] relative overflow-hidden">
+        <!-- Ambient Background Glow -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-brand-primary/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto relative z-10">
+            <div class="text-center mb-20">
+                <h2 class="text-3xl md:text-5xl font-bold text-white mb-6">Choose your level of automation.</h2>
+                <p class="text-gray-400 max-w-2xl mx-auto text-lg">Start conservative to build trust, then switch to full autopilot when you're ready.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Level 1 -->
+                <div class="group relative bg-[#0A0A0A] border border-white/5 p-8 rounded-2xl hover:border-white/10 transition-all duration-300 hover:-translate-y-1">
+                    <div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none"></div>
+                    
+                    <div class="w-12 h-12 bg-[#111] rounded-lg border border-white/10 flex items-center justify-center mb-6 text-gray-400 group-hover:text-white transition-colors">
+                        <i class="fa-regular fa-comments text-xl"></i>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-xs font-bold font-mono text-gray-500 uppercase tracking-widest">Level 1</span>
+                        <span class="h-px flex-1 bg-white/5"></span>
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold text-white mb-3">Review Only</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed mb-6">
+                        The AI acts as a reviewer. It comments on your PRs with suggestions, but never touches your code. Use this to build trust.
+                    </p>
+
+                    <div class="mt-auto pt-6 border-t border-white/5">
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <i class="fa-solid fa-user"></i> Human approval required
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Level 2 -->
+                <div class="group relative bg-[#0A0A0A] border border-white/5 p-8 rounded-2xl hover:border-blue-500/30 transition-all duration-300 hover:-translate-y-1">
+                    <div class="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none"></div>
+
+                    <div class="w-12 h-12 bg-[#111] rounded-lg border border-white/10 flex items-center justify-center mb-6 text-blue-400 group-hover:text-blue-300 transition-colors group-hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+                        <i class="fa-solid fa-code-branch text-xl"></i>
+                    </div>
+
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-xs font-bold font-mono text-blue-500 uppercase tracking-widest">Level 2</span>
+                        <span class="h-px flex-1 bg-white/5"></span>
+                    </div>
+
+                    <h3 class="text-2xl font-bold text-white mb-3">Auto-Commit</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed mb-6">
+                        The AI pushes fix commits directly to your feature branch. You still control the final merge button.
+                    </p>
+
+                    <div class="mt-auto pt-6 border-t border-white/5">
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <i class="fa-solid fa-code-commit"></i> Pushes to branch
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Level 3 -->
+                <div class="group relative bg-[#0A0A0A] border border-brand-primary/30 p-8 rounded-2xl shadow-[0_0_40px_rgba(0,255,148,0.05)] hover:shadow-[0_0_60px_rgba(0,255,148,0.1)] transition-all duration-300 hover:-translate-y-1">
+                    <div class="absolute top-0 right-0 bg-brand-primary/10 text-brand-primary text-[10px] font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl border-l border-b border-brand-primary/20">RECOMMENDED</div>
+                    
+                    <div class="w-12 h-12 bg-brand-primary/10 rounded-lg border border-brand-primary/20 flex items-center justify-center mb-6 text-brand-primary group-hover:shadow-[0_0_20px_rgba(0,255,148,0.4)] transition-shadow">
+                        <i class="fa-solid fa-robot text-xl"></i>
+                    </div>
+
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-xs font-bold font-mono text-brand-primary uppercase tracking-widest">Level 3</span>
+                        <span class="h-px flex-1 bg-brand-primary/20"></span>
+                    </div>
+
+                    <h3 class="text-2xl font-bold text-white mb-3">Auto-Merge</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed mb-8">
+                        Complete hands-off resolution. The AI fixes the bug, verifies tests pass, and merges the PR.
+                    </p>
+                    
+                    <div class="mt-auto bg-[#050505] p-4 rounded-lg border border-white/10 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></div>
+                            <span class="text-xs font-bold text-white">Fix</span>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-[10px] text-gray-600"></i>
+                        <div class="flex items-center gap-2">
+                             <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse delay-75"></div>
+                            <span class="text-xs font-bold text-white">Test</span>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-[10px] text-gray-600"></i>
+                        <div class="flex items-center gap-2">
+                             <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse delay-150"></div>
+                            <span class="text-xs font-bold text-white">Merge</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Complete Platform Section (Previous Request) -->
+    <section id="features" class="py-24 px-6 bg-bg-main">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Complete Platform.</h2>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Activity Monitor -->
+                <div class="obsidian-card p-8 rounded-xl flex flex-col min-h-[280px]">
+                    <h3 class="text-lg font-bold text-white mb-2">Activity Monitor</h3>
+                    <p class="text-xs text-gray-400 mb-8">Real-time heatmap of AI interactions.</p>
+                    
+                    <div class="bg-[#0F0F0F] p-4 rounded border border-white/5 flex-1 flex flex-col justify-center items-center">
+                        <div class="flex gap-1 mb-3">
+                            <!-- Heatmap visual -->
+                            <div class="w-3 h-3 rounded-sm bg-brand-primary/20"></div>
+                            <div class="w-3 h-3 rounded-sm bg-brand-primary/40"></div>
+                            <div class="w-3 h-3 rounded-sm bg-brand-primary"></div>
+                            <div class="w-3 h-3 rounded-sm bg-brand-primary/80"></div>
+                            <div class="w-3 h-3 rounded-sm bg-brand-primary/30"></div>
+                            <div class="w-3 h-3 rounded-sm bg-brand-primary"></div>
+                            <div class="w-3 h-3 rounded-sm bg-brand-primary/60"></div>
+                        </div>
+                        <div class="text-[10px] text-gray-500 font-mono">Last 30 Days: 412 Issues Fixed</div>
+                    </div>
+                </div>
+
+                <!-- Smart Alerts -->
+                <div class="obsidian-card p-8 rounded-xl flex flex-col min-h-[280px]">
+                    <h3 class="text-lg font-bold text-white mb-2">Smart Alerts</h3>
+                    <p class="text-xs text-gray-400 mb-8">Instant notifications via Email or Slack.</p>
+                    
+                    <div class="bg-white text-black p-4 rounded shadow-lg">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">P</div>
+                            <div>
+                                <div class="text-[10px] font-bold">PRQueue Bot</div>
+                                <div class="text-[8px] text-gray-500">To: You • Just now</div>
+                            </div>
+                        </div>
+                        <div class="text-[10px] font-bold mb-1">[Fixed] Critical Security Issue in auth.ts</div>
+                        <div class="text-[9px] text-gray-600 mb-2 leading-snug">
+                            I detected a potential SQL injection in PR #42. I have pushed a commit fixing usage of raw queries.
+                        </div>
+                        <div class="inline-block bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded">Auto-Fixed</div>
+                    </div>
+                </div>
+
+                <!-- Auto-Merge Config -->
+                <div class="obsidian-card p-8 rounded-xl flex flex-col min-h-[280px]">
+                    <h3 class="text-lg font-bold text-white mb-2">Auto-Merge Config</h3>
+                    <p class="text-xs text-gray-400 mb-8">Define rules for autonomous merging.</p>
+                    
+                    <div class="bg-[#0F0F0F] p-5 rounded border border-white/5 flex-1">
+                        <div class="flex items-center justify-between mb-6">
+                            <span class="text-xs text-gray-300 font-semibold">Enable Auto-Merge</span>
+                             <div class="relative inline-block w-8 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="toggle" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-brand-primary"/>
+                                <label for="toggle" class="toggle-label block overflow-hidden h-4 rounded-full bg-gray-700 cursor-pointer checked:bg-brand-primary"></label>
+                            </div>
+                        </div>
+                        <div class="text-[9px] text-gray-500 uppercase font-bold mb-3">Conditions:</div>
+                        <ul class="space-y-2 text-[10px] text-gray-400">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-[3px] text-brand-primary"></i> All Tests Pass</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-[3px] text-brand-primary"></i> No Breaking Changes</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-[3px] text-brand-primary"></i> High Confidence Score</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Setup In Seconds -->
+    <section id="setup" class="py-24 border-y border-white/5 bg-white/5">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-bold text-white mb-2">Setup in Seconds.</h2>
+            <p class="text-gray-400 mb-12">No CLI. No config files. Just connect.</p>
+
+            <div class="flex items-center justify-center gap-8 md:gap-16">
+                <!-- Step 1 -->
+                <div class="flex flex-col items-center gap-4">
+                    <button class="w-16 h-16 rounded-full bg-white text-black text-2xl flex items-center justify-center hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-github"></i>
+                    </button>
+                    <span class="text-sm font-bold text-white">Connect GitHub</span>
+                </div>
+
+                <!-- Animated Line -->
+                <div class="flex-1 h-[2px] bg-white/10 relative max-w-[100px]">
+                    <div class="absolute inset-0 bg-brand-primary w-full animate-pulse"></div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="w-16 h-16 rounded-full bg-brand-primary text-black text-2xl flex items-center justify-center shadow-[0_0_20px_rgba(0,255,148,0.4)]">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <span class="text-sm font-bold text-brand-primary">Done</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bring Your Own Keys (BYOK) -->
+    <section id="byok" class="py-24 px-6 bg-bg-main relative overflow-hidden">
+        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center relative z-10">
+            <div>
+                <h2 class="text-3xl font-bold text-white mb-6">Bring Your Own Keys.</h2>
+                <p class="text-gray-400 text-lg mb-8 leading-relaxed">
+                    Don't want to use our tokens? No problem. Connect your own OpenAI or Anthropic account for unlimited, cost-price usage.
+                </p>
+
+                <ul class="space-y-4 mb-8">
+                    <li class="flex items-center gap-3 text-gray-300">
+                        <i class="fa-solid fa-check text-brand-primary"></i> Private & Encrypted
+                    </li>
+                    <li class="flex items-center gap-3 text-gray-300">
+                        <i class="fa-solid fa-check text-brand-primary"></i> Zero Markup
+                    </li>
+                    <li class="flex items-center gap-3 text-gray-300">
+                        <i class="fa-solid fa-check text-brand-primary"></i> Multi-Model Support (GPT-4, Claude 3)
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Settings Mockup -->
+            <div class="bg-[#050505] border border-white/10 rounded-xl p-8 shadow-2xl">
+                <div class="flex items-center gap-2 mb-8 border-b border-white/5 pb-4">
+                    <i class="fa-solid fa-sliders text-gray-500"></i>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Settings / API Keys</span>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-xs font-mono text-gray-500 mb-2">OPENAI_API_KEY</label>
+                        <div class="relative">
+                            <input type="text" value="sk-proj-...................." readonly class="bg-[#0D0D0D] border border-[#1A1A1A] text-gray-400 w-full px-4 py-3 rounded text-sm" />
+                            <div class="absolute right-3 top-3 text-brand-primary text-xs font-bold flex items-center gap-1">
+                                <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></div> Connected
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-mono text-gray-500 mb-2">ANTHROPIC_API_KEY</label>
+                        <input type="text" placeholder="Paste key (sk-ant-...)" class="bg-[#0D0D0D] border border-[#1A1A1A] text-white w-full px-4 py-3 rounded text-sm placeholder-gray-600 focus:outline-none focus:border-brand-primary" />
+                    </div>
+
+                    <button class="w-full bg-brand-primary text-black font-bold py-3 rounded text-sm hover:bg-white transition-colors">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" class="py-24 px-6 bg-bg-card">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-white">Simple Pricing.</h2>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <!-- Starter -->
+                <div class="p-8 border border-white/5 rounded-xl bg-bg-main hover:border-white/10 transition-colors">
+                    <div class="text-gray-400 font-bold text-sm mb-2">Starter</div>
+                    <div class="text-4xl font-bold text-white mb-2">Free</div>
+                    <div class="text-sm text-gray-500 mb-8">For personal projects</div>
+                    
+                    <ul class="space-y-4 text-sm text-gray-300 mb-8">
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> 5,000 Tokens / mo</li>
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> Basic Diffs</li>
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> Community Support</li>
+                    </ul>
+                    
+                    <a href="#" class="block w-full py-3 text-center border border-white/20 rounded text-white font-bold hover:bg-white/5 transition-colors">Get Started</a>
+                </div>
+
+                <!-- Pro -->
+                <div class="p-8 border border-brand-primary/30 rounded-xl bg-bg-main relative shadow-[0_0_30px_rgba(0,255,148,0.05)]">
+                    <div class="absolute top-0 right-0 bg-brand-primary text-black text-[10px] font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg">POPULAR</div>
+                    <div class="text-brand-primary font-bold text-sm mb-2">Pro</div>
+                    <div class="text-4xl font-bold text-white mb-2">$0</div>
+                    <div class="text-sm text-gray-500 mb-8">Pay for what you use</div>
+                    
+                    <ul class="space-y-4 text-sm text-gray-300 mb-8">
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> Buy Tokens ($5/10k)</li>
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> Priority Queue</li>
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> Email Alerts</li>
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> Auto-Merge</li>
+                    </ul>
+                    
+                    <a href="#" class="block w-full py-3 text-center bg-brand-primary rounded text-black font-bold hover:bg-white transition-colors">Buy Tokens</a>
+                </div>
+
+                <!-- Enterprise -->
+                <div class="p-8 border border-white/5 rounded-xl bg-bg-main hover:border-white/10 transition-colors">
+                    <div class="text-gray-400 font-bold text-sm mb-2">Enterprise</div>
+                    <div class="text-4xl font-bold text-white mb-2">BYOK</div>
+                    <div class="text-sm text-gray-500 mb-8">Bring Your Own Key</div>
+                    
+                    <ul class="space-y-4 text-sm text-gray-300 mb-8">
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> Unlimited Usage</li>
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> Use OpenAI / Anthropic Keys</li>
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> SOC2 Compliance</li>
+                        <li class="flex gap-3"><i class="fa-solid fa-check text-brand-primary mt-1"></i> Private Cloud</li>
+                    </ul>
+                    
+                    <a href="#" class="block w-full py-3 text-center border border-white/20 rounded text-white font-bold hover:bg-white/5 transition-colors">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+
+        <br><br><br><br>
+
+    <!-- Rich Footer -->
+    <footer class="bg-[#020202] pt-24 pb-12 border-t border-white/5 relative overflow-hidden">
+        <!-- Decoration -->
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-px bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent"></div>
+
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
+                <!-- Brand Column -->
+                <div class="col-span-1 md:col-span-1">
+                    <a href="/" class="flex items-center gap-3 mb-6 group">
+                        <img src="/7dfd4e47-c1f2-4bd9-af7a-cb7d54b2e772.jpg-output.png" alt="PRQueue" class="w-24 h-24 object-contain hover:opacity-80 transition-opacity">
+                    </a>
+                    <p class="text-gray-500 text-sm leading-relaxed mb-8">
+                        The AI Engineer that autonomously fixes bugs and merges PRs. Building the future of software development, one pull request at a time.
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="https://github.com/anirbansantra748" target="_blank" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all">
+                            <i class="fa-brands fa-github"></i>
+                        </a>
+                        <a href="https://www.linkedin.com/in/anirban-santra-333074239/" target="_blank" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-[#0077B5] hover:border-[#0077B5]/30 hover:bg-[#0077B5]/10 transition-all">
+                            <i class="fa-brands fa-linkedin-in"></i>
+                        </a>
+                        <a href="mailto:anirbansantra748@gmail.com" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-[#EA4335] hover:border-[#EA4335]/30 hover:bg-[#EA4335]/10 transition-all">
+                            <i class="fa-solid fa-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Spacer -->
+                 <div class="hidden md:block col-span-1"></div>
+
+                <!-- Links Column 1 -->
+                <div>
+                    <h4 class="text-white font-bold mb-6">Product</h4>
+                    <ul class="space-y-4 text-sm">
+                        <li><a href="#features" class="text-gray-500 hover:text-brand-primary transition-colors">Features</a></li>
+                        <li><a href="#pricing" class="text-gray-500 hover:text-brand-primary transition-colors">Pricing</a></li>
+                        <li><a href="/docs" class="text-gray-500 hover:text-brand-primary transition-colors">Documentation</a></li>
+                        <li><a href="/changelog" class="text-gray-500 hover:text-brand-primary transition-colors">Changelog</a></li>
+                    </ul>
+                </div>
+
+                <!-- Links Column 2 -->
+                <div>
+                    <h4 class="text-white font-bold mb-6">Connect</h4>
+                    <ul class="space-y-4 text-sm">
+                        <li><a href="https://portfolio-me-w31y.vercel.app/?#home" target="_blank" class="text-gray-500 hover:text-brand-primary transition-colors">Portfolio</a></li>
+                        <li><a href="https://linkedin.com/in/anirban-santra-333074239/" target="_blank" class="text-gray-500 hover:text-brand-primary transition-colors">LinkedIn</a></li>
+                        <li><a href="https://github.com/anirbansantra748" target="_blank" class="text-gray-500 hover:text-brand-primary transition-colors">GitHub</a></li>
+                        <li><a href="https://leetcode.com/u/Anirbansantra/" target="_blank" class="text-gray-500 hover:text-brand-primary transition-colors">LeetCode</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Bottom Bar -->
+            <div class="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="text-gray-600 text-xs">
+                    © 2026 PRQueue Inc. All rights reserved.
+                </div>
+                <div class="flex gap-6 text-xs text-gray-500">
+                    <a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
+                    <a href="/terms" class="hover:text-white transition-colors">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

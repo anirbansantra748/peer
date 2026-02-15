@@ -1,139 +1,130 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Peer Code Review</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            main: '#050505',
+                            card: '#0A0A0A',
+                            border: '#1F1F1F',
+                            sidebar: '#0F0F0F'
+                        },
+                        brand: {
+                            primary: '#00FF94', // Electric Mint
+                            accent: '#22C55E',  
+                            danger: '#EF4444',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)",
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-      }
-      .login-container {
-        background: white;
-        padding: 48px;
-        border-radius: 16px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        max-width: 420px;
-        width: 100%;
-        text-align: center;
-      }
-      .logo {
-        font-size: 48px;
-        margin-bottom: 16px;
-      }
-      h1 {
-        font-size: 28px;
-        font-weight: 700;
-        color: #1a202c;
-        margin-bottom: 12px;
-      }
-      .subtitle {
-        color: #718096;
-        font-size: 16px;
-        margin-bottom: 32px;
-        line-height: 1.5;
-      }
-      .github-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        background: #24292e;
-        color: white;
-        padding: 14px 32px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-size: 16px;
-        font-weight: 600;
-        transition: all 0.2s;
-        border: none;
-        cursor: pointer;
-        width: 100%;
-      }
-      .github-btn:hover {
-        background: #1a1e22;
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      }
-      .github-icon {
-        width: 24px;
-        height: 24px;
-      }
-      .features {
-        margin-top: 40px;
-        padding-top: 32px;
-        border-top: 1px solid #e2e8f0;
-        text-align: left;
-      }
-      .feature {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 16px;
-        color: #4a5568;
-        font-size: 14px;
-      }
-      .feature-icon {
-        flex-shrink: 0;
-        margin-top: 2px;
-      }
-      .footer {
-        margin-top: 32px;
-        color: #a0aec0;
-        font-size: 13px;
-      }
-      .footer a {
-        color: #667eea;
-        text-decoration: none;
-      }
-      .footer a:hover {
-        text-decoration: underline;
-      }
+        body {
+            background-color: #050505;
+            color: #E2E8F0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: var(--tw-backgroundImage-grid-pattern);
+            background-size: 60px 60px;
+            z-index: -2;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+            -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+            opacity: 0.6;
+        }
     </style>
-  </head>
-  <body>
-    <div class="login-container">
-      <div class="logo">🤖</div>
-      <h1>Welcome to Peer</h1>
-      <p class="subtitle">
-        AI-powered code review and automated fixes for your GitHub repositories
-      </p>
-      
-      <a href="/auth/github" class="github-btn">
-        <svg class="github-icon" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-        </svg>
-        Sign in with GitHub
-      </a>
-      
-      <div class="features">
-        <div class="feature">
-          <span class="feature-icon">✨</span>
-          <div>Automatic code analysis on every PR</div>
+</head>
+<body class="selection:bg-brand-primary selection:text-black min-h-screen flex items-center justify-center relative overflow-hidden">
+
+    <!-- Background -->
+    <div class="grid-bg"></div>
+    
+    <!-- Ambient Glow -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-primary/5 blur-[100px] rounded-full pointer-events-none"></div>
+
+    <!-- Login Card -->
+    <div class="w-full max-w-md p-8 relative z-10">
+        <!-- Card Container -->
+        <div class="bg-[#0A0A0A] border border-[#1F1F1F] rounded-2xl shadow-2xl p-10 text-center relative overflow-hidden group hover:border-white/10 transition-colors duration-300">
+            
+            <!-- Top Gradient Line -->
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-primary/50 to-transparent opacity-50"></div>
+
+            <!-- Logo -->
+            <div class="mb-8 flex justify-center">
+                <a href="/" class="block hover:scale-105 transition-transform duration-300">
+                    <img src="/7dfd4e47-c1f2-4bd9-af7a-cb7d54b2e772.jpg-output.png" alt="PRQueue" class="w-32 h-32 object-contain mx-auto">
+                </a>
+            </div>
+
+            <h1 class="text-2xl font-bold text-white mb-2">Welcome Back</h1>
+            <p class="text-gray-400 text-sm mb-10">Sign in to manage your autonomous code reviews.</p>
+
+            <!-- Login Button -->
+            <a href="/auth/github" class="group flex items-center justify-center gap-3 bg-white text-black w-full py-4 rounded-xl font-bold text-sm hover:bg-[#00FF94] transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,255,148,0.4)] hover:-translate-y-1">
+                <i class="fa-brands fa-github text-xl"></i>
+                <span class="group-hover:tracking-wide transition-all">Login with GitHub</span>
+            </a>
+
+            <!-- Footer Links -->
+            <div class="mt-8 pt-8 border-t border-white/5 text-xs text-gray-500 flex justify-between items-center">
+                <a href="/" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-500 hover:text-white transition-all">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Home
+                </a>
+                <div class="flex gap-4">
+                    <a href="/terms" class="hover:text-white transition-colors">Terms</a>
+                    <a href="/privacy" class="hover:text-white transition-colors">Privacy</a>
+                </div>
+            </div>
         </div>
-        <div class="feature">
-          <span class="feature-icon">🔧</span>
-          <div>AI-powered fixes for detected issues</div>
+        
+        <!-- Copyright -->
+        <div class="text-center mt-8 text-xs text-gray-600">
+            &copy; 2026 PRQueue Inc. All rights reserved.
         </div>
-        <div class="feature">
-          <span class="feature-icon">🚀</span>
-          <div>Configure auto-commit and auto-merge rules</div>
-        </div>
-        <div class="feature">
-          <span class="feature-icon">🔐</span>
-          <div>Secure OAuth - we never see your password</div>
-        </div>
-      </div>
-      
-      <div class="footer">
-        By signing in, you agree to our terms of service.
-      </div>
     </div>
-  </body>
+
+</body>
 </html>

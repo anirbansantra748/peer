@@ -146,8 +146,14 @@ app.post('/api/onboarding/complete', requireAuth, async (req, res) => {
 });
 
 // Protected routes
-app.get('/', requireAuth, async (req, res) => {
-  // Check if user needs onboarding
+// Root route - Serve Landing Page for guests, Dashboard for users
+app.get('/', async (req, res) => {
+  // If not authenticated, show Landing Page
+  if (!req.isAuthenticated()) {
+    return res.render('landing');
+  }
+
+  // If authenticated but onboarding not complete, redirect
   if (!req.user.onboardingComplete) {
     return res.redirect('/onboarding');
   }
@@ -829,6 +835,57 @@ app.get('/audits', requireAuth, async (req, res) => {
       audits: [],
       repoGroups: {}
     });
+  }
+});
+
+app.get('/landing', redirectIfAuthenticated, (req, res) => {
+  res.render('landing', { title: 'Peer - AI Code Review' });
+});
+
+app.get('/', async (req, res) => {
+  if (req.isAuthenticated()) {
+    try {
+      const Installation = require('../../shared/models/Installation');
+      const AuditLog = require('../../shared/models/AuditLog'); // Assuming AuditLog model exists
+      if (!req.user || !req.user.githubId) {
+        return res.redirect('/login');
+      }
+
+      // Fetch installations for the user
+      const installations = await Installation.find({
+        'account.id': parseInt(req.user.githubId)
+      });
+
+      // Calculate dashboard stats
+      const totalRepos = installations.reduce((acc, inst) => acc + (inst.repositories ? inst.repositories.length : 0), 0);
+      const activeInstalls = installations.length;
+
+      // Get recent audits for the user's installations
+      const installationIds = installations.map(i => i.installationId);
+      const recentActivity = await AuditLog.find({
+        installationId: { $in: installationIds }
+      })
+        .sort({ timestamp: -1 })
+        .limit(5)
+        .lean();
+
+      res.render('dashboard', {
+        title: 'Dashboard',
+        user: req.user,
+        stats: {
+          totalRepos,
+          activeInstalls,
+          issuesFixed: 0, // Placeholder
+          successRate: 100 // Placeholder
+        },
+        recentActivity
+      });
+    } catch (error) {
+      console.error('Dashboard error:', error);
+      res.status(500).render('error', { message: 'Failed to load dashboard' });
+    }
+  } else {
+    res.redirect('/landing');
   }
 });
 

@@ -1,370 +1,132 @@
 # 🤖 Peer - AI-Powered Code Review Platform
 
-> Automated Pull Request analysis and auto-fixing using AI/LLM with GitHub App integration
+> **Your 24/7 AI Pair Programmer.** Automated Pull Request analysis, intelligent auto-fixes, and security auditing—integrated directly into your GitHub workflow.
 
 [![Live Demo](https://img.shields.io/badge/demo-live-green)](https://peer-ui.onrender.com)
-[![API Status](https://img.shields.io/badge/API-operational-success)](https://peer-apii.onrender.com/health)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## 🎯 Overview
+---
 
-**Peer** is an enterprise-grade automated code review platform that integrates with GitHub via webhooks to analyze pull requests in real-time. It combines static analysis, security scanning, and AI-powered suggestions to provide comprehensive code quality insights and automated fixes.
+## 🌟 Why Peer?
 
-### Key Features
+Peer isn't just a linter; it's an intelligent code review agent that understands context. While other tools just find bugs, **Peer fixes them.**
 
-- ⚡ **Real-time PR Analysis** - Instant webhook-triggered code reviews
-- 🔍 **Multi-Analyzer Engine** - ESLint, Semgrep, Bandit, PMD, Checkov, npm audit, and more
-- 🤖 **AI Auto-Fix** - LLM-powered automatic code fixes with intelligent reasoning
-- 🔐 **GitHub App Integration** - Secure OAuth and installation management
-- 📊 **Dashboard & Analytics** - Track code quality metrics across repositories
-- 🔄 **Auto-Merge** - Configurable automatic PR merging with approval workflows
-- 💳 **Subscription Management** - Integrated Razorpay payment system
-- 🚀 **Microservices Architecture** - Scalable, distributed system design
+| Feature | Standard Linters | Peer AI |
+| :--- | :---: | :---: |
+| **Context Awareness** | ❌ Line-by-line only | ✅ Full file & cross-file context |
+| **Auto-Fixing** | ⚠️ Basic formatting only | ✅ Complex logic & security fixes |
+| ** Workflow** | ❌ Manual review required | ✅ Auto-commit & Auto-merge options |
+| **Security** | ⚠️ Static rules only | ✅ AI-driven vulnerability detection |
 
 ---
 
-## 🏗️ Architecture
+## 🚀 Key Features
 
-### System Design
+### 1. Intelligent Analysis Engine
+Peer listens to your Pull Requests events in real-time. As soon as a PR is opened or updated, Peer:
+- **Clones & Analyzes**: Scans code using industry-standard tools (ESLint, Semgrep, Bandit, etc.).
+- **Categorizes Findings**: Groups issues by severity (Critical, High, Medium, Low).
+- **AI Verification**: Uses LLMs (GPT-4, Gemini, Groq) to verify findings and reduce false positives.
 
-```
-┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│   GitHub    │─────▶│  API Server  │─────▶│   Redis     │
-│  Webhooks   │      │   (Express)  │      │  (Queue)    │
-└─────────────┘      └──────────────┘      └─────────────┘
-                             │                     │
-                             ▼                     ▼
-                     ┌──────────────┐      ┌─────────────┐
-                     │   MongoDB    │      │  Workers    │
-                     │  (Database)  │      │  (BullMQ)   │
-                     └──────────────┘      └─────────────┘
-                                                   │
-                           ┌───────────────────────┼───────────────────────┐
-                           ▼                       ▼                       ▼
-                    ┌────────────┐         ┌────────────┐         ┌────────────┐
-                    │  Analyzer  │         │  Autofix   │         │  DepScan   │
-                    │   Worker   │         │   Worker   │         │   Worker   │
-                    └────────────┘         └────────────┘         └────────────┘
-```
+### 2. Recursive Auto-Fixing
+Don't just see the error—fix it.
+- **Auto-Generated Commits**: Peer can push fixes directly to your PR branch.
+- **Smart Context**: Understands relevant code dependencies to prevent breaking changes.
+- **Human-in-the-Loop**: Choose to review fixes first or let Peer handle routine cleanups automatically.
 
-### Microservices
-
-| Service | Purpose | Technology |
-|---------|---------|------------|
-| **API** | Webhook handling, authentication, REST API | Express.js, Passport.js |
-| **Analyzer** | Static analysis, code quality checks | ESLint, Semgrep, PMD, Bandit |
-| **Autofix** | AI-powered code fixing | OpenAI, Groq, Gemini APIs |
-| **DepScan** | Dependency & IaC vulnerability scanning | npm audit, pip-audit, Checkov |
-| **UI** | Dashboard, PR views, analytics | EJS, Express, Chart.js |
+### 3. Comprehensive Audit Logs
+Track every action Peer takes.
+- **Detailed History**: View every PR analyzed, every issue found, and every token consumed.
+- **Trend Analysis**: Visualize your "Fix Rate" and "Success Rate" over time.
+- **Repo Insights**: See which repositories have the most quality issues.
 
 ---
 
-## 🛠️ Tech Stack
+## ⚙️ Configuration & Settings
 
-### Backend
-- **Runtime:** Node.js 22.x
-- **Framework:** Express.js 5.x
-- **Database:** MongoDB (Mongoose ODM)
-- **Queue:** Redis + BullMQ
-- **Authentication:** Passport.js + GitHub OAuth
-- **GitHub Integration:** @octokit/rest, @octokit/auth-app
+Peer puts you in complete control. Customize the behavior for each installation via the **Settings** dashboard.
 
-### AI/LLM Integration
-- **OpenAI GPT-4**
-- **Groq (Mixtral, Llama)**
-- **Google Gemini**
-- Intelligent fallback system with token tracking
+### 🧠 Processing Modes
+Choose how autonomous you want Peer to be:
 
-### DevOps & Infrastructure
-- **Hosting:** Render.com (4 independent services)
-- **CI/CD:** GitHub Actions
-- **Containerization:** Docker
-- **Monitoring:** Health checks, uptime monitoring
+- **🛡️ User Selection (Review Mode)** `SAFE`
+    - Peer analyzes code and reports findings in the UI.
+    - **You** select specific issues to fix.
+    - *Best for: New users, critical production repos.*
 
-### Static Analysis Tools
-- ESLint (JavaScript/TypeScript)
-- Semgrep (Multi-language security)
-- Bandit (Python security)
-- PMD (Java code quality)
-- Checkov (IaC security)
-- Hadolint (Dockerfile linting)
+- **⚡ Auto-Commit** `REQUIRES APPROVAL`
+    - Peer automatically generates fixes and commits them to the PR.
+    - It does **not** merge the PR.
+    - *Best for: Speeding up development cycles.*
 
----
+- **🔥 Full Auto-Merge** `DANGEROUS`
+    - Peer fixes issues and **automatically merges** the PR if tests pass.
+    - *Best for: Dependabot PRs, minor style fixes, or high-trust test environments.*
 
-## 🚀 Features Deep Dive
+### 🎚️ Severity Filters
+Decide what matters to you. Filter noise by selecting which issues to act on:
+- **🔴 Critical**: Security vulnerabilities, potential data loss.
+- **🟡 High**: Major bugs, performance bottlenecks.
+- **🔵 Medium**: Code quality, maintainability issues.
+- **⚪ Low**: Style guide violations, minor suggestions.
 
-### 1. Intelligent Code Analysis
-
-**Multi-layer analysis pipeline:**
-```
-PR Event → Clone Repo → Language Detection → Parallel Analyzers → Findings Aggregation
-```
-
-- **Static Analysis:** Detects style violations, logic errors, security issues
-- **Complexity Analysis:** Cyclomatic complexity, maintainability index
-- **Security Scanning:** SQL injection, XSS, hardcoded secrets detection
-- **Best Practices:** Framework-specific recommendations
-
-**Supported Languages:**
-- JavaScript/TypeScript (ESLint, Semgrep)
-- Python (Bandit, Pylint, Semgrep)
-- Java (PMD, Semgrep)
-- Dockerfile (Hadolint)
-- YAML/JSON (Checkov, schema validation)
-
-### 2. AI-Powered Auto-Fix
-
-**Workflow:**
-```
-Findings → AI Context Building → LLM Reasoning → Code Generation → Syntax Validation → Git Operations
-```
-
-**Features:**
-- Full-file AI rewrites or minimal patches
-- Multi-file fix coordination
-- Checksum verification to prevent conflicts
-- Automatic branch creation and PR submission
-- Configurable auto-merge with approval workflows
-
-**LLM Strategy:**
-- `minimal`: Line-by-line patches for targeted fixes
-- `full`: Complete file rewrites with context understanding
-- Token budget management per user
-- Response caching for performance
-
-### 3. GitHub App Integration
-
-**Capabilities:**
-- Real-time webhook event processing (PR opened, synchronized, closed)
-- Installation token management for secure API calls
-- Automated PR comments with analysis summaries
-- Status checks integration
-- Repository configuration per installation
-
-**Modes:**
-- `comment-only`: Post findings as PR comments
-- `commit`: Create fix branches and PRs
-- `merge`: Auto-merge fixes after validation
-
-### 4. User Management & Subscriptions
-
-**Tiers:**
-- **Free:** 1,000 tokens/month, basic analysis
-- **Pro:** 10,000 tokens/month, priority processing
-- **Enterprise:** Unlimited tokens, dedicated support
-
-**Features:**
-- GitHub OAuth authentication
-- Razorpay payment integration
-- Token usage tracking
-- Custom API key support (BYOK)
-- Email notifications
+### 🤖 Auto-Merge Safeguards
+Even in automation, safety comes first.
+- **Require Tests**: Auto-merge will *only* trigger if your CI/CD tests pass.
+- **Required Approvals**: Set a minimum number of human reviews before Peer can merge (e.g., "Require 1 human approval").
 
 ---
 
-## 📦 Installation & Setup
+## 🔔 Notifications
 
-### Prerequisites
-```bash
-Node.js >= 18.x
-MongoDB >= 5.x
-Redis >= 6.x
-Docker (optional, for local dev)
-```
+Stay in the loop without the noise. Configure your preferences at `/notification-preferences`.
 
-### Local Development
-
-1. **Clone repository:**
-```bash
-git clone https://github.com/anirbansantra748/peer.git
-cd peer
-```
-
-2. **Install dependencies:**
-```bash
-npm install
-```
-
-3. **Set up environment variables:**
-```bash
-cp .env.example .env
-# Edit .env with your credentials
-```
-
-4. **Start infrastructure (Docker):**
-```bash
-npm run dev:infra
-```
-
-5. **Run services:**
-```bash
-# Terminal 1 - API
-npm run dev:api
-
-# Terminal 2 - Analyzer
-npm run dev:analyzer
-
-# Terminal 3 - Autofix
-npm run dev:autofix
-
-# Terminal 4 - UI
-npm run dev:ui
-```
-
-### Environment Variables
-
-```env
-# Database
-MONGO_URI=mongodb://localhost:27017/peer
-REDIS_URL=redis://localhost:6379
-
-# GitHub App
-GITHUB_APP_ID=your_app_id
-GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n..."
-GITHUB_CLIENT_ID=your_client_id
-GITHUB_CLIENT_SECRET=your_client_secret
-
-# LLM APIs (at least one required)
-OPENAI_API_KEY=sk-...
-GROQ_API_KEY=gsk_...
-GEMINI_API_KEY=AIza...
-
-# Security
-SESSION_SECRET=your_random_secret
-ENCRYPTION_KEY=32_char_random_string
-
-# Payment (optional)
-RAZORPAY_KEY_ID=rzp_...
-RAZORPAY_KEY_SECRET=...
-
-# Deployment
-NODE_ENV=production
-API_BASE=https://your-api.onrender.com
-UI_BASE=https://your-ui.onrender.com
-```
+- **📧 Email Notifications**: Get summaries of completed runs.
+- **💬 PR Comments**: Let Peer comment directly on your PRs with insights.
+- **🛠️ Auto-Fix Updates**: Get notified when Peer pushes a fix commit.
+- **📅 Weekly Digest**: A summary of your team's code quality trends delivered every Monday.
 
 ---
 
-## 🔧 API Endpoints
+## 📦 Installation & Getting Started
 
-### Public Endpoints
-```
-GET  /health                    - Health check
-POST /webhook/github-app        - GitHub App webhook receiver
-GET  /auth/github               - GitHub OAuth login
-GET  /auth/github/callback      - OAuth callback
-```
+### 1. Sign In
+Visit the [Peer Dashboard](https://peer-ui.onrender.com) and sign in with your GitHub account. We use secure OAuth—we never see your password.
 
-### Authenticated Endpoints
-```
-GET  /api/dashboard             - User dashboard data
-GET  /api/runs                  - List PR analysis runs
-GET  /api/runs/:id              - Get specific run details
-POST /api/patch-requests        - Create manual fix request
-GET  /api/installations         - List GitHub installations
-POST /api/payment/create-order  - Create payment order
-```
+### 2. Install the GitHub App
+Click **"Add More Repositories"** in the sidebar. You'll be redirected to GitHub to select which repositories Peer can access.
+- *Select "All Repositories" for effortless onboarding.*
+- *Select specific repositories for granular control.*
+
+### 3. Configure Your Repo
+Once installed, click **"Configure"** on any installation in the dashboard to set your Processing Mode and Severity Filters.
+
+### 4. Open a Pull Request!
+That's it! Open a PR in any connected repository. Peer will automatically pick it up, analyze it, and report back in seconds.
 
 ---
 
-## 📊 Performance & Scalability
+## 🛡️ Security & Privacy
 
-### Optimizations
-- **Caching:** Redis-based LLM response caching (24h TTL)
-- **Queue:** BullMQ with priority scheduling and concurrency control
-- **Database:** MongoDB indexes on frequently queried fields
-- **Parallel Processing:** Concurrent analyzer execution
-- **Token Budget:** Configurable time/token limits per analysis
-
-### Metrics
-- Average analysis time: **15-45 seconds** (depends on PR size)
-- Auto-fix generation: **5-20 seconds** per file
-- Webhook response time: **< 500ms**
-- Concurrent job processing: **Up to 5 workers** per service
-
-### Scalability
-- Horizontal scaling via multiple worker instances
-- Stateless API design for load balancing
-- Distributed queue with Redis
-- MongoDB replica sets support
+We treat your code with the highest level of security.
+- **Ephemeral Clones**: We clone your code for analysis and delete it immediately after.
+- **Encrypted Keys**: All API keys and tokens are encrypted at rest using AES-256.
+- ** Least Privilege**: Our GitHub App requests only the permissions strictly necessary for analysis.
 
 ---
 
-## 🔐 Security
+## 🛠️ Tech Stack & Architecture
 
-- ✅ GitHub webhook signature verification
-- ✅ Encrypted API keys in database (AES-256)
-- ✅ GitHub App installation tokens (auto-expiring)
-- ✅ Rate limiting on API endpoints
-- ✅ Session-based authentication with secure cookies
-- ✅ Input validation and sanitization
-- ✅ No secrets in logs or error messages
-
----
-
-## 📈 Monitoring & Logging
-
-### Health Checks
-All services expose `/health` endpoints for uptime monitoring.
-
-### Logging
-- Structured logging with `prettyLogger`
-- Request ID tracking across microservices
-- Error tracking with stack traces
-- Performance metrics (job duration, queue depth)
-
-### Alerts
-- Email notifications for:
-  - Analysis completion
-  - Fix approval required
-  - Token limit exceeded
-  - Payment failures
+Built for scale and performance.
+- **Frontend**: Express.js + EJS (Server-side rendering)
+- **Backend**: Microservices (API, Analyzer, Autofix, DepScan)
+- **Queue**: Redis + BullMQ for asynchronous job processing
+- **Database**: MongoDB for persistent findings and user data
+- **Hosting**: Render.com (Dockerized services)
 
 ---
 
-## 🧪 Testing
-
-```bash
-# Run tests
-npm test
-
-# Lint code
-npm run lint
-
-# Test webhook locally
-curl -X POST http://localhost:3001/webhook/github-app \
-  -H "Content-Type: application/json" \
-  -d @test-webhook-payload.json
-```
-
----
-
-## 📝 Workflow Example
-
-1. **Developer opens PR** on GitHub
-2. **GitHub webhook** triggers Peer API
-3. **Analyzer worker** clones repo and runs analysis
-4. **Findings** saved to MongoDB, categorized by severity
-5. **Autofix worker** generates AI-powered fixes
-6. **New PR** created with fixes (if mode=commit/merge)
-7. **Notification** sent to user via email
-8. **Dashboard** updated with metrics and stats
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-## 👨‍💻 Author
+## 👨‍💻 Developer
 
 **Anirban Santra**
 - GitHub: [@anirbansantra748](https://github.com/anirbansantra748)
@@ -372,20 +134,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🔗 Links
-
-- **Live Demo:** [https://peer-ui.onrender.com](https://peer-ui.onrender.com)
-- **API:** [https://peer-apii.onrender.com](https://peer-apii.onrender.com)
-- **Documentation:** [/docs](./docs)
-
----
-
-## 🙏 Acknowledgments
-
-- OpenAI, Groq, Google for LLM APIs
-- GitHub for robust API and App platform
-- Open source analyzer tools (ESLint, Semgrep, etc.)
-
----
-
-**⭐ If you find this project useful, please star it on GitHub!**
+**[Peer](https://peer-ui.onrender.com) — Code cleaner, ship faster.**
